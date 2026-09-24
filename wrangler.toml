@@ -1,0 +1,46 @@
+name = "coeka-portal"
+main = "src/api/index.ts"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Static Assets (React SPA output)
+assets = { directory = "./dist" }
+
+# Route mappings for COEKA
+routes = [
+  { pattern = "portal.coekatsinaala.edu.ng/*", zone_name = "coekatsinaala.edu.ng" }
+]
+
+# 1. Cloudflare D1 SQL Database Binding
+[[d1_databases]]
+binding = "DB"
+database_name = "coeka-production-db"
+database_id = "coeka-d1-prod-001"
+
+# 2. Cloudflare KV Bindings
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "coeka-kv-sessions-prod"
+
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "coeka-kv-ratelimit-prod"
+
+# 3. Cloudflare R2 Object Storage Binding
+[[r2_buckets]]
+binding = "DOCUMENTS_BUCKET"
+bucket_name = "coeka-document-lake"
+
+# 4. Cloudflare Queue Producer/Consumer Bindings
+[[queues.producers]]
+queue = "coeka-async-queue"
+binding = "ASYNC_QUEUE"
+
+[[queues.consumers]]
+queue = "coeka-async-queue"
+max_batch_size = 20
+max_batch_timeout = 10
+max_retries = 5
+
+[triggers]
+crons = ["*/15 * * * *", "0 1 * * *"]
