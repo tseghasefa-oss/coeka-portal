@@ -40,6 +40,7 @@ import {
   useParentWards,
   useAdmissionsScreening,
 } from './hooks/usePortalData';
+import { AdminLayout } from './components/admin/AdminLayout';
 
 export default function App() {
   // Global Client State via Zustand
@@ -51,7 +52,26 @@ export default function App() {
     activeWardId,
     setActiveWardId,
     userSession,
+    setUserSession,
   } = useAppStore();
+
+  // Guard Admin Route: If user is not SUPER_ADMIN, redirect to homepage
+  useEffect(() => {
+    if (activeTab === 'admin' && userSession?.role !== 'SUPER_ADMIN') {
+      setActiveTab('website');
+    }
+  }, [activeTab, userSession?.role, setActiveTab]);
+
+  // Support /admin URL path on page load
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
+      if (userSession?.role === 'SUPER_ADMIN') {
+        setActiveTab('admin');
+      } else {
+        setActiveTab('website');
+      }
+    }
+  }, [userSession?.role, setActiveTab]);
 
   // Server State via TanStack React Query
   const { data: invoices, isLoading: invoicesLoading } = useInvoices();
@@ -139,6 +159,11 @@ export default function App() {
     );
   };
 
+  // Render guarded full Master Admin shell if activeTab === 'admin' and user is SUPER_ADMIN
+  if (activeTab === 'admin' && userSession?.role === 'SUPER_ADMIN') {
+    return <AdminLayout />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       {/* Top Banner & Header */}
@@ -172,7 +197,7 @@ export default function App() {
                 { id: 'hostels', label: 'Hostels', icon: Building },
                 { id: 'staff', label: 'Staff Hub', icon: Users },
                 { id: 'parent', label: 'Parent Portal', icon: Heart },
-                { id: 'admin', label: 'KPIs', icon: Layers },
+                { id: 'admin', label: 'Master Admin', icon: Layers },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -193,8 +218,46 @@ export default function App() {
               })}
             </nav>
 
-            {/* User Session Quick Badge */}
+            {/* User Session Quick Badge & Role Switcher */}
             <div className="flex items-center space-x-3">
+              <select
+                value={userSession?.role || 'STUDENT'}
+                onChange={(e) => {
+                  const newRole = e.target.value as any;
+                  if (newRole === 'SUPER_ADMIN') {
+                    setUserSession({
+                      username: 'COEKA/ADM/001',
+                      fullName: 'Engr. Prof. S. L. Tsegha',
+                      role: 'SUPER_ADMIN',
+                      division: 'NCE',
+                      token: 'jwt-coeka-admin-token',
+                    });
+                  } else if (newRole === 'STAFF') {
+                    setUserSession({
+                      username: 'COEKA/STF/2026/001',
+                      fullName: 'Dr. Olufemi Adeyemi',
+                      role: 'STAFF',
+                      division: 'NCE',
+                      token: 'jwt-coeka-staff-token',
+                    });
+                  } else {
+                    setUserSession({
+                      username: 'COEKA/2026/NCE/084',
+                      fullName: 'Aondoaver Moses Iorliam',
+                      role: 'STUDENT',
+                      division: 'NCE',
+                      token: 'jwt-coeka-student-token',
+                    });
+                  }
+                }}
+                className="text-xs bg-emerald-800/90 border border-emerald-700 text-amber-300 font-bold rounded-lg px-2.5 py-1.5 focus:outline-none cursor-pointer"
+                title="Switch User Role Context (Demo RBAC)"
+              >
+                <option value="STUDENT">Student View</option>
+                <option value="STAFF">Lecturer View</option>
+                <option value="SUPER_ADMIN">Super Admin View</option>
+              </select>
+
               <div className="hidden sm:flex flex-col text-right">
                 <span className="text-xs font-semibold text-white">{userSession?.fullName || 'Moses Iorliam'}</span>
                 <span className="text-[11px] text-amber-300 font-mono">{userSession?.username || 'COEKA/2026/NCE/084'}</span>
@@ -217,7 +280,7 @@ export default function App() {
             { id: 'hostels', label: 'Hostels' },
             { id: 'staff', label: 'Staff' },
             { id: 'parent', label: 'Parent' },
-            { id: 'admin', label: 'KPIs' },
+            { id: 'admin', label: 'Master Admin' },
           ].map((tab) => (
             <button
               key={tab.id}

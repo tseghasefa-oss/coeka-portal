@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 
 export type SchoolDivision = 'NCE' | 'DEGREE' | 'SECONDARY' | 'PRIMARY';
-export type UserRole = 'STUDENT' | 'STAFF' | 'PARENT' | 'BURSARY' | 'ADMIN';
+export type UserRole = 'STUDENT' | 'STAFF' | 'PARENT' | 'BURSARY' | 'ADMIN' | 'SUPER_ADMIN';
 export type ActiveTab = 'website' | 'admissions' | 'sims' | 'finance' | 'results' | 'hostels' | 'staff' | 'parent' | 'admin';
+export type AdminTab = 'courses' | 'fees' | 'users' | 'settings';
 
 export interface UserSession {
   username: string;
@@ -22,6 +23,10 @@ export interface AppState {
   // Navigation & Routing State
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
+
+  // Master Admin Area Sub-Navigation State
+  adminTab: AdminTab;
+  setAdminTab: (tab: AdminTab) => void;
 
   // Active Institutional Division State
   activeDivision: SchoolDivision;
@@ -46,6 +51,9 @@ export interface AppState {
 export const useAppStore = create<AppState>((set) => ({
   activeTab: 'website',
   setActiveTab: (activeTab) => set({ activeTab }),
+
+  adminTab: 'courses',
+  setAdminTab: (adminTab) => set({ adminTab, activeTab: 'admin' }),
 
   activeDivision: 'NCE',
   setActiveDivision: (activeDivision) => set({ activeDivision }),
