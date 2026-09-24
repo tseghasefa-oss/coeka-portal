@@ -1,8 +1,13 @@
+import { drizzle } from 'drizzle-orm/d1';
+import * as schema from './schema/index';
 import { Env } from '../types/env';
 
-export interface DatabaseQueryOptions {
-  limit?: number;
-  offset?: number;
+export { schema };
+
+export type DrizzleD1Database = ReturnType<typeof createDrizzleD1>;
+
+export function createDrizzleD1(d1: D1Database) {
+  return drizzle(d1, { schema });
 }
 
 export class D1Client {
@@ -10,6 +15,10 @@ export class D1Client {
 
   constructor(db: D1Database) {
     this.db = db;
+  }
+
+  get drizzle() {
+    return createDrizzleD1(this.db);
   }
 
   async query<T = any>(sql: string, params: any[] = []): Promise<T[]> {

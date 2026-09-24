@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { Env } from '../../types/env';
 import { HostelAllocationEngine, BedspaceReservationState } from '../../services/hostels/allocationEngine';
+import { getContainer } from '../../infrastructure/container';
 
 export const hostelRoutes = new Hono<{ Bindings: Env }>();
 
@@ -13,7 +14,18 @@ const bedspacesDb: Record<string, BedspaceReservationState> = {
 };
 
 hostelRoutes.get('/rooms', async (c) => {
+  const container = getContainer(c.env);
   const now = Math.floor(Date.now() / 1000);
+
+  // Sync with cache provider if available
+  for (const bed of Object.values(bedspacesDb)) {
+    const cachedLock = await container.cache.get<number>(`bedlock:${bed.bedspaceId}`);
+    if (cachedLock && cachedLock > now) {
+      bed.reservedUntil = cachedLock;
+    } else if (bed.reservedUntil && bed.reservedUntil <= now) {
+      bed.reservedUntil = null;
+    }
+  }
 
   const rooms = [
     {
@@ -37,6 +49,7 @@ hostelRoutes.get('/rooms', async (c) => {
 });
 
 hostelRoutes.post('/reserve', async (c) => {
+  const container = getContainer(c.env);
   const body = await c.req.json();
   const { bedspaceId } = body;
   const now = Math.floor(Date.now() / 1000);
@@ -46,6 +59,12 @@ hostelRoutes.post('/reserve', async (c) => {
     return c.json({ error: 'Bedspace not found' }, 404);
   }
 
+  // Check cache lock
+  const cachedLock = await container.cache.get<number>(`bedlock:${bedspaceId}`);
+  if (cachedLock && cachedLock > now) {
+    bed.reservedUntil = cachedLock;
+  }
+
   const result = HostelAllocationEngine.acquireReservationLock(bed, now);
 
   if (!result.success) {
@@ -53,6 +72,9 @@ hostelRoutes.post('/reserve', async (c) => {
   }
 
   bed.reservedUntil = result.newReservedUntil;
+  if (result.newReservedUntil) {
+    await container.cache.set(`bedlock:${bedspaceId}`, result.newReservedUntil, 900);
+  }
 
   return c.json({
     message: result.message,
@@ -61,3 +83,4 @@ hostelRoutes.post('/reserve', async (c) => {
     lockDurationSeconds: 900,
   });
 });
+

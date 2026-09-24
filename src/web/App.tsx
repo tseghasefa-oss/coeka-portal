@@ -30,11 +30,38 @@ import { LedgerEngine } from '../services/finance/ledgerEngine';
 import { GradingPolicyEngine } from '../services/academic/gradingPolicyEngine';
 import { ResultComputer } from '../services/academic/resultComputer';
 import { ScreeningEngine } from '../services/admissions/screeningEngine';
-
-type ActiveTab = 'website' | 'admissions' | 'sims' | 'finance' | 'results' | 'hostels' | 'staff' | 'parent' | 'admin';
+import { useAppStore, SchoolDivision, ActiveTab } from './stores/useAppStore';
+import {
+  useInvoices,
+  useVirtualAccount,
+  useHostelRooms,
+  useReserveBedspace,
+  useStudentResult,
+  useParentWards,
+  useAdmissionsScreening,
+} from './hooks/usePortalData';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('website');
+  // Global Client State via Zustand
+  const {
+    activeTab,
+    setActiveTab,
+    activeDivision,
+    setActiveDivision,
+    activeWardId,
+    setActiveWardId,
+    userSession,
+  } = useAppStore();
+
+  // Server State via TanStack React Query
+  const { data: invoices, isLoading: invoicesLoading } = useInvoices();
+  const { data: virtualAccount } = useVirtualAccount();
+  const { data: hostelRooms, isLoading: hostelsLoading } = useHostelRooms();
+  const reserveBedspaceMutation = useReserveBedspace();
+  const { data: studentResult } = useStudentResult(activeDivision);
+  const { data: parentData } = useParentWards();
+  const admissionsMutation = useAdmissionsScreening();
+
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [selectedGateway, setSelectedGateway] = useState<'VPAY' | 'PAYSTACK' | 'REMITA_BSCPP'>('VPAY');
   const [hostelReserved, setHostelReserved] = useState(false);
@@ -70,9 +97,6 @@ export default function App() {
   ]);
   const [scoreSubmitted, setScoreSubmitted] = useState(false);
 
-  // Parent Portal State
-  const [selectedWard, setSelectedWard] = useState<'std-001' | 'std-002' | 'std-003'>('std-001');
-
   // Timer countdown simulation
   useEffect(() => {
     let interval: any;
@@ -90,24 +114,29 @@ export default function App() {
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
-    const evaluation = ScreeningEngine.evaluateApplication({
-      division: applicantDivision,
-      jambScore: applicantJamb,
-      departmentCutOff: applicantDivision === 'DEGREE' ? 140 : 100,
-      oLevelSubjects: [
-        { subject: 'English Language', grade: 'C4' },
-        { subject: 'Mathematics', grade: 'C5' },
-        { subject: 'Biology', grade: 'B3' },
-        { subject: 'Chemistry', grade: 'C6' },
-        { subject: 'Physics', grade: 'B2' },
-      ],
-    });
-
-    setAdmissionOffer({
-      applicationNumber: `COEKA/${applicantDivision}/2026/${Math.floor(1000 + Math.random() * 9000)}`,
-      isEligible: evaluation.isEligible,
-      reason: evaluation.reason,
-    });
+    admissionsMutation.mutate(
+      {
+        division: applicantDivision,
+        jambScore: applicantJamb,
+        departmentCutOff: applicantDivision === 'DEGREE' ? 140 : 100,
+        oLevelSubjects: [
+          { subject: 'English Language', grade: 'C4' },
+          { subject: 'Mathematics', grade: 'C5' },
+          { subject: 'Biology', grade: 'B3' },
+          { subject: 'Chemistry', grade: 'C6' },
+          { subject: 'Physics', grade: 'B2' },
+        ],
+      },
+      {
+        onSuccess: (evaluation) => {
+          setAdmissionOffer({
+            applicationNumber: `COEKA/${applicantDivision}/2026/${Math.floor(1000 + Math.random() * 9000)}`,
+            isEligible: evaluation.isEligible,
+            reason: evaluation.reason,
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -167,11 +196,11 @@ export default function App() {
             {/* User Session Quick Badge */}
             <div className="flex items-center space-x-3">
               <div className="hidden sm:flex flex-col text-right">
-                <span className="text-xs font-semibold text-white">Moses Iorliam</span>
-                <span className="text-[11px] text-amber-300 font-mono">COEKA/2026/NCE/084</span>
+                <span className="text-xs font-semibold text-white">{userSession?.fullName || 'Moses Iorliam'}</span>
+                <span className="text-[11px] text-amber-300 font-mono">{userSession?.username || 'COEKA/2026/NCE/084'}</span>
               </div>
               <div className="w-9 h-9 rounded-full bg-emerald-700 border border-emerald-600 flex items-center justify-center text-amber-300 font-bold text-sm">
-                MI
+                {userSession ? userSession.fullName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'MI'}
               </div>
             </div>
           </div>
@@ -568,41 +597,50 @@ export default function App() {
               </div>
 
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 text-center w-full md:w-auto shrink-0 space-y-1.5">
-                <span className="text-xs text-amber-300 font-semibold block">Wema Bank (COEKA Collection)</span>
+                <span className="text-xs text-amber-300 font-semibold block">{virtualAccount?.bank_name || 'Wema Bank (COEKA Collection)'}</span>
                 <div className="flex items-center justify-center gap-2">
-                  <span className="text-2xl font-mono font-black tracking-wider text-white">9910840184</span>
+                  <span className="text-2xl font-mono font-black tracking-wider text-white">{virtualAccount?.account_number || '9910840184'}</span>
                   <button
-                    onClick={() => handleCopyAccount('9910840184')}
+                    onClick={() => handleCopyAccount(virtualAccount?.account_number || '9910840184')}
                     className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition"
                     title="Copy Account Number"
                   >
                     {copiedAccount ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
-                <span className="text-[11px] text-emerald-200 block font-mono">COEKA - MOSES IORLIAM</span>
+                <span className="text-[11px] text-emerald-200 block font-mono">{virtualAccount?.account_name || 'COEKA - MOSES IORLIAM'}</span>
               </div>
             </div>
 
             <div className="bento-card p-6 space-y-4">
-              <h3 className="text-lg font-bold text-slate-900">Current Session Fee Invoices</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900">Current Session Fee Invoices</h3>
+                {invoicesLoading && <span className="text-xs text-emerald-700 animate-pulse font-medium">Syncing live balances...</span>}
+              </div>
               <div className="divide-y divide-slate-100">
-                {[
+                {(invoices && invoices.length > 0 ? invoices : [
                   {
-                    title: '2026/2027 NCE Tuition & Consolidated Institutional Fees',
+                    id: 'inv-001',
+                    feeTitle: '2026/2027 NCE Tuition & Consolidated Institutional Fees',
                     invoiceNumber: 'INV-2026-COEKA-00184',
-                    amountKobo: 4500000,
+                    amountDueKobo: 4500000,
                     status: 'UNPAID',
                     dueDate: 'Dec 15, 2026',
+                    formattedDue: '₦45,000.00',
                   },
                   {
-                    title: 'Hostel Accommodation (Hall A - Female Bedspace)',
+                    id: 'inv-002',
+                    feeTitle: 'Hostel Accommodation (Hall A - Female Bedspace)',
                     invoiceNumber: 'INV-2026-COEKA-00185',
-                    amountKobo: 2000000,
+                    amountDueKobo: 2000000,
                     status: 'PAID',
                     dueDate: 'Nov 30, 2026',
+                    formattedDue: '₦20,000.00',
                   },
-                ].map((inv) => {
+                ]).map((inv: any) => {
                   const isPaid = inv.status === 'PAID';
+                  const title = inv.feeTitle || inv.title;
+                  const displayAmount = inv.formattedDue || LedgerEngine.koboToNaira(inv.amountDueKobo || inv.amountKobo);
                   return (
                     <div key={inv.invoiceNumber} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
@@ -616,7 +654,7 @@ export default function App() {
                           </span>
                           <span className="text-xs font-mono text-slate-400">{inv.invoiceNumber}</span>
                         </div>
-                        <h4 className="text-sm font-semibold text-slate-900">{inv.title}</h4>
+                        <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
                         <span className="text-xs text-slate-500">Due: {inv.dueDate}</span>
                       </div>
 
@@ -624,7 +662,7 @@ export default function App() {
                         <div className="text-right">
                           <span className="text-xs text-slate-400 block">Total Due:</span>
                           <strong className="text-base font-bold text-slate-900">
-                            {LedgerEngine.koboToNaira(inv.amountKobo)}
+                            {displayAmount}
                           </strong>
                         </div>
 
@@ -668,12 +706,16 @@ export default function App() {
               <div className="flex items-center gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase block font-semibold">Semester GPA</span>
-                  <strong className="text-2xl font-black text-emerald-700">4.83</strong>
+                  <strong className="text-2xl font-black text-emerald-700">
+                    {studentResult?.semester?.gpa !== undefined ? studentResult.semester.gpa.toFixed(2) : '4.83'}
+                  </strong>
                 </div>
                 <div className="h-8 w-px bg-slate-200" />
                 <div>
                   <span className="text-[10px] text-slate-500 uppercase block font-semibold">Academic Standing</span>
-                  <strong className="text-sm font-bold text-slate-900">Distinction</strong>
+                  <strong className="text-sm font-bold text-slate-900">
+                    {studentResult?.cumulative?.academicStanding || 'Distinction'}
+                  </strong>
                 </div>
               </div>
             </div>
@@ -695,26 +737,28 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {[
-                      { code: 'CSC 111', title: 'Intro to Computer Systems', units: 2, ca: 34, exam: 52, total: 86, grade: 'A', point: 5.0 },
-                      { code: 'CSC 112', title: 'Problem Solving & BASIC', units: 3, ca: 30, exam: 48, total: 78, grade: 'A', point: 5.0 },
-                      { code: 'MTH 111', title: 'Algebra & Trigonometry', units: 3, ca: 28, exam: 42, total: 70, grade: 'A', point: 5.0 },
-                      { code: 'EDU 111', title: 'Philosophy of Education', units: 2, ca: 36, exam: 44, total: 80, grade: 'A', point: 5.0 },
-                      { code: 'GSE 111', title: 'General English I', units: 2, ca: 32, exam: 46, total: 78, grade: 'A', point: 5.0 },
-                    ].map((row) => (
-                      <tr key={row.code} className="hover:bg-slate-50/80">
-                        <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{row.code}</td>
-                        <td className="py-2.5 px-3 font-medium text-slate-700">{row.title}</td>
-                        <td className="py-2.5 px-3 text-center font-semibold text-slate-900">{row.units}</td>
-                        <td className="py-2.5 px-3 text-center text-slate-600">{row.ca}</td>
-                        <td className="py-2.5 px-3 text-center text-slate-600">{row.exam}</td>
-                        <td className="py-2.5 px-3 text-center font-bold text-slate-900">{row.total}</td>
+                    {(studentResult?.semester?.courses || [
+                      { courseCode: 'CSC 111', courseTitle: 'Intro to Computer Systems', creditUnits: 2, caScore: 34, examScore: 52, totalScore: 86, letterGrade: 'A', gradePoint: 5.0 },
+                      { courseCode: 'CSC 112', courseTitle: 'Problem Solving & BASIC', creditUnits: 3, caScore: 30, examScore: 48, totalScore: 78, letterGrade: 'A', gradePoint: 5.0 },
+                      { courseCode: 'MTH 111', courseTitle: 'Algebra & Trigonometry', creditUnits: 3, caScore: 28, examScore: 42, totalScore: 70, letterGrade: 'A', gradePoint: 5.0 },
+                      { courseCode: 'EDU 111', courseTitle: 'Philosophy of Education', creditUnits: 2, caScore: 36, examScore: 44, totalScore: 80, letterGrade: 'A', gradePoint: 5.0 },
+                      { courseCode: 'GSE 111', courseTitle: 'General English I', creditUnits: 2, caScore: 32, examScore: 46, totalScore: 78, letterGrade: 'A', gradePoint: 5.0 },
+                    ]).map((row: any) => (
+                      <tr key={row.courseCode || row.code} className="hover:bg-slate-50/80">
+                        <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{row.courseCode || row.code}</td>
+                        <td className="py-2.5 px-3 font-medium text-slate-700">{row.courseTitle || row.title}</td>
+                        <td className="py-2.5 px-3 text-center font-semibold text-slate-900">{row.creditUnits || row.units}</td>
+                        <td className="py-2.5 px-3 text-center text-slate-600">{row.caScore ?? row.ca ?? 30}</td>
+                        <td className="py-2.5 px-3 text-center text-slate-600">{row.examScore ?? row.exam ?? 50}</td>
+                        <td className="py-2.5 px-3 text-center font-bold text-slate-900">{row.totalScore ?? row.total}</td>
                         <td className="py-2.5 px-3 text-center">
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                            {row.grade}
+                            {row.letterGrade || row.grade}
                           </span>
                         </td>
-                        <td className="py-2.5 px-3 text-center font-bold text-emerald-700">{row.point.toFixed(1)}</td>
+                        <td className="py-2.5 px-3 text-center font-bold text-emerald-700">
+                          {Number(row.gradePoint || row.point || 5).toFixed(1)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -753,14 +797,15 @@ export default function App() {
               )}
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-                {[
-                  { id: 'bed-1', name: 'Bed 1 (Lower)', status: hostelReserved ? 'RESERVED' : 'AVAILABLE' },
-                  { id: 'bed-2', name: 'Bed 2 (Upper)', status: 'AVAILABLE' },
-                  { id: 'bed-3', name: 'Bed 3 (Lower)', status: 'OCCUPIED' },
-                  { id: 'bed-4', name: 'Bed 4 (Upper)', status: 'AVAILABLE' },
-                ].map((b) => {
-                  const isAvailable = b.status === 'AVAILABLE';
-                  const isReserved = b.status === 'RESERVED';
+                {(hostelRooms?.[0]?.bedspaces || [
+                  { id: 'bed-1', name: 'Bed 1 (Lower)', status: hostelReserved ? 'RESERVED' : 'AVAILABLE', isAvailable: !hostelReserved },
+                  { id: 'bed-2', name: 'Bed 2 (Upper)', status: 'AVAILABLE', isAvailable: true },
+                  { id: 'bed-3', name: 'Bed 3 (Lower)', status: 'OCCUPIED', isAvailable: false },
+                  { id: 'bed-4', name: 'Bed 4 (Upper)', status: 'AVAILABLE', isAvailable: true },
+                ]).map((b: any) => {
+                  const isAvailable = b.isAvailable ?? (b.status === 'AVAILABLE');
+                  const isReserved = b.isReserved || b.status === 'RESERVED' || (hostelReserved && b.id === 'bed-1');
+                  const statusLabel = isReserved ? 'RESERVED' : isAvailable ? 'AVAILABLE' : 'OCCUPIED';
                   return (
                     <div
                       key={b.id}
@@ -773,25 +818,32 @@ export default function App() {
                       }`}
                     >
                       <div>
-                        <strong className="text-xs font-bold text-slate-900 block">{b.name}</strong>
+                        <strong className="text-xs font-bold text-slate-900 block">{b.name || `Bed ${b.id.slice(-1)}`}</strong>
                         <span
                           className={`text-[10px] font-bold uppercase mt-1 inline-block ${
                             isReserved ? 'text-amber-700' : isAvailable ? 'text-emerald-700' : 'text-slate-500'
                           }`}
                         >
-                          {b.status}
+                          {statusLabel}
                         </span>
                       </div>
                       <button
-                        disabled={!isAvailable}
-                        onClick={() => setHostelReserved(true)}
+                        disabled={!isAvailable || reserveBedspaceMutation.isPending}
+                        onClick={() => {
+                          reserveBedspaceMutation.mutate(b.id, {
+                            onSuccess: (res: any) => {
+                              setHostelReserved(true);
+                              setReservationTimer(res.lockDurationSeconds || 900);
+                            },
+                          });
+                        }}
                         className={`text-xs font-bold py-1.5 rounded-lg transition ${
                           isAvailable
                             ? 'bg-emerald-800 text-white hover:bg-emerald-700 shadow'
                             : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                         }`}
                       >
-                        {isReserved ? 'Locked' : isAvailable ? 'Select Bed' : 'Occupied'}
+                        {isReserved ? 'Locked (15m)' : isAvailable ? 'Select Bed' : 'Occupied'}
                       </button>
                     </div>
                   );
@@ -964,9 +1016,9 @@ export default function App() {
               ].map((ward) => (
                 <button
                   key={ward.id}
-                  onClick={() => setSelectedWard(ward.id as any)}
+                  onClick={() => setActiveWardId(ward.id as any)}
                   className={`p-4 rounded-2xl border text-left transition-all ${
-                    selectedWard === ward.id
+                    activeWardId === ward.id
                       ? 'bg-white border-emerald-600 ring-2 ring-emerald-500/20 shadow-md'
                       : 'bg-white/80 border-slate-200 hover:bg-white'
                   }`}
@@ -984,7 +1036,7 @@ export default function App() {
             </div>
 
             {/* Selected Ward Telemetry Detail Card */}
-            {selectedWard === 'std-002' && (
+            {activeWardId === 'std-002' && (
               <div className="bento-card p-6 space-y-4">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <div>
@@ -1040,7 +1092,7 @@ export default function App() {
               </div>
             )}
 
-            {selectedWard === 'std-001' && (
+            {activeWardId === 'std-001' && (
               <div className="bento-card p-6 space-y-4">
                 <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                   <div>

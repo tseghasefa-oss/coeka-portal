@@ -1,56 +1,32 @@
 import { Hono } from 'hono';
 import { Env } from '../../types/env';
 import { LedgerEngine } from '../../services/finance/ledgerEngine';
-import { VirtualAccountService } from '../../services/finance/virtualAccountService';
 import { PaymentFailoverRouter } from '../../services/finance/paymentFailoverRouter';
 import { SignatureService } from '../../services/finance/signatureService';
+import { FinanceService } from '../../services/finance/financeService';
+import { getContainer } from '../../infrastructure/container';
 
 export const financeRoutes = new Hono<{ Bindings: Env }>();
 
 // 1. Get Student Invoices
 financeRoutes.get('/invoices', async (c) => {
-  const sampleInvoices = [
-    {
-      id: 'inv-001',
-      invoiceNumber: 'INV-2026-COEKA-00184',
-      feeTitle: '2026/2027 NCE Tuition & Consolidated Institutional Fees',
-      category: 'TUITION',
-      amountDueKobo: 4500000, // ₦45,000.00
-      amountPaidKobo: 0,
-      status: 'UNPAID',
-      dueDate: '2026-12-15',
-    },
-    {
-      id: 'inv-002',
-      invoiceNumber: 'INV-2026-COEKA-00185',
-      feeTitle: 'Hostel Accommodation (Hall A - Female Bedspace)',
-      category: 'HOSTEL',
-      amountDueKobo: 2000000, // ₦20,000.00
-      amountPaidKobo: 2000000,
-      status: 'PAID',
-      dueDate: '2026-11-30',
-      paidAt: '2026-10-05T14:32:00Z',
-    },
-  ];
+  const container = getContainer(c.env);
+  const financeService = new FinanceService(container.db, container.cache, container.queue);
+  const invoices = await financeService.getInvoices('std-sample-001');
 
-  return c.json({
-    invoices: sampleInvoices.map(inv => ({
-      ...inv,
-      formattedDue: LedgerEngine.koboToNaira(inv.amountDueKobo),
-      formattedPaid: LedgerEngine.koboToNaira(inv.amountPaidKobo),
-    })),
-  });
+  return c.json({ invoices });
 });
 
 // 2. Get Dedicated Virtual Bank Account for Instant Transfer
 financeRoutes.get('/virtual-account', async (c) => {
-  const studentId = 'std-sample-001';
-  const virtualAccount = await VirtualAccountService.createDedicatedAccount({
-    studentId,
+  const container = getContainer(c.env);
+  const financeService = new FinanceService(container.db, container.cache, container.queue);
+  const virtualAccount = await financeService.getVirtualAccount({
+    studentId: 'std-sample-001',
     matricNumber: 'COEKA/2026/NCE/084',
     studentName: 'Aondoaver Moses Iorliam',
     phoneNumber: '08064377594',
-  }, 'VPAY');
+  });
 
   return c.json({
     virtualAccount,

@@ -13,7 +13,14 @@ import { simsRoutes } from './routes/sims';
 import { staffRoutes } from './routes/staff';
 import { parentRoutes } from './routes/parent';
 
-export const app = new Hono<{ Bindings: Env }>();
+import { getContainer, ServiceContainer } from '../infrastructure/container';
+
+export type AppVariables = {
+  container: ServiceContainer;
+  user?: any;
+};
+
+export const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 // 1. Global Middleware
 app.use('*', logger());
@@ -22,6 +29,11 @@ app.use('*', cors({
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Demo-Role'],
 }));
+app.use('*', async (c, next) => {
+  const container = getContainer(c.env);
+  c.set('container', container);
+  await next();
+});
 app.use('/api/*', rateLimiter(120, 60)); // 120 requests per minute
 
 // 2. Health & Institutional Metadata
