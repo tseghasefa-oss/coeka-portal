@@ -20,3 +20,23 @@ export function requireRole(...allowedRoles: string[]) {
     await next();
   };
 }
+
+export function requireSuperAdmin() {
+  return async (c: Context<{ Bindings: Env }>, next: Next) => {
+    const user = c.get('user');
+
+    if (!user) {
+      return c.json({ error: 'Unauthorized: Authentication required' }, 401);
+    }
+
+    if (user.role !== 'SUPER_ADMIN') {
+      return c.json({
+        error: 'Forbidden: Super Administrator privileges required',
+        currentRole: user.role,
+      }, 403);
+    }
+
+    await next();
+  };
+}
+

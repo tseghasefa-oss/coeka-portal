@@ -89,22 +89,86 @@ export class MemoryQueueAdapter implements IQueueProvider {
   }
 }
 
+import { createRequire } from 'node:module';
+
 export class MemoryDatabaseAdapter implements IDatabaseProvider {
+  private sqlite?: any;
+  public drizzle?: any;
   private mockStore: Record<string, any[]> = {};
 
+  constructor(sqliteInstance?: any) {
+    if (sqliteInstance) {
+      this.sqlite = sqliteInstance;
+    } else if (typeof process !== 'undefined' && process.versions?.node) {
+      try {
+        const nodeRequire = createRequire(import.meta.url);
+        const { DatabaseSync } = nodeRequire('node:sqlite');
+        const fs = nodeRequire('node:fs');
+        const path = nodeRequire('node:path');
+
+        if (DatabaseSync) {
+          this.sqlite = new DatabaseSync(':memory:');
+          try {
+            const schemaPath = path.resolve(process.cwd(), 'src/database/migrations/0001_initial_schema.sql');
+            if (fs.existsSync(schemaPath)) {
+              this.sqlite.exec(fs.readFileSync(schemaPath, 'utf8'));
+            }
+            const seedPath = path.resolve(process.cwd(), 'src/database/migrations/0002_seed_data.sql');
+            if (fs.existsSync(seedPath)) {
+              this.sqlite.exec(fs.readFileSync(seedPath, 'utf8'));
+            }
+            const sysSettingsPath = path.resolve(process.cwd(), 'src/database/migrations-drizzle/0001_striped_black_widow.sql');
+            if (fs.existsSync(sysSettingsPath)) {
+              this.sqlite.exec(fs.readFileSync(sysSettingsPath, 'utf8'));
+            }
+          } catch {
+            // Optional fallback
+          }
+        }
+      } catch {
+        // Fallback to in-memory store
+      }
+    }
+  }
+
   async query<T = any>(sql: string, params: any[] = []): Promise<T[]> {
+    if (this.sqlite) {
+      const stmt = this.sqlite.prepare(sql);
+      return stmt.all(...params) as T[];
+    }
     return [] as T[];
   }
 
   async queryFirst<T = any>(sql: string, params: any[] = []): Promise<T | null> {
+    if (this.sqlite) {
+      const stmt = this.sqlite.prepare(sql);
+      const res = stmt.get(...params);
+      return (res as T) || null;
+    }
     return null;
   }
 
   async execute(sql: string, params: any[] = []): Promise<DatabaseExecutionResult> {
+    if (this.sqlite) {
+      const stmt = this.sqlite.prepare(sql);
+      const res = stmt.run(...params);
+      return {
+        success: true,
+        rowsAffected: Number(res.changes || 1),
+        lastInsertRowId: Number(res.lastInsertRowid || 1),
+      };
+    }
     return { success: true, rowsAffected: 1 };
   }
 
   async batch(statements: { sql: string; params?: any[] }[]): Promise<DatabaseExecutionResult[]> {
+    if (this.sqlite) {
+      const results: DatabaseExecutionResult[] = [];
+      for (const s of statements) {
+        results.push(await this.execute(s.sql, s.params || []));
+      }
+      return results;
+    }
     return statements.map(() => ({ success: true, rowsAffected: 1 }));
   }
 

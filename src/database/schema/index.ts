@@ -371,3 +371,13 @@ export const notificationQueue = sqliteTable('notification_queue', {
   retryCount: integer('retry_count').notNull().default(0),
   createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
 });
+
+// 11. System Configuration & Settings
+export const systemSettings = sqliteTable('system_settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
+  description: text('description'),
+  category: text('category').notNull().default('GENERAL'), // 'GENERAL', 'ACADEMIC', 'ADMISSIONS', 'FINANCE'
+  updatedBy: text('updated_by'),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});

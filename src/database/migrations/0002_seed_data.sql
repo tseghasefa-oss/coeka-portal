@@ -97,3 +97,11 @@ INSERT OR IGNORE INTO hostel_bedspaces (id, room_id, bed_label, is_occupied) VAL
 ('bed-a101-4', 'room-a-101', 'Bed 4 (Upper)', 0),
 ('bed-b101-1', 'room-b-101', 'Bed 1 (Lower)', 0),
 ('bed-b101-2', 'room-b-101', 'Bed 2 (Upper)', 0);
+
+-- 10. Sample Staff / Faculty
+INSERT OR IGNORE INTO users (id, username, email, phone_number, password_hash, user_type) VALUES
+('usr-staff-001', 'lecturer1', 'lecturer1@coeka.edu.ng', '08011112233', '$2a$12$samplepasswordhash', 'STAFF');
+
+INSERT OR IGNORE INTO staff_profiles (id, user_id, staff_id_number, department_id, first_name, last_name, cadre, designation, employment_date, highest_qualification) VALUES
+('stf-001', 'usr-staff-001', 'COEKA/STF/2026/001', 'dept-csc', 'Olufemi', 'Adeyemi', 'ACADEMIC', 'Senior Lecturer', '2020-01-15', 'Ph.D Computer Science');
+

@@ -12,6 +12,7 @@ import { hostelRoutes } from './routes/hostels';
 import { simsRoutes } from './routes/sims';
 import { staffRoutes } from './routes/staff';
 import { parentRoutes } from './routes/parent';
+import { adminRoutes } from './routes/admin';
 
 import { getContainer, ServiceContainer } from '../infrastructure/container';
 
@@ -57,6 +58,7 @@ app.route('/api/hostels', hostelRoutes);
 app.route('/api/sims', simsRoutes);
 app.route('/api/staff', staffRoutes);
 app.route('/api/parent', parentRoutes);
+app.route('/api/admin', adminRoutes);
 
 // 4. Cloudflare Worker Export (Fetch, Queue, Scheduled)
 export default {
