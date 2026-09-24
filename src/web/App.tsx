@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Building,
   User,
+  Users,
   QrCode,
   ArrowRight,
   Copy,
@@ -21,13 +22,16 @@ import {
   Layers,
   ChevronRight,
   Sparkles,
+  Send,
+  Heart,
+  TrendingUp,
 } from 'lucide-react';
 import { LedgerEngine } from '../services/finance/ledgerEngine';
 import { GradingPolicyEngine } from '../services/academic/gradingPolicyEngine';
 import { ResultComputer } from '../services/academic/resultComputer';
 import { ScreeningEngine } from '../services/admissions/screeningEngine';
 
-type ActiveTab = 'website' | 'admissions' | 'sims' | 'finance' | 'results' | 'hostels' | 'admin';
+type ActiveTab = 'website' | 'admissions' | 'sims' | 'finance' | 'results' | 'hostels' | 'staff' | 'parent' | 'admin';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('website');
@@ -55,6 +59,19 @@ export default function App() {
     'GSE 111',
   ]);
   const [regSuccess, setRegSuccess] = useState(false);
+
+  // Staff Score Entry State
+  const [staffCourse, setStaffCourse] = useState('CSC 111');
+  const [staffScores, setStaffScores] = useState([
+    { matric: 'COEKA/2026/NCE/084', name: 'Aondoaver Moses Iorliam', ca: 34, exam: 52 },
+    { matric: 'COEKA/2026/NCE/085', name: 'Mngusonun Faith Tyav', ca: 28, exam: 46 },
+    { matric: 'COEKA/2026/NCE/086', name: 'Terna Victor Chia', ca: 32, exam: 42 },
+    { matric: 'COEKA/2026/NCE/087', name: 'Doose Mercy Gbadu', ca: 22, exam: 35 },
+  ]);
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+
+  // Parent Portal State
+  const [selectedWard, setSelectedWard] = useState<'std-001' | 'std-002' | 'std-003'>('std-001');
 
   // Timer countdown simulation
   useEffect(() => {
@@ -116,15 +133,17 @@ export default function App() {
             </div>
 
             {/* Navigation Switcher */}
-            <nav className="hidden md:flex space-x-1">
+            <nav className="hidden lg:flex space-x-1">
               {[
                 { id: 'website', label: 'College Home', icon: Home },
                 { id: 'admissions', label: 'Admissions', icon: FileText },
                 { id: 'sims', label: 'Student SIMS', icon: User },
-                { id: 'finance', label: 'Bursary & Payments', icon: CreditCard },
-                { id: 'results', label: 'Academic Results', icon: Award },
+                { id: 'finance', label: 'Bursary', icon: CreditCard },
+                { id: 'results', label: 'Results', icon: Award },
                 { id: 'hostels', label: 'Hostels', icon: Building },
-                { id: 'admin', label: 'Executive KPIs', icon: Layers },
+                { id: 'staff', label: 'Staff Hub', icon: Users },
+                { id: 'parent', label: 'Parent Portal', icon: Heart },
+                { id: 'admin', label: 'KPIs', icon: Layers },
               ].map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -132,13 +151,13 @@ export default function App() {
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as ActiveTab)}
-                    className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
                       isActive
                         ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700'
                         : 'text-emerald-100 hover:bg-emerald-800/60 hover:text-white'
                     }`}
                   >
-                    <Icon className="w-4 h-4" />
+                    <Icon className="w-3.5 h-3.5" />
                     <span>{tab.label}</span>
                   </button>
                 );
@@ -159,7 +178,7 @@ export default function App() {
         </div>
 
         {/* Mobile Horizontal Navigation */}
-        <div className="md:hidden flex overflow-x-auto px-4 py-2 border-t border-emerald-800 space-x-2 text-xs">
+        <div className="lg:hidden flex overflow-x-auto px-4 py-2 border-t border-emerald-800 space-x-2 text-xs">
           {[
             { id: 'website', label: 'Home' },
             { id: 'admissions', label: 'Admissions' },
@@ -167,12 +186,14 @@ export default function App() {
             { id: 'finance', label: 'Bursary' },
             { id: 'results', label: 'Results' },
             { id: 'hostels', label: 'Hostels' },
-            { id: 'admin', label: 'Admin' },
+            { id: 'staff', label: 'Staff' },
+            { id: 'parent', label: 'Parent' },
+            { id: 'admin', label: 'KPIs' },
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as ActiveTab)}
-              className={`px-3 py-1.5 rounded whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded whitespace-nowrap font-medium ${
                 activeTab === tab.id ? 'bg-amber-400 text-emerald-950 font-bold' : 'text-emerald-100'
               }`}
             >
@@ -184,12 +205,9 @@ export default function App() {
 
       {/* Main Body Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* ========================================================================= */}
-        {/* TAB 1: COLLEGE HOMEPAGE & INSTITUTIONAL CMS */}
-        {/* ========================================================================= */}
+        {/* TAB 1: COLLEGE HOMEPAGE */}
         {activeTab === 'website' && (
           <div className="space-y-8">
-            {/* Hero Section */}
             <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-900 text-white p-8 sm:p-12 shadow-xl border border-emerald-800">
               <div className="max-w-3xl space-y-4">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30">
@@ -220,7 +238,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* 4 Multi-Divisional Programs Grid */}
             <div>
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -235,28 +252,24 @@ export default function App() {
                     desc: 'National Commission for Colleges of Education (NCCE) 3-year teacher certification.',
                     stat: '24 Accredited Courses',
                     tag: 'NCCE 5-Point Scale',
-                    color: 'emerald',
                   },
                   {
                     title: 'Degree Programmes',
                     desc: 'Full-time Bachelor of Education (B.Ed / B.Sc Ed) affiliated university degrees.',
                     stat: 'NUC Approved',
                     tag: 'Senate Ratification',
-                    color: 'blue',
                   },
                   {
                     title: 'Demonstration Secondary',
                     desc: 'Junior and Senior Secondary education (JSS1 - SSS3) with WAEC & NECO curricula.',
                     stat: 'WAEC / BECE Center',
                     tag: 'Terminal Reports',
-                    color: 'amber',
                   },
                   {
                     title: 'Staff Primary School',
                     desc: 'Basic primary and nursery foundational education with termly continuous assessment.',
                     stat: 'Basic 1 - 6 Classes',
                     tag: 'Continuous Assessment',
-                    color: 'purple',
                   },
                 ].map((div, i) => (
                   <div key={i} className="bento-card p-6 flex flex-col justify-between">
@@ -275,76 +288,10 @@ export default function App() {
                 ))}
               </div>
             </div>
-
-            {/* Institutional News & Academic Calendar */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2 bento-card p-6 space-y-4">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-emerald-700" />
-                  Latest Institutional Bulletins
-                </h3>
-                <div className="divide-y divide-slate-100 space-y-3">
-                  {[
-                    {
-                      title: 'Commencement of 2026/2027 First Semester Online Course Registration',
-                      date: 'September 20, 2026',
-                      dept: 'Academic Planning & Registry',
-                    },
-                    {
-                      title: 'Bursary Notice: Automated Student Virtual Account Numbers Now Active for Fee Payments',
-                      date: 'September 15, 2026',
-                      dept: 'College Bursary Directorate',
-                    },
-                    {
-                      title: 'Hostel Accommodation Portal Open for Fresh NCE and Degree Students',
-                      date: 'September 10, 2026',
-                      dept: 'Student Affairs Division',
-                    },
-                  ].map((news, i) => (
-                    <div key={i} className="pt-3 first:pt-0 flex flex-col sm:flex-row justify-between sm:items-center gap-1">
-                      <div>
-                        <h4 className="text-sm font-semibold text-slate-900 hover:text-emerald-700 cursor-pointer">
-                          {news.title}
-                        </h4>
-                        <span className="text-xs text-slate-500">{news.dept}</span>
-                      </div>
-                      <span className="text-xs text-slate-400 whitespace-nowrap">{news.date}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bento-card p-6 space-y-4 bg-emerald-950 text-white">
-                <h3 className="text-lg font-bold flex items-center gap-2 text-amber-300">
-                  <Clock className="w-5 h-5" />
-                  Academic Calendar 2026
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="border-l-2 border-amber-400 pl-3">
-                    <span className="text-xs text-emerald-300 block">October 1, 2026</span>
-                    <span className="font-semibold">Resumption for 2026/2027 Session</span>
-                  </div>
-                  <div className="border-l-2 border-emerald-600 pl-3">
-                    <span className="text-xs text-emerald-300 block">October 15, 2026</span>
-                    <span className="font-semibold">Orientation of Fresh Students</span>
-                  </div>
-                  <div className="border-l-2 border-emerald-600 pl-3">
-                    <span className="text-xs text-emerald-300 block">November 20, 2026</span>
-                    <span className="font-semibold">Matriculation Ceremony</span>
-                  </div>
-                  <div className="border-l-2 border-emerald-600 pl-3">
-                    <span className="text-xs text-emerald-300 block">December 15, 2026</span>
-                    <span className="font-semibold">Close of Normal Registration & Fee Gate</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* ========================================================================= */}
         {/* TAB 2: ADMISSIONS PORTAL */}
-        {/* ========================================================================= */}
         {activeTab === 'admissions' && (
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="bento-card p-8">
@@ -399,9 +346,6 @@ export default function App() {
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
                         required
                       />
-                      <span className="text-[11px] text-slate-500">
-                        Cut-off: 100 for NCE, 140 for Degree Programmes
-                      </span>
                     </div>
 
                     <div>
@@ -417,30 +361,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* O-Level Preview Card */}
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <h4 className="text-xs font-bold uppercase text-slate-600 mb-2">
-                      Verified O-Level Credits (WAEC/NECO 1st Sitting)
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-                      <div className="p-2 bg-white rounded border border-slate-200 font-mono">
-                        <span className="text-slate-500 block">English:</span> <strong className="text-emerald-700">C4 (Credit)</strong>
-                      </div>
-                      <div className="p-2 bg-white rounded border border-slate-200 font-mono">
-                        <span className="text-slate-500 block">Maths:</span> <strong className="text-emerald-700">C5 (Credit)</strong>
-                      </div>
-                      <div className="p-2 bg-white rounded border border-slate-200 font-mono">
-                        <span className="text-slate-500 block">Biology:</span> <strong className="text-emerald-700">B3 (Good)</strong>
-                      </div>
-                      <div className="p-2 bg-white rounded border border-slate-200 font-mono">
-                        <span className="text-slate-500 block">Chemistry:</span> <strong className="text-emerald-700">C6 (Credit)</strong>
-                      </div>
-                      <div className="p-2 bg-white rounded border border-slate-200 font-mono">
-                        <span className="text-slate-500 block">Physics:</span> <strong className="text-emerald-700">B2 (Very Good)</strong>
-                      </div>
-                    </div>
-                  </div>
-
                   <button
                     type="submit"
                     className="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow transition-all flex items-center justify-center gap-2"
@@ -450,7 +370,6 @@ export default function App() {
                   </button>
                 </form>
               ) : (
-                /* Admission Letter Result */
                 <div className="space-y-6">
                   <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-4">
                     <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0 mt-0.5" />
@@ -465,37 +384,30 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Letter Details */}
                   <div className="border border-slate-200 rounded-2xl p-6 bg-white shadow-sm space-y-4 font-serif">
                     <div className="text-center border-b border-slate-200 pb-4">
                       <h3 className="text-lg font-bold text-emerald-950 uppercase tracking-wide">
                         College of Education, Katsina-Ala
                       </h3>
-                      <p className="text-xs text-slate-500">P.M.B. 1008, Katsina-Ala, Benue State • Office of the Registrar</p>
+                      <p className="text-xs text-slate-500">Office of the Registrar • P.M.B. 1008, Katsina-Ala, Benue State</p>
                     </div>
 
-                    <div className="text-sm space-y-2 text-slate-800">
+                    <div className="text-sm space-y-2 text-slate-800 font-sans">
                       <p>Dear <strong>{applicantName}</strong>,</p>
                       <p>
-                        I am pleased to inform you that you have been offered provisional admission into the{' '}
+                        You have been offered provisional admission into the{' '}
                         <strong>{applicantDivision} Programme</strong> for the 2026/2027 Academic Session.
-                      </p>
-                      <p>
-                        To validate this offer, you are required to pay an acceptance fee of{' '}
-                        <strong>₦15,000.00</strong> into your assigned dedicated account within two (2) weeks.
+                        Please proceed to pay your acceptance fee of ₦15,000.00.
                       </p>
                     </div>
 
                     <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-sans">
-                      <div>
-                        <span>Registrar: </span>
-                        <strong className="text-slate-800">COEKA Academic Board</strong>
-                      </div>
+                      <span>Registrar: COEKA Academic Board</span>
                       <button
                         onClick={() => setActiveTab('finance')}
                         className="bg-emerald-800 text-white font-bold px-4 py-2 rounded-lg hover:bg-emerald-700"
                       >
-                        Proceed to Pay Acceptance Fee
+                        Pay Acceptance Fee
                       </button>
                     </div>
                   </div>
@@ -512,12 +424,9 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================================================================= */}
         {/* TAB 3: STUDENT INFORMATION MANAGEMENT SYSTEM (SIMS) */}
-        {/* ========================================================================= */}
         {activeTab === 'sims' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Student Digital Identity Card */}
             <div className="bento-card p-6 flex flex-col justify-between bg-gradient-to-br from-emerald-900 to-slate-900 text-white shadow-lg">
               <div>
                 <div className="flex items-center justify-between pb-4 border-b border-emerald-800/80">
@@ -551,15 +460,14 @@ export default function App() {
               </div>
             </div>
 
-            {/* Course Registration Engine */}
             <div className="lg:col-span-2 bento-card p-6 space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900">Semester Course Registration</h3>
-                  <p className="text-xs text-slate-500">Select courses for 2026/2027 First Semester (Min 15, Max 24 Units)</p>
+                  <p className="text-xs text-slate-500">2026/2027 First Semester (Min 15, Max 24 Units)</p>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-slate-500 block">Total Credit Load:</span>
+                  <span className="text-xs text-slate-500 block">Total Load:</span>
                   <strong className="text-base font-bold text-emerald-700">
                     {registeredCourses.length * 2 + 2} Units
                   </strong>
@@ -573,7 +481,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* Course Selection Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
@@ -631,7 +538,7 @@ export default function App() {
                 </table>
               </div>
 
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end pt-2">
                 <button
                   onClick={() => setRegSuccess(true)}
                   className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow"
@@ -643,12 +550,9 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================================================================= */}
         {/* TAB 4: BURSARY & FINANCIAL ENGINE */}
-        {/* ========================================================================= */}
         {activeTab === 'finance' && (
           <div className="space-y-6 max-w-5xl mx-auto">
-            {/* Dedicated Virtual Account Banner */}
             <div className="bento-card p-6 bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-emerald-700">
               <div className="space-y-2 max-w-xl">
                 <div className="flex items-center gap-2">
@@ -679,7 +583,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Invoices List */}
             <div className="bento-card p-6 space-y-4">
               <h3 className="text-lg font-bold text-slate-900">Current Session Fee Invoices</h3>
               <div className="divide-y divide-slate-100">
@@ -688,7 +591,6 @@ export default function App() {
                     title: '2026/2027 NCE Tuition & Consolidated Institutional Fees',
                     invoiceNumber: 'INV-2026-COEKA-00184',
                     amountKobo: 4500000,
-                    paidKobo: 0,
                     status: 'UNPAID',
                     dueDate: 'Dec 15, 2026',
                   },
@@ -696,7 +598,6 @@ export default function App() {
                     title: 'Hostel Accommodation (Hall A - Female Bedspace)',
                     invoiceNumber: 'INV-2026-COEKA-00185',
                     amountKobo: 2000000,
-                    paidKobo: 2000000,
                     status: 'PAID',
                     dueDate: 'Nov 30, 2026',
                   },
@@ -746,50 +647,12 @@ export default function App() {
                 })}
               </div>
             </div>
-
-            {/* Gateway Failover Selector */}
-            <div className="bento-card p-6 bg-slate-50 border border-slate-200">
-              <h4 className="text-xs font-bold uppercase text-slate-700 mb-3">
-                Select Secondary Payment Gateway Rail
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {[
-                  { id: 'VPAY', name: 'VPay Virtual Account', desc: 'Instant Bank Transfer • 1.5% (Max ₦2k)' },
-                  { id: 'PAYSTACK', name: 'Paystack Card & USSD', desc: 'Cards, Apple Pay • Auto-failover' },
-                  { id: 'REMITA_BSCPP', name: 'Remita / BSCPP', desc: 'TSA Treasury Single Account RRR' },
-                ].map((gw) => (
-                  <label
-                    key={gw.id}
-                    className={`p-3.5 rounded-xl border cursor-pointer text-xs flex flex-col justify-between ${
-                      selectedGateway === gw.id
-                        ? 'border-emerald-600 bg-white ring-2 ring-emerald-500/20'
-                        : 'border-slate-200 bg-white/60 hover:bg-white'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <strong className="text-slate-900">{gw.name}</strong>
-                      <input
-                        type="radio"
-                        name="gateway"
-                        checked={selectedGateway === gw.id}
-                        onChange={() => setSelectedGateway(gw.id as any)}
-                        className="text-emerald-700"
-                      />
-                    </div>
-                    <span className="text-[11px] text-slate-500">{gw.desc}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 5: ACADEMIC RESULTS & VERIFIABLE TRANSCRIPTS */}
-        {/* ========================================================================= */}
+        {/* TAB 5: ACADEMIC RESULTS */}
         {activeTab === 'results' && (
           <div className="space-y-6 max-w-5xl mx-auto">
-            {/* Header Result Summary Card */}
             <div className="bento-card p-6 bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -815,7 +678,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* Scores Table */}
             <div className="bento-card p-6 space-y-4">
               <h4 className="text-sm font-bold text-slate-900">Continuous Assessment & Examination Breakdown</h4>
               <div className="overflow-x-auto">
@@ -859,32 +721,10 @@ export default function App() {
                 </table>
               </div>
             </div>
-
-            {/* Cryptographic Transcript Verification Box */}
-            <div className="bento-card p-6 bg-slate-900 text-white flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
-                  <h4 className="text-sm font-bold text-white">Cryptographic Transcript Verification</h4>
-                </div>
-                <p className="text-xs text-slate-400 font-mono">
-                  SHA-256 Hash: 9f8a3c4e...d2e7b1a0 (Signed by COEKA Registry Authority)
-                </p>
-              </div>
-              <button
-                onClick={() => alert('Opening tamper-evident electronic transcript verification window...')}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2 shrink-0"
-              >
-                <QrCode className="w-4 h-4" />
-                <span>Verify Online Transcript</span>
-              </button>
-            </div>
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 6: HOSTEL ACCOMMODATION */}
-        {/* ========================================================================= */}
+        {/* TAB 6: HOSTELS */}
         {activeTab === 'hostels' && (
           <div className="space-y-6 max-w-4xl mx-auto">
             <div className="bento-card p-6 space-y-4">
@@ -912,7 +752,6 @@ export default function App() {
                 </div>
               )}
 
-              {/* Room Bedspace Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
                 {[
                   { id: 'bed-1', name: 'Bed 1 (Lower)', status: hostelReserved ? 'RESERVED' : 'AVAILABLE' },
@@ -962,9 +801,281 @@ export default function App() {
           </div>
         )}
 
-        {/* ========================================================================= */}
-        {/* TAB 7: EXECUTIVE DASHBOARD */}
-        {/* ========================================================================= */}
+        {/* TAB 7: STAFF HUB (SCORE UPLOAD & WORKLOAD) */}
+        {activeTab === 'staff' && (
+          <div className="space-y-6 max-w-5xl mx-auto">
+            <div className="bento-card p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-emerald-950 text-white">
+              <div>
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">Faculty Workspace</span>
+                <h3 className="text-xl font-bold">Dr. Terver Kange (Senior Lecturer)</h3>
+                <p className="text-xs text-emerald-200">Department of Computer Science • School of Sciences</p>
+              </div>
+              <div className="text-left sm:text-right text-xs">
+                <span className="text-slate-400 block">Assigned Workload:</span>
+                <strong className="text-amber-300 text-sm">3 Courses (8 Units) • 510 Students</strong>
+              </div>
+            </div>
+
+            <div className="bento-card p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-100">
+                <div>
+                  <h4 className="text-base font-bold text-slate-900">Score Entry & Moderation Sheet</h4>
+                  <p className="text-xs text-slate-500">Continuous Assessment (Max 40) + Examination (Max 60)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-semibold text-slate-600">Course:</label>
+                  <select
+                    value={staffCourse}
+                    onChange={(e) => setStaffCourse(e.target.value)}
+                    className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-800 bg-white"
+                  >
+                    <option value="CSC 111">CSC 111 (Intro to CS)</option>
+                    <option value="CSC 112">CSC 112 (Programming)</option>
+                    <option value="CSC 211">CSC 211 (Data Structures)</option>
+                  </select>
+                </div>
+              </div>
+
+              {scoreSubmitted && (
+                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Draft score batch locked and transmitted to HOD Computer Science for departmental moderation.</span>
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
+                      <th className="py-2.5 px-3">Matric Number</th>
+                      <th className="py-2.5 px-3">Student Name</th>
+                      <th className="py-2.5 px-3 text-center">CA (0-40)</th>
+                      <th className="py-2.5 px-3 text-center">Exam (0-60)</th>
+                      <th className="py-2.5 px-3 text-center">Total</th>
+                      <th className="py-2.5 px-3 text-center">Grade</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {staffScores.map((row, idx) => {
+                      const total = row.ca + row.exam;
+                      const evaluated = GradingPolicyEngine.evaluateScore(total, 'NCCE_5_POINT');
+                      return (
+                        <tr key={row.matric} className="hover:bg-slate-50/80">
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{row.matric}</td>
+                          <td className="py-2.5 px-3 text-slate-700">{row.name}</td>
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max="40"
+                              value={row.ca}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                const updated = [...staffScores];
+                                updated[idx].ca = Math.min(40, Math.max(0, val));
+                                setStaffScores(updated);
+                              }}
+                              className="w-16 px-2 py-1 text-center rounded border border-slate-300 font-bold"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-center">
+                            <input
+                              type="number"
+                              min="0"
+                              max="60"
+                              value={row.exam}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                const updated = [...staffScores];
+                                updated[idx].exam = Math.min(60, Math.max(0, val));
+                                setStaffScores(updated);
+                              }}
+                              className="w-16 px-2 py-1 text-center rounded border border-slate-300 font-bold"
+                            />
+                          </td>
+                          <td className="py-2.5 px-3 text-center font-bold text-slate-900">{total}</td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              {evaluated.letterGrade}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+                <button
+                  onClick={() => setScoreSubmitted(true)}
+                  className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Submit Score Sheet to HOD</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 8: PARENT PORTAL (MULTI-WARD TELEMETRY) */}
+        {activeTab === 'parent' && (
+          <div className="space-y-6 max-w-5xl mx-auto">
+            <div className="bento-card p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-slate-900 to-emerald-950 text-white">
+              <div>
+                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">Parent & Guardian Hub</span>
+                <h3 className="text-xl font-bold">Mr. Joshua T. Tsegha</h3>
+                <p className="text-xs text-emerald-200">Registered Phone: 08064377594 • Katsina-Ala, Benue State</p>
+              </div>
+              <div className="text-left sm:text-right text-xs">
+                <span className="text-slate-400 block">Monitored Wards:</span>
+                <strong className="text-amber-300 text-sm">3 Children (NCE, Secondary, Primary)</strong>
+              </div>
+            </div>
+
+            {/* Ward Switcher Tabs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                {
+                  id: 'std-001',
+                  name: 'Aondoaver Moses',
+                  div: 'NCE Programme (100L)',
+                  fee: '₦45,000 Due',
+                  perf: 'GPA: 4.83',
+                  feeColor: 'text-amber-700 bg-amber-50',
+                },
+                {
+                  id: 'std-002',
+                  name: 'Ngodoo Blessing',
+                  div: 'Demonstration Secondary (SS2)',
+                  fee: 'Fees Paid',
+                  perf: '3rd of 45',
+                  feeColor: 'text-emerald-700 bg-emerald-50',
+                },
+                {
+                  id: 'std-003',
+                  name: 'Terhide Kelvin',
+                  div: 'Staff Primary (Basic 4)',
+                  fee: 'Fees Paid',
+                  perf: '1st of 32',
+                  feeColor: 'text-emerald-700 bg-emerald-50',
+                },
+              ].map((ward) => (
+                <button
+                  key={ward.id}
+                  onClick={() => setSelectedWard(ward.id as any)}
+                  className={`p-4 rounded-2xl border text-left transition-all ${
+                    selectedWard === ward.id
+                      ? 'bg-white border-emerald-600 ring-2 ring-emerald-500/20 shadow-md'
+                      : 'bg-white/80 border-slate-200 hover:bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <strong className="text-sm text-slate-900">{ward.name}</strong>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ward.feeColor}`}>
+                      {ward.fee}
+                    </span>
+                  </div>
+                  <span className="text-xs text-slate-500 block">{ward.div}</span>
+                  <span className="text-xs font-bold text-emerald-700 mt-2 block">{ward.perf}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Selected Ward Telemetry Detail Card */}
+            {selectedWard === 'std-002' && (
+              <div className="bento-card p-6 space-y-4">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div>
+                    <h4 className="text-base font-bold text-slate-900">
+                      Ngodoo Blessing Tsegha — Terminal School Report Card
+                    </h4>
+                    <p className="text-xs text-slate-500">COEKA Demonstration Secondary School • Third Term SS2</p>
+                  </div>
+                  <button className="bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 shadow">
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download Report Card PDF</span>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
+                        <th className="py-2.5 px-3">Subject</th>
+                        <th className="py-2.5 px-3 text-center">CA1 (20)</th>
+                        <th className="py-2.5 px-3 text-center">CA2 (20)</th>
+                        <th className="py-2.5 px-3 text-center">Exam (60)</th>
+                        <th className="py-2.5 px-3 text-center">Total (100)</th>
+                        <th className="py-2.5 px-3 text-center">Grade</th>
+                        <th className="py-2.5 px-3">Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {[
+                        { subject: 'English Language', ca1: 18, ca2: 17, exam: 48, total: 83, grade: 'A1', remark: 'Excellent' },
+                        { subject: 'Mathematics', ca1: 16, ca2: 18, exam: 46, total: 80, grade: 'A1', remark: 'Excellent' },
+                        { subject: 'Biology', ca1: 15, ca2: 16, exam: 44, total: 75, grade: 'A1', remark: 'Distinction' },
+                        { subject: 'Chemistry', ca1: 14, ca2: 15, exam: 42, total: 71, grade: 'B2', remark: 'Very Good' },
+                        { subject: 'Physics', ca1: 15, ca2: 15, exam: 40, total: 70, grade: 'B2', remark: 'Very Good' },
+                      ].map((sub) => (
+                        <tr key={sub.subject} className="hover:bg-slate-50/80">
+                          <td className="py-2.5 px-3 font-semibold text-slate-800">{sub.subject}</td>
+                          <td className="py-2.5 px-3 text-center text-slate-600">{sub.ca1}</td>
+                          <td className="py-2.5 px-3 text-center text-slate-600">{sub.ca2}</td>
+                          <td className="py-2.5 px-3 text-center text-slate-600">{sub.exam}</td>
+                          <td className="py-2.5 px-3 text-center font-bold text-slate-900">{sub.total}</td>
+                          <td className="py-2.5 px-3 text-center">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                              {sub.grade}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-600">{sub.remark}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {selectedWard === 'std-001' && (
+              <div className="bento-card p-6 space-y-4">
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                  <div>
+                    <h4 className="text-base font-bold text-slate-900">
+                      Aondoaver Moses Iorliam — NCE Academic Telemetry
+                    </h4>
+                    <p className="text-xs text-slate-500">100 Level • NCE Computer Science / Mathematics</p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('finance')}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg shadow"
+                  >
+                    Pay Outstanding ₦45,000.00
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-xs text-slate-500 block">Attendance Rate</span>
+                    <strong className="text-xl font-bold text-emerald-700">96.4%</strong>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-xs text-slate-500 block">First Semester GPA</span>
+                    <strong className="text-xl font-bold text-emerald-700">4.83 / 5.00</strong>
+                  </div>
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <span className="text-xs text-slate-500 block">Bursary Clearance</span>
+                    <strong className="text-xl font-bold text-amber-600">Pending Tuition</strong>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 9: EXECUTIVE DASHBOARD */}
         {activeTab === 'admin' && (
           <div className="space-y-6">
             <div>

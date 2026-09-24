@@ -10,8 +10,10 @@ import { webhookRoutes } from './routes/webhooks';
 import { resultRoutes } from './routes/results';
 import { hostelRoutes } from './routes/hostels';
 import { simsRoutes } from './routes/sims';
+import { staffRoutes } from './routes/staff';
+import { parentRoutes } from './routes/parent';
 
-const app = new Hono<{ Bindings: Env }>();
+export const app = new Hono<{ Bindings: Env }>();
 
 // 1. Global Middleware
 app.use('*', logger());
@@ -41,6 +43,8 @@ app.route('/api/webhooks', webhookRoutes);
 app.route('/api/results', resultRoutes);
 app.route('/api/hostels', hostelRoutes);
 app.route('/api/sims', simsRoutes);
+app.route('/api/staff', staffRoutes);
+app.route('/api/parent', parentRoutes);
 
 // 4. Cloudflare Worker Export (Fetch, Queue, Scheduled)
 export default {
@@ -50,7 +54,6 @@ export default {
   async queue(batch: MessageBatch<any>, env: Env): Promise<void> {
     for (const msg of batch.messages) {
       console.log(`[COEKA Queue] Consuming message ID: ${msg.id}, Type: ${msg.body?.type}`);
-      // Process notification or reconciliation job
       msg.ack();
     }
   },

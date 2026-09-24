@@ -1,0 +1,294 @@
+{
+  "info": {
+    "name": "COEKA Enterprise Digital Campus Portal API",
+    "_postman_id": "coeka-portal-api-2026",
+    "description": "REST API Collection for College of Education, Katsina-Ala. Powered by Fruitfulujah Project.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8787",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "System Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "health"]
+        }
+      }
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"student@coekatsinaala.edu.ng\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admissions",
+      "item": [
+        {
+          "name": "List Admission Cycles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admissions/cycles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admissions", "cycles"]
+            }
+          }
+        },
+        {
+          "name": "Submit Application",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"division\": \"NCE\",\n  \"firstName\": \"Terfa\",\n  \"lastName\": \"Aondo\",\n  \"phone\": \"08064377594\",\n  \"jambScore\": 165\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admissions/apply",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admissions", "apply"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Finance & Bursary",
+      "item": [
+        {
+          "name": "List Invoices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/finance/invoices",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finance", "invoices"]
+            }
+          }
+        },
+        {
+          "name": "Get Dedicated Virtual Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/finance/virtual-account",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finance", "virtual-account"]
+            }
+          }
+        },
+        {
+          "name": "Initialize Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gateway\": \"VPAY\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/finance/invoices/inv-001/pay",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finance", "invoices", "inv-001", "pay"]
+            }
+          }
+        },
+        {
+          "name": "Get Verified Fee Receipt",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/finance/invoices/inv-001/receipt",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "finance", "invoices", "inv-001", "receipt"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Academic Results",
+      "item": [
+        {
+          "name": "Get Student Result Statement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/results/student-result",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "results", "student-result"]
+            }
+          }
+        },
+        {
+          "name": "Approve Results (4-Tier Transition)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"semesterId\": \"sem-nce-2026-1\",\n  \"departmentId\": \"dept-csc\",\n  \"targetStage\": \"HOD_MODERATED\",\n  \"comments\": \"Approved by departmental board\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/results/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "results", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Get Verifiable Transcript",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/results/transcript",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "results", "transcript"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hostels",
+      "item": [
+        {
+          "name": "List Hostel Rooms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/hostels/rooms",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hostels", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "Acquire 15-Minute Reservation Lock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bedspaceId\": \"bed-a101-1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/hostels/reserve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "hostels", "reserve"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Parent & Staff Portals",
+      "item": [
+        {
+          "name": "Parent Wards Telemetry",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/parent/wards",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "parent", "wards"]
+            }
+          }
+        },
+        {
+          "name": "Staff Assigned Courses & Workload",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/staff/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "staff", "profile"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
