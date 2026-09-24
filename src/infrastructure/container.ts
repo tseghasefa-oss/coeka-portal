@@ -53,6 +53,12 @@ export function createMemoryContainer(): ServiceContainer {
   };
 }
 
+let defaultMemoryContainer: ServiceContainer | null = null;
+
+export function resetDefaultMemoryContainer(): void {
+  defaultMemoryContainer = null;
+}
+
 /**
  * Factory to retrieve the active ServiceContainer. Automatically falls back to in-memory if Env is undefined.
  */
@@ -60,5 +66,9 @@ export function getContainer(env?: Env): ServiceContainer {
   if (env && env.DB) {
     return createCloudflareContainer(env);
   }
-  return createMemoryContainer();
+  if (!defaultMemoryContainer) {
+    defaultMemoryContainer = createMemoryContainer();
+  }
+  return defaultMemoryContainer;
 }
+

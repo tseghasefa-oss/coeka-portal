@@ -10,174 +10,147 @@ import {
   Edit3,
   Layers,
   GraduationCap,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
-
-interface CourseRecord {
-  id: string;
-  code: string;
-  title: string;
-  programme: string;
-  division: string;
-  creditUnits: number;
-  level: number;
-  semester: number;
-  isCompulsory: boolean;
-  assignedFaculty?: string;
-}
+import { useCourses, CourseItem } from '../../hooks/useAdminData';
 
 export const AdminCoursesTab: React.FC = () => {
-  const { uiPreferences } = useAppStore();
+  const { uiPreferences, activeDivision } = useAppStore();
   const isNavy = uiPreferences.theme === 'navy';
 
-  // Local state for courses catalogue
-  const [courses, setCourses] = useState<CourseRecord[]>([
-    {
-      id: 'crs-1',
-      code: 'CSC 111',
-      title: 'Introduction to Computer Science & Information Technology',
-      programme: 'NCE Computer Science / Mathematics',
-      division: 'NCE',
-      creditUnits: 3,
-      level: 100,
-      semester: 1,
-      isCompulsory: true,
-      assignedFaculty: 'Dr. Olufemi Adeyemi (Senior Lecturer)',
-    },
-    {
-      id: 'crs-2',
-      code: 'MTH 111',
-      title: 'General Mathematics I (Algebra & Trigonometry)',
-      programme: 'NCE Computer Science / Mathematics',
-      division: 'NCE',
-      creditUnits: 3,
-      level: 100,
-      semester: 1,
-      isCompulsory: true,
-      assignedFaculty: 'Prof. Terver Akume (Reader)',
-    },
-    {
-      id: 'crs-3',
-      code: 'EDU 111',
-      title: 'Foundations of Education & Teacher Professionalism',
-      programme: 'All NCE Programmes',
-      division: 'NCE',
-      creditUnits: 2,
-      level: 100,
-      semester: 1,
-      isCompulsory: true,
-      assignedFaculty: 'Dr. (Mrs) Bridget Tyav (Chief Lecturer)',
-    },
-    {
-      id: 'crs-4',
-      code: 'GSE 111',
-      title: 'General English & Communication Skills I',
-      programme: 'General Studies Unit',
-      division: 'NCE',
-      creditUnits: 2,
-      level: 100,
-      semester: 1,
-      isCompulsory: true,
-      assignedFaculty: 'Mr. Emmanuel Gbadu (Lecturer I)',
-    },
-    {
-      id: 'crs-5',
-      code: 'BED 211',
-      title: 'Principles of Business Education & Microeconomics',
-      programme: 'B.Ed Business Education',
-      division: 'DEGREE',
-      creditUnits: 3,
-      level: 200,
-      semester: 1,
-      isCompulsory: true,
-      assignedFaculty: 'Dr. Simon Iorliam (Senior Lecturer)',
-    },
-    {
-      id: 'crs-6',
-      code: 'SEC-BIO-101',
-      title: 'Senior Secondary Biology (Living Organisms & Cell Biology)',
-      programme: 'Senior Secondary Science',
-      division: 'SECONDARY',
-      creditUnits: 2,
-      level: 100,
-      semester: 1,
-      isCompulsory: true,
-      assignedFaculty: 'Mr. Moses Terfa (Master Teacher II)',
-    },
-  ]);
+  // React Query Hook for Courses
+  const {
+    courses,
+    isLoading,
+    isError,
+    createCourse,
+    isCreating,
+    deleteCourse,
+    isDeleting,
+    assignFaculty,
+    isAssigning,
+    refetch,
+  } = useCourses();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDivision, setSelectedDivision] = useState<string>('ALL');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showAssignModal, setShowAssignModal] = useState<CourseRecord | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState<CourseItem | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // New course form fields
   const [newCode, setNewCode] = useState('');
   const [newTitle, setNewTitle] = useState('');
-  const [newProgramme, setNewProgramme] = useState('NCE Computer Science / Mathematics');
-  const [newDivision, setNewDivision] = useState('NCE');
-  const [newCredits, setNewCredits] = useState(3);
-  const [newLevel, setNewLevel] = useState(100);
-  const [newSemester, setNewSemester] = useState(1);
-  const [newCompulsory, setNewCompulsory] = useState(true);
+  const [newDivision, setNewDivision] = useState<'NCE' | 'DEGREE' | 'SECONDARY' | 'PRIMARY'>('NCE');
+  const [newProgrammeId, setNewProgrammeId] = useState('prog-nce-csc-mth');
+  const [newCredits, setNewCredits] = useState<number>(3);
+  const [newLevel, setNewLevel] = useState<number>(100);
+  const [newSemester, setNewSemester] = useState<number>(1);
+  const [newCompulsory, setNewCompulsory] = useState<boolean>(true);
 
-  // Assign faculty form field
-  const [selectedFaculty, setSelectedFaculty] = useState('Dr. Olufemi Adeyemi (Senior Lecturer)');
+  // Assign faculty form fields
+  const [selectedStaffId, setSelectedStaffId] = useState('stf-001');
+  const [selectedStaffName, setSelectedStaffName] = useState('Dr. Olufemi Adeyemi (Senior Lecturer - CSC)');
+  const [assignRole, setAssignRole] = useState('PRIMARY_LECTURER');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleAddCourse = (e: React.FormEvent) => {
+  const handleAddCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCode.trim() || !newTitle.trim()) return;
+    setFormError(null);
 
-    const newCourse: CourseRecord = {
-      id: `crs-${Date.now()}`,
-      code: newCode.toUpperCase().trim(),
-      title: newTitle.trim(),
-      programme: newProgramme,
-      division: newDivision,
-      creditUnits: Number(newCredits),
-      level: Number(newLevel),
-      semester: Number(newSemester),
-      isCompulsory: newCompulsory,
-    };
+    // Validation
+    const cleanCode = newCode.trim().toUpperCase();
+    const cleanTitle = newTitle.trim();
 
-    setCourses([newCourse, ...courses]);
-    setNewCode('');
-    setNewTitle('');
-    setShowAddModal(false);
-    showToast(`Course ${newCourse.code} created and added to curriculum.`);
-  };
+    if (!cleanCode) {
+      setFormError('Course code is required (e.g. CSC 113)');
+      return;
+    }
+    if (cleanTitle.length < 3) {
+      setFormError('Course title must be at least 3 characters long');
+      return;
+    }
+    if (newCredits < 1 || newCredits > 6) {
+      setFormError('Credit units must be between 1 and 6');
+      return;
+    }
 
-  const handleAssignFaculty = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!showAssignModal) return;
+    // Determine programmeId based on division if not set
+    let progId = newProgrammeId;
+    if (newDivision === 'NCE' && !progId.startsWith('prog-nce')) {
+      progId = 'prog-nce-csc-mth';
+    } else if (newDivision === 'DEGREE' && !progId.startsWith('prog-deg')) {
+      progId = 'prog-deg-bed';
+    } else if (newDivision === 'SECONDARY' && !progId.startsWith('prog-sec')) {
+      progId = 'prog-sec-sss';
+    } else if (newDivision === 'PRIMARY' && !progId.startsWith('prog-pri')) {
+      progId = 'prog-pri-elem';
+    }
 
-    setCourses(
-      courses.map((c) =>
-        c.id === showAssignModal.id ? { ...c, assignedFaculty: selectedFaculty } : c
-      )
-    );
-    showToast(`Assigned ${selectedFaculty} to ${showAssignModal.code}`);
-    setShowAssignModal(null);
-  };
+    try {
+      await createCourse({
+        programmeId: progId,
+        code: cleanCode,
+        title: cleanTitle,
+        creditUnits: Number(newCredits),
+        level: Number(newLevel),
+        semesterTerm: Number(newSemester),
+        isCompulsory: Boolean(newCompulsory),
+        division: newDivision,
+      });
 
-  const handleDeleteCourse = (id: string, code: string) => {
-    if (confirm(`Are you sure you want to remove ${code} from the academic curriculum?`)) {
-      setCourses(courses.filter((c) => c.id !== id));
-      showToast(`Course ${code} removed successfully.`);
+      showToast(`Course ${cleanCode} created and stored successfully!`);
+      setNewCode('');
+      setNewTitle('');
+      setShowAddModal(false);
+    } catch (err: any) {
+      setFormError(err.message || 'Failed to create course');
     }
   };
 
+  const handleAssignFaculty = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showAssignModal) return;
+
+    try {
+      await assignFaculty({
+        staffId: selectedStaffId,
+        courseId: showAssignModal.id,
+        semesterId: newDivision === 'DEGREE' ? 'sem-deg-2026-1' : 'sem-nce-2026-1',
+        role: assignRole,
+      });
+
+      showToast(`Assigned ${selectedStaffName} to ${showAssignModal.code}`);
+      setShowAssignModal(null);
+    } catch (err: any) {
+      alert(`Assignment failed: ${err.message}`);
+    }
+  };
+
+  const handleDeleteCourse = async (id: string, code: string) => {
+    if (confirm(`Are you sure you want to delete course ${code}?`)) {
+      try {
+        await deleteCourse(id);
+        showToast(`Course ${code} removed.`);
+      } catch (err: any) {
+        alert(`Delete failed: ${err.message}`);
+      }
+    }
+  };
+
+  // Filter courses based on search & selected division
   const filteredCourses = courses.filter((c) => {
     const matchesSearch =
       c.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.programme.toLowerCase().includes(searchQuery.toLowerCase());
+      (c.programmeName && c.programmeName.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesDiv = selectedDivision === 'ALL' || c.division === selectedDivision;
     return matchesSearch && matchesDiv;
   });
@@ -197,21 +170,33 @@ export const AdminCoursesTab: React.FC = () => {
         <div>
           <h2 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
             <BookOpen className={`w-6 h-6 ${isNavy ? 'text-blue-600' : 'text-emerald-700'}`} />
-            Academic Management & Curriculum Directory
+            Academic Management & Course Directory
           </h2>
           <p className="text-xs text-slate-500">
-            Provision departments, programmes, courses, and allocate courses to academic lecturers.
+            Define curriculum units, manage accreditation catalogs, and assign lecturers in real time.
           </p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className={`flex items-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition-all ${
-            isNavy ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-700 hover:bg-emerald-600'
-          }`}
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create New Course</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => refetch()}
+            className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 transition-colors shadow-sm"
+            title="Refresh Courses"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => {
+              setFormError(null);
+              setShowAddModal(true);
+            }}
+            className={`flex items-center gap-2 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition-all ${
+              isNavy ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-700 hover:bg-emerald-600'
+            }`}
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Course</span>
+          </button>
+        </div>
       </div>
 
       {/* Metric Cards */}
@@ -222,7 +207,7 @@ export const AdminCoursesTab: React.FC = () => {
             <BookOpen className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="text-2xl font-black text-slate-900 mt-2">{courses.length}</div>
-          <div className="text-[11px] text-emerald-600 font-medium">Across 4 divisions</div>
+          <div className="text-[11px] text-emerald-600 font-medium">Synced with D1 Engine</div>
         </div>
 
         <div className="p-4 bg-white rounded-2xl border border-slate-200/80 shadow-sm">
@@ -304,7 +289,14 @@ export const AdminCoursesTab: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
-              {filteredCourses.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto text-emerald-600 mb-2" />
+                    Loading curriculum database...
+                  </td>
+                </tr>
+              ) : filteredCourses.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
                     No courses found matching the search criteria.
@@ -325,7 +317,8 @@ export const AdminCoursesTab: React.FC = () => {
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-800">{course.title}</div>
                       <div className="text-[11px] text-slate-500 font-normal">
-                        {course.programme} • <span className="font-semibold">{course.division}</span>
+                        {course.programmeName || course.programmeId} •{' '}
+                        <span className="font-semibold">{course.division || 'NCE'}</span>
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-center font-bold text-slate-900">
@@ -333,7 +326,7 @@ export const AdminCoursesTab: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold text-[11px]">
-                        {course.level}L / Sem {course.semester}
+                        {course.level}L / Sem {course.semesterTerm}
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
@@ -357,7 +350,8 @@ export const AdminCoursesTab: React.FC = () => {
                         </button>
                         <button
                           onClick={() => handleDeleteCourse(course.id, course.code)}
-                          className="p-1 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                          disabled={isDeleting}
+                          className="p-1 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-50"
                           title="Delete Course"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -372,30 +366,37 @@ export const AdminCoursesTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Course Modal */}
+      {/* Add Course Modal with Form Validation */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-lg w-full shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95">
-            <h3 className="text-lg font-black text-slate-900 mb-1">Create Curriculum Course</h3>
+            <h3 className="text-lg font-black text-slate-900 mb-1">Add New Course</h3>
             <p className="text-xs text-slate-500 mb-4">
-              Add a new course unit to the COEKA academic database.
+              Provision a new curriculum course unit with validation.
             </p>
+
+            {formError && (
+              <div className="p-3 mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
 
             <form onSubmit={handleAddCourse} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Course Code</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Course Code *</label>
                   <input
                     type="text"
                     required
                     placeholder="e.g. CSC 113"
                     value={newCode}
                     onChange={(e) => setNewCode(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono font-bold"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono font-bold uppercase focus:ring-2 focus:ring-emerald-500"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Credit Units</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Credit Units (1-6) *</label>
                   <input
                     type="number"
                     min={1}
@@ -403,29 +404,29 @@ export const AdminCoursesTab: React.FC = () => {
                     required
                     value={newCredits}
                     onChange={(e) => setNewCredits(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 font-bold"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Course Title</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Course Title / Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Algorithms & Data Structures I"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Division</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Division *</label>
                   <select
                     value={newDivision}
-                    onChange={(e) => setNewDivision(e.target.value)}
+                    onChange={(e) => setNewDivision(e.target.value as any)}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
                   >
                     <option value="NCE">NCE (Tertiary)</option>
@@ -435,7 +436,7 @@ export const AdminCoursesTab: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-slate-700 block mb-1">Level / Term</label>
+                  <label className="text-xs font-bold text-slate-700 block mb-1">Level *</label>
                   <select
                     value={newLevel}
                     onChange={(e) => setNewLevel(Number(e.target.value))}
@@ -449,15 +450,27 @@ export const AdminCoursesTab: React.FC = () => {
                 </div>
               </div>
 
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Semester / Term *</label>
+                <select
+                  value={newSemester}
+                  onChange={(e) => setNewSemester(Number(e.target.value))}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
+                >
+                  <option value={1}>First Semester (Term 1)</option>
+                  <option value={2}>Second Semester (Term 2)</option>
+                </select>
+              </div>
+
               <div className="flex items-center gap-2 pt-2">
                 <input
                   type="checkbox"
-                  id="compulsoryCheck"
+                  id="compulsoryCheckModal"
                   checked={newCompulsory}
                   onChange={(e) => setNewCompulsory(e.target.checked)}
                   className="rounded text-emerald-600 focus:ring-emerald-500 h-4 w-4"
                 />
-                <label htmlFor="compulsoryCheck" className="text-xs font-semibold text-slate-700">
+                <label htmlFor="compulsoryCheckModal" className="text-xs font-semibold text-slate-700">
                   Compulsory Institutional Core Course
                 </label>
               </div>
@@ -472,11 +485,13 @@ export const AdminCoursesTab: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className={`px-4 py-2 text-xs font-bold rounded-xl text-white shadow ${
+                  disabled={isCreating}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl text-white shadow flex items-center gap-1.5 ${
                     isNavy ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-700 hover:bg-emerald-600'
-                  }`}
+                  } disabled:opacity-50`}
                 >
-                  Save Course
+                  {isCreating ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>Save to Database</span>
                 </button>
               </div>
             </form>
@@ -497,23 +512,31 @@ export const AdminCoursesTab: React.FC = () => {
 
             <form onSubmit={handleAssignFaculty} className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Lecturer</label>
+                <label className="text-xs font-bold text-slate-700 block mb-1">Academic Staff</label>
                 <select
-                  value={selectedFaculty}
-                  onChange={(e) => setSelectedFaculty(e.target.value)}
+                  value={selectedStaffId}
+                  onChange={(e) => {
+                    setSelectedStaffId(e.target.value);
+                    const opt = e.target.options[e.target.selectedIndex].text;
+                    setSelectedStaffName(opt);
+                  }}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
                 >
-                  <option value="Dr. Olufemi Adeyemi (Senior Lecturer)">Dr. Olufemi Adeyemi (Senior Lecturer - CSC)</option>
-                  <option value="Prof. Terver Akume (Reader)">Prof. Terver Akume (Reader - MTH)</option>
-                  <option value="Dr. (Mrs) Bridget Tyav (Chief Lecturer)">Dr. (Mrs) Bridget Tyav (Chief Lecturer - EDU)</option>
-                  <option value="Mr. Emmanuel Gbadu (Lecturer I)">Mr. Emmanuel Gbadu (Lecturer I - ENG)</option>
-                  <option value="Dr. Simon Iorliam (Senior Lecturer)">Dr. Simon Iorliam (Senior Lecturer - BED)</option>
+                  <option value="stf-001">Dr. Olufemi Adeyemi (Senior Lecturer - CSC)</option>
+                  <option value="stf-002">Prof. Terver Akume (Reader - MTH)</option>
+                  <option value="stf-003">Dr. (Mrs) Bridget Tyav (Chief Lecturer - EDU)</option>
+                  <option value="stf-004">Mr. Emmanuel Gbadu (Lecturer I - ENG)</option>
+                  <option value="stf-005">Dr. Simon Iorliam (Senior Lecturer - BED)</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-bold text-slate-700 block mb-1">Role Type</label>
-                <select className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white">
+                <label className="text-xs font-bold text-slate-700 block mb-1">Allocation Role</label>
+                <select
+                  value={assignRole}
+                  onChange={(e) => setAssignRole(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white"
+                >
                   <option value="PRIMARY_LECTURER">Primary Course Lecturer (Score Upload Rights)</option>
                   <option value="CO_LECTURER">Co-Lecturer (Assistant)</option>
                 </select>
@@ -529,11 +552,13 @@ export const AdminCoursesTab: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className={`px-4 py-2 text-xs font-bold rounded-xl text-white shadow ${
+                  disabled={isAssigning}
+                  className={`px-4 py-2 text-xs font-bold rounded-xl text-white shadow flex items-center gap-1.5 ${
                     isNavy ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-700 hover:bg-emerald-600'
-                  }`}
+                  } disabled:opacity-50`}
                 >
-                  Confirm Allocation
+                  {isAssigning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : null}
+                  <span>Confirm Allocation</span>
                 </button>
               </div>
             </form>

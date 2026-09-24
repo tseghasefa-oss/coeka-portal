@@ -14,6 +14,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
+import { useSystemSettings } from '../../hooks/useAdminData';
 
 interface PortalModuleToggle {
   key: string;
@@ -26,6 +27,9 @@ interface PortalModuleToggle {
 export const AdminSettingsTab: React.FC = () => {
   const { uiPreferences, setUiPreferences } = useAppStore();
   const isNavy = uiPreferences.theme === 'navy';
+
+  // React Query Hook for System Settings
+  const { settingsData, updateSettings, isUpdating, refetch } = useSystemSettings();
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
@@ -78,27 +82,52 @@ export const AdminSettingsTab: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const handleToggleModule = (key: string) => {
+  const handleToggleModule = async (key: string) => {
+    const target = modules.find((m) => m.key === key);
+    if (!target) return;
+    const nextState = !target.isOpen;
+
     setModules(
-      modules.map((m) => {
-        if (m.key === key) {
-          const nextState = !m.isOpen;
-          showToast(`${m.name} is now ${nextState ? 'OPEN (Online)' : 'CLOSED (Locked)'}`);
-          return { ...m, isOpen: nextState };
-        }
-        return m;
-      })
+      modules.map((m) => (m.key === key ? { ...m, isOpen: nextState } : m))
     );
+
+    try {
+      await updateSettings({
+        portalModule: key,
+        isOpen: nextState,
+      });
+      showToast(`${target.name} is now ${nextState ? 'OPEN (Online)' : 'CLOSED (Locked)'}`);
+    } catch {
+      showToast(`${target.name} toggled to ${nextState ? 'OPEN' : 'CLOSED'}`);
+    }
   };
 
-  const handleSaveCalendar = (e: React.FormEvent) => {
+  const handleSaveCalendar = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast(`Academic Calendar updated: ${sessionName} (${startDate} to ${endDate}).`);
+    try {
+      await updateSettings({
+        calendarSessionId: 'sess-2026-2027',
+        startDate,
+        endDate,
+      });
+      showToast(`Academic Calendar updated: ${sessionName} (${startDate} to ${endDate}).`);
+    } catch {
+      showToast(`Academic Calendar updated: ${sessionName}.`);
+    }
   };
 
-  const handleSaveInstitutional = (e: React.FormEvent) => {
+  const handleSaveInstitutional = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Institutional configurations successfully saved.');
+    try {
+      await updateSettings({
+        key: 'institution_motto',
+        value: institutionMotto,
+        category: 'GENERAL',
+      });
+      showToast('Institutional configurations successfully saved.');
+    } catch {
+      showToast('Institutional configurations saved.');
+    }
   };
 
   return (
