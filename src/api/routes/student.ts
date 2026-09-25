@@ -7,6 +7,7 @@ import { LedgerEngine } from '../../services/finance/ledgerEngine';
 import { PaymentFailoverRouter } from '../../services/finance/paymentFailoverRouter';
 import { SignatureService } from '../../services/finance/signatureService';
 import { CourseRegistrationEngine, CourseToRegister } from '../../services/students/courseRegistrationEngine';
+import { AcademicService } from '../../services/academic/academicService';
 
 export const studentRoutes = new Hono<{ Bindings: Env }>();
 
@@ -167,3 +168,24 @@ studentRoutes.get('/invoices/:id/receipt', async (c) => {
     },
   });
 });
+
+// 8. Student Published Semester Results (Visibility Gated: DRAFT results withheld)
+studentRoutes.get('/results', async (c) => {
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const service = new AcademicService(container.db);
+  const studentIdentifier = user?.userId || 'std-001';
+
+  const publishedResults = await service.getStudentPublishedResults(studentIdentifier);
+
+  return c.json({
+    studentId: studentIdentifier,
+    hasPublishedResults: publishedResults.length > 0,
+    resultsCount: publishedResults.length,
+    results: publishedResults,
+    message: publishedResults.length > 0
+      ? 'Official published semester grades.'
+      : 'No published results available yet. Results in DRAFT status are withheld until formal release by course lecturers.',
+  });
+});
+

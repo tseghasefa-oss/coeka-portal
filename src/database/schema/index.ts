@@ -428,3 +428,43 @@ export const systemSettings = sqliteTable('system_settings', {
   updatedBy: text('updated_by'),
   updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
 });
+
+// 12. Lecturer Academic Operations: Attendance & Continuous Assessment Grades
+export const ResultStatus = {
+  DRAFT: 'DRAFT',
+  PUBLISHED: 'PUBLISHED',
+} as const;
+export type ResultStatus = (typeof ResultStatus)[keyof typeof ResultStatus];
+
+export const courseAttendance = sqliteTable('course_attendance', {
+  id: text('id').primaryKey(),
+  courseId: text('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  lectureDate: text('lecture_date').notNull(), // 'YYYY-MM-DD'
+  status: text('status').notNull().default('PRESENT'), // 'PRESENT', 'ABSENT', 'EXCUSED'
+  markedByStaffId: text('marked_by_staff_id'),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+}, (t) => [
+  unique().on(t.courseId, t.studentId, t.lectureDate),
+]);
+
+export const gradeEntries = sqliteTable('grade_entries', {
+  id: text('id').primaryKey(),
+  courseId: text('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  sessionId: text('session_id').references(() => academicSessions.id),
+  ca1Score: real('ca1_score').default(0),
+  ca2Score: real('ca2_score').default(0),
+  examScore: real('exam_score').default(0),
+  totalScore: real('total_score').default(0),
+  letterGrade: text('letter_grade'),
+  gradePoint: real('grade_point'),
+  status: text('status').notNull().default('DRAFT'), // 'DRAFT', 'PUBLISHED'
+  lecturerStaffId: text('lecturer_staff_id'),
+  publishedAt: integer('published_at'),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+}, (t) => [
+  unique().on(t.courseId, t.studentId),
+]);
+

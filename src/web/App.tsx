@@ -44,6 +44,7 @@ import {
 } from './hooks/usePortalData';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { BursarModule } from './components/bursar/BursarModule';
+import { LecturerModule } from './components/lecturer/LecturerModule';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -142,16 +143,6 @@ export default function App() {
     'GSE 111',
   ]);
   const [regSuccess, setRegSuccess] = useState(false);
-
-  // Staff Score Entry State
-  const [staffCourse, setStaffCourse] = useState('CSC 111');
-  const [staffScores, setStaffScores] = useState([
-    { matric: 'COEKA/2026/NCE/084', name: 'Aondoaver Moses Iorliam', ca: 34, exam: 52 },
-    { matric: 'COEKA/2026/NCE/085', name: 'Mngusonun Faith Tyav', ca: 28, exam: 46 },
-    { matric: 'COEKA/2026/NCE/086', name: 'Terna Victor Chia', ca: 32, exam: 42 },
-    { matric: 'COEKA/2026/NCE/087', name: 'Doose Mercy Gbadu', ca: 22, exam: 35 },
-  ]);
-  const [scoreSubmitted, setScoreSubmitted] = useState(false);
 
   // Timer countdown simulation
   useEffect(() => {
@@ -1000,127 +991,12 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 7: STAFF HUB (SCORE UPLOAD & WORKLOAD) */}
+        {/* TAB 7: STAFF HUB (SCORE UPLOAD, ATTENDANCE & ACADEMIC ENGINE) */}
         {activeTab === 'staff' && (
           <ProtectedRoute allowedRoles={['LECTURER', 'DEAN', 'HOD', 'STAFF', 'SUPER_ADMIN', 'ADMIN']}>
-            <div className="space-y-6 max-w-5xl mx-auto">
-            <div className="bento-card p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-emerald-950 text-white">
-              <div>
-                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">Faculty Workspace</span>
-                <h3 className="text-xl font-bold">
-                  Welcome, {userSession?.fullName || 'Dr. Terver Kange'}, {userSession?.role || 'LECTURER'}
-                </h3>
-                <p className="text-xs text-emerald-200">Department of Computer Science • School of Sciences • {userSession?.username || 'lecturer1'}</p>
-              </div>
-              <div className="text-left sm:text-right text-xs">
-                <span className="text-slate-400 block">Assigned Workload:</span>
-                <strong className="text-amber-300 text-sm">3 Courses (8 Units) • 510 Students</strong>
-              </div>
-            </div>
-
-            <div className="bento-card p-6 space-y-4">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-100">
-                <div>
-                  <h4 className="text-base font-bold text-slate-900">Score Entry & Moderation Sheet</h4>
-                  <p className="text-xs text-slate-500">Continuous Assessment (Max 40) + Examination (Max 60)</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs font-semibold text-slate-600">Course:</label>
-                  <select
-                    value={staffCourse}
-                    onChange={(e) => setStaffCourse(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs font-bold text-slate-800 bg-white"
-                  >
-                    <option value="CSC 111">CSC 111 (Intro to CS)</option>
-                    <option value="CSC 112">CSC 112 (Programming)</option>
-                    <option value="CSC 211">CSC 211 (Data Structures)</option>
-                  </select>
-                </div>
-              </div>
-
-              {scoreSubmitted && (
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Draft score batch locked and transmitted to HOD Computer Science for departmental moderation.</span>
-                </div>
-              )}
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
-                      <th className="py-2.5 px-3">Matric Number</th>
-                      <th className="py-2.5 px-3">Student Name</th>
-                      <th className="py-2.5 px-3 text-center">CA (0-40)</th>
-                      <th className="py-2.5 px-3 text-center">Exam (0-60)</th>
-                      <th className="py-2.5 px-3 text-center">Total</th>
-                      <th className="py-2.5 px-3 text-center">Grade</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {staffScores.map((row, idx) => {
-                      const total = row.ca + row.exam;
-                      const evaluated = GradingPolicyEngine.evaluateScore(total, 'NCCE_5_POINT');
-                      return (
-                        <tr key={row.matric} className="hover:bg-slate-50/80">
-                          <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{row.matric}</td>
-                          <td className="py-2.5 px-3 text-slate-700">{row.name}</td>
-                          <td className="py-2.5 px-3 text-center">
-                            <input
-                              type="number"
-                              min="0"
-                              max="40"
-                              value={row.ca}
-                              onChange={(e) => {
-                                const val = Number(e.target.value);
-                                const updated = [...staffScores];
-                                updated[idx].ca = Math.min(40, Math.max(0, val));
-                                setStaffScores(updated);
-                              }}
-                              className="w-16 px-2 py-1 text-center rounded border border-slate-300 font-bold"
-                            />
-                          </td>
-                          <td className="py-2.5 px-3 text-center">
-                            <input
-                              type="number"
-                              min="0"
-                              max="60"
-                              value={row.exam}
-                              onChange={(e) => {
-                                const val = Number(e.target.value);
-                                const updated = [...staffScores];
-                                updated[idx].exam = Math.min(60, Math.max(0, val));
-                                setStaffScores(updated);
-                              }}
-                              className="w-16 px-2 py-1 text-center rounded border border-slate-300 font-bold"
-                            />
-                          </td>
-                          <td className="py-2.5 px-3 text-center font-bold text-slate-900">{total}</td>
-                          <td className="py-2.5 px-3 text-center">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                              {evaluated.letterGrade}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  onClick={() => setScoreSubmitted(true)}
-                  className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow flex items-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Submit Score Sheet to HOD</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </ProtectedRoute>
-      )}
+            <LecturerModule />
+          </ProtectedRoute>
+        )}
 
         {/* TAB 8: PARENT PORTAL (MULTI-WARD TELEMETRY) */}
         {activeTab === 'parent' && (

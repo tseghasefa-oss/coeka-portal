@@ -129,6 +129,10 @@ export class MemoryDatabaseAdapter implements IDatabaseProvider {
             if (fs.existsSync(bursarMigrationPath)) {
               this.sqlite.exec(fs.readFileSync(bursarMigrationPath, 'utf8'));
             }
+            const academicMigrationPath = path.resolve(process.cwd(), 'src/database/migrations-drizzle/0003_moaning_blackheart.sql');
+            if (fs.existsSync(academicMigrationPath)) {
+              this.sqlite.exec(fs.readFileSync(academicMigrationPath, 'utf8'));
+            }
           } catch {
             // Optional fallback
           }

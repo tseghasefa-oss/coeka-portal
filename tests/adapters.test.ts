@@ -80,6 +80,6 @@ describe('Infrastructure Adapters & Service Container', () => {
 
     const transcript = await academicService.generateTranscript('std-001', 'Aondoaver Moses', 'COEKA/2026/NCE/084');
     expect(transcript.verificationHash).toBeDefined();
-    expect(transcript.downloadUrl).toContain('transcripts/std-001_');
+    expect((transcript as any).downloadUrl).toContain('transcripts/std-001_');
   });
 });
