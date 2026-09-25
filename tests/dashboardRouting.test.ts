@@ -33,9 +33,10 @@ describe('Role-Based Dashboard Routing & Navigation (Prompt 4 Final Wire-up)', (
       expect(resolveDashboardTab('ADMIN')).toBe('admin');
     });
 
-    it('resolves academic staff roles (LECTURER, DEAN, HOD, STAFF) to "staff"', () => {
+    it('resolves academic staff roles (LECTURER, HOD, STAFF) to "staff", DEAN to "dean", and LIBRARIAN to "librarian"', () => {
       expect(resolveDashboardTab('LECTURER')).toBe('staff');
-      expect(resolveDashboardTab('DEAN')).toBe('staff');
+      expect(resolveDashboardTab('DEAN')).toBe('dean');
+      expect(resolveDashboardTab('LIBRARIAN')).toBe('librarian');
       expect(resolveDashboardTab('HOD')).toBe('staff');
       expect(resolveDashboardTab('STAFF')).toBe('staff');
     });
@@ -233,7 +234,7 @@ describe('Role-Based Dashboard Routing & Navigation (Prompt 4 Final Wire-up)', (
         activeTab: targetTab,
       });
 
-      expect(useAppStore.getState().activeTab).toBe('staff');
+      expect(useAppStore.getState().activeTab).toBe('dean');
     });
   });
 

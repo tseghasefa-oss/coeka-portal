@@ -48,6 +48,7 @@ import { LecturerModule } from './components/lecturer/LecturerModule';
 import { StudentDashboard } from './components/student/StudentDashboard';
 import { ParentDashboard } from './components/parent/ParentDashboard';
 import { DeanDashboard } from './components/dean/DeanDashboard';
+import { LibrarianDashboard } from './components/librarian/LibrarianDashboard';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -245,6 +246,7 @@ export default function App() {
                 { id: 'hostels', label: 'Hostels', icon: Building },
                 { id: 'staff', label: 'Staff Hub', icon: Users },
                 { id: 'dean', label: 'Dean Oversight', icon: ShieldCheck },
+                { id: 'librarian', label: 'Library & Clearance', icon: BookOpen },
                 { id: 'parent', label: 'Parent Portal', icon: Heart },
                 { id: 'admin', label: 'Master Admin', icon: Layers },
               ].map((tab) => {
@@ -317,6 +319,7 @@ export default function App() {
             { id: 'results', label: 'Results' },
             { id: 'hostels', label: 'Hostels' },
             { id: 'staff', label: 'Staff' },
+            { id: 'librarian', label: 'Library' },
             { id: 'parent', label: 'Parent' },
             { id: 'admin', label: 'Master Admin' },
           ].map((tab) => (
@@ -859,6 +862,13 @@ export default function App() {
         {activeTab === 'parent' && (
           <ProtectedRoute allowedRoles={['PARENT', 'SUPER_ADMIN', 'ADMIN']}>
             <ParentDashboard />
+          </ProtectedRoute>
+        )}
+
+        {/* TAB 10: LIBRARIAN ASSET & CLEARANCE HUB (INVENTORY, CIRCULATION & CLEARANCE) */}
+        {activeTab === 'librarian' && (
+          <ProtectedRoute allowedRoles={['LIBRARIAN', 'SUPER_ADMIN', 'ADMIN']}>
+            <LibrarianDashboard />
           </ProtectedRoute>
         )}
       </main>

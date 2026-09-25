@@ -495,3 +495,59 @@ export const studentAppeals = sqliteTable('student_appeals', {
   updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
 });
 
+// 14. Library Asset & Clearance Management
+export const libraryBooks = sqliteTable('library_books', {
+  id: text('id').primaryKey(),
+  isbn: text('isbn').notNull().unique(),
+  title: text('title').notNull(),
+  author: text('author').notNull(),
+  publisher: text('publisher'),
+  publicationYear: integer('publication_year'),
+  category: text('category').notNull().default('GENERAL'), // 'GENERAL', 'EDUCATION', 'COMPUTING', 'SCIENCES', 'ARTS', 'LANGUAGES', 'VOCATIONAL'
+  shelfLocation: text('shelf_location').notNull(),
+  totalCopies: integer('total_copies').notNull().default(1),
+  availableCopies: integer('available_copies').notNull().default(1),
+  coverImageUrl: text('cover_image_url'),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const bookLoans = sqliteTable('book_loans', {
+  id: text('id').primaryKey(),
+  bookId: text('book_id').notNull().references(() => libraryBooks.id, { onDelete: 'cascade' }),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  staffId: text('staff_id'),
+  loanDate: text('loan_date').notNull(), // 'YYYY-MM-DD'
+  dueDate: text('due_date').notNull(), // 'YYYY-MM-DD'
+  returnDate: text('return_date'), // 'YYYY-MM-DD', null if active
+  status: text('status').notNull().default('ACTIVE'), // 'ACTIVE', 'RETURNED', 'OVERDUE', 'LOST'
+  fineAmountKobo: integer('fine_amount_kobo').notNull().default(0),
+  notes: text('notes'),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const libraryFines = sqliteTable('library_fines', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  loanId: text('loan_id').references(() => bookLoans.id, { onDelete: 'set null' }),
+  invoiceId: text('invoice_id').references(() => studentInvoices.id, { onDelete: 'set null' }),
+  amountKobo: integer('amount_kobo').notNull(),
+  reason: text('reason').notNull(),
+  status: text('status').notNull().default('UNPAID'), // 'UNPAID', 'PAID', 'WAIVED'
+  issuedByStaffId: text('issued_by_staff_id'),
+  issuedAt: integer('issued_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  paidAt: integer('paid_at'),
+});
+
+export const libraryClearances = sqliteTable('library_clearances', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().unique().references(() => students.id, { onDelete: 'cascade' }),
+  status: text('status').notNull().default('PENDING'), // 'PENDING', 'CLEARED', 'DENIED'
+  clearedByUserId: text('cleared_by_user_id').references(() => users.id),
+  clearedAt: integer('cleared_at'),
+  remarks: text('remarks'),
+  digitalCertificateHash: text('digital_certificate_hash'),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
