@@ -46,6 +46,7 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import { BursarModule } from './components/bursar/BursarModule';
 import { LecturerModule } from './components/lecturer/LecturerModule';
 import { StudentDashboard } from './components/student/StudentDashboard';
+import { ParentDashboard } from './components/parent/ParentDashboard';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -845,165 +846,12 @@ export default function App() {
           </ProtectedRoute>
         )}
 
-        {/* TAB 8: PARENT PORTAL (MULTI-WARD TELEMETRY) */}
+        {/* TAB 8: PARENT PORTAL (MULTI-WARD TELEMETRY & PAYMENTS) */}
         {activeTab === 'parent' && (
           <ProtectedRoute allowedRoles={['PARENT', 'SUPER_ADMIN', 'ADMIN']}>
-            <div className="space-y-6 max-w-5xl mx-auto">
-            <div className="bento-card p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-slate-900 to-emerald-950 text-white">
-              <div>
-                <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">Parent & Guardian Hub</span>
-                <h3 className="text-xl font-bold">
-                  Welcome, {userSession?.fullName || 'Mr. Joshua T. Tsegha'}, {userSession?.role || 'PARENT'}
-                </h3>
-                <p className="text-xs text-emerald-200">Registered Account: {userSession?.username || 'parent_tsegha'} • Katsina-Ala, Benue State</p>
-              </div>
-              <div className="text-left sm:text-right text-xs">
-                <span className="text-slate-400 block">Monitored Wards:</span>
-                <strong className="text-amber-300 text-sm">3 Children (NCE, Secondary, Primary)</strong>
-              </div>
-            </div>
-
-            {/* Ward Switcher Tabs */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                {
-                  id: 'std-001',
-                  name: 'Aondoaver Moses',
-                  div: 'NCE Programme (100L)',
-                  fee: '₦45,000 Due',
-                  perf: 'GPA: 4.83',
-                  feeColor: 'text-amber-700 bg-amber-50',
-                },
-                {
-                  id: 'std-002',
-                  name: 'Ngodoo Blessing',
-                  div: 'Demonstration Secondary (SS2)',
-                  fee: 'Fees Paid',
-                  perf: '3rd of 45',
-                  feeColor: 'text-emerald-700 bg-emerald-50',
-                },
-                {
-                  id: 'std-003',
-                  name: 'Terhide Kelvin',
-                  div: 'Staff Primary (Basic 4)',
-                  fee: 'Fees Paid',
-                  perf: '1st of 32',
-                  feeColor: 'text-emerald-700 bg-emerald-50',
-                },
-              ].map((ward) => (
-                <button
-                  key={ward.id}
-                  onClick={() => setActiveWardId(ward.id as any)}
-                  className={`p-4 rounded-2xl border text-left transition-all ${
-                    activeWardId === ward.id
-                      ? 'bg-white border-emerald-600 ring-2 ring-emerald-500/20 shadow-md'
-                      : 'bg-white/80 border-slate-200 hover:bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <strong className="text-sm text-slate-900">{ward.name}</strong>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${ward.feeColor}`}>
-                      {ward.fee}
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-500 block">{ward.div}</span>
-                  <span className="text-xs font-bold text-emerald-700 mt-2 block">{ward.perf}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Selected Ward Telemetry Detail Card */}
-            {activeWardId === 'std-002' && (
-              <div className="bento-card p-6 space-y-4">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                  <div>
-                    <h4 className="text-base font-bold text-slate-900">
-                      Ngodoo Blessing Tsegha — Terminal School Report Card
-                    </h4>
-                    <p className="text-xs text-slate-500">COEKA Demonstration Secondary School • Third Term SS2</p>
-                  </div>
-                  <button className="bg-emerald-800 text-white font-bold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 shadow">
-                    <Download className="w-3.5 h-3.5" />
-                    <span>Download Report Card PDF</span>
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
-                        <th className="py-2.5 px-3">Subject</th>
-                        <th className="py-2.5 px-3 text-center">CA1 (20)</th>
-                        <th className="py-2.5 px-3 text-center">CA2 (20)</th>
-                        <th className="py-2.5 px-3 text-center">Exam (60)</th>
-                        <th className="py-2.5 px-3 text-center">Total (100)</th>
-                        <th className="py-2.5 px-3 text-center">Grade</th>
-                        <th className="py-2.5 px-3">Remark</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {[
-                        { subject: 'English Language', ca1: 18, ca2: 17, exam: 48, total: 83, grade: 'A1', remark: 'Excellent' },
-                        { subject: 'Mathematics', ca1: 16, ca2: 18, exam: 46, total: 80, grade: 'A1', remark: 'Excellent' },
-                        { subject: 'Biology', ca1: 15, ca2: 16, exam: 44, total: 75, grade: 'A1', remark: 'Distinction' },
-                        { subject: 'Chemistry', ca1: 14, ca2: 15, exam: 42, total: 71, grade: 'B2', remark: 'Very Good' },
-                        { subject: 'Physics', ca1: 15, ca2: 15, exam: 40, total: 70, grade: 'B2', remark: 'Very Good' },
-                      ].map((sub) => (
-                        <tr key={sub.subject} className="hover:bg-slate-50/80">
-                          <td className="py-2.5 px-3 font-semibold text-slate-800">{sub.subject}</td>
-                          <td className="py-2.5 px-3 text-center text-slate-600">{sub.ca1}</td>
-                          <td className="py-2.5 px-3 text-center text-slate-600">{sub.ca2}</td>
-                          <td className="py-2.5 px-3 text-center text-slate-600">{sub.exam}</td>
-                          <td className="py-2.5 px-3 text-center font-bold text-slate-900">{sub.total}</td>
-                          <td className="py-2.5 px-3 text-center">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                              {sub.grade}
-                            </span>
-                          </td>
-                          <td className="py-2.5 px-3 text-slate-600">{sub.remark}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {activeWardId === 'std-001' && (
-              <div className="bento-card p-6 space-y-4">
-                <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                  <div>
-                    <h4 className="text-base font-bold text-slate-900">
-                      Aondoaver Moses Iorliam — NCE Academic Telemetry
-                    </h4>
-                    <p className="text-xs text-slate-500">100 Level • NCE Computer Science / Mathematics</p>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('finance')}
-                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-lg shadow"
-                  >
-                    Pay Outstanding ₦45,000.00
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs text-slate-500 block">Attendance Rate</span>
-                    <strong className="text-xl font-bold text-emerald-700">96.4%</strong>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs text-slate-500 block">First Semester GPA</span>
-                    <strong className="text-xl font-bold text-emerald-700">4.83 / 5.00</strong>
-                  </div>
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <span className="text-xs text-slate-500 block">Bursary Clearance</span>
-                    <strong className="text-xl font-bold text-amber-600">Pending Tuition</strong>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </ProtectedRoute>
-      )}
+            <ParentDashboard />
+          </ProtectedRoute>
+        )}
       </main>
 
       {/* Footer */}

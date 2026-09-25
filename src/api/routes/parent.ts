@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { Env } from '../../types/env';
-import { LedgerEngine } from '../../services/finance/ledgerEngine';
 import { requireAuth, requireRole } from '../middleware/rbac';
+import { getContainer } from '../../infrastructure/container';
+import { ParentService, MultiChildPaymentItem } from '../../services/parent/parentService';
 
 export const parentRoutes = new Hono<{ Bindings: Env }>();
 
@@ -10,68 +11,83 @@ parentRoutes.use('*', requireAuth, requireRole(['PARENT']));
 
 // 1. Parent Wards Telemetry
 parentRoutes.get('/wards', async (c) => {
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const parentService = new ParentService(container.db, container.cache, container.queue);
+
+  const identifier = user?.userId && user.userId !== 'demo-parent-001' ? user.userId : 'prt-001';
+  const data = await parentService.getParentWithWards(identifier);
+
+  return c.json(data);
+});
+
+// 2. Ward Academic Performance Dossier (Grades, Attendance, Progress)
+parentRoutes.get('/wards/:id/performance', async (c) => {
+  const childId = c.req.param('id');
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const parentService = new ParentService(container.db, container.cache, container.queue);
+
+  const identifier = user?.userId && user.userId !== 'demo-parent-001' ? user.userId : 'prt-001';
+
+  // Strict RBAC: Verify that the parent owns this ward
+  const isAuthorized = await parentService.verifyWardOwnership(identifier, childId);
+  if (!isAuthorized && user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
+    return c.json({
+      error: 'Forbidden: You do not have guardian authorization to access records for this ward.',
+      childId,
+    }, 403);
+  }
+
+  const performance = await parentService.getChildPerformance(childId);
   return c.json({
-    parent: {
-      parentId: 'prt-001',
-      fullName: 'Mr. Joshua T. Tsegha',
-      email: 'j.tsegha@gmail.com',
-      phone: '08064377594',
-    },
-    wards: [
-      {
-        studentId: 'std-001',
-        fullName: 'Aondoaver Moses Iorliam',
-        division: 'NCE',
-        programme: 'NCE Computer Science / Mathematics',
-        level: 100,
-        matricNumber: 'COEKA/2026/NCE/084',
-        currentGPA: 4.83,
-        attendanceRate: '96%',
-        feeStatus: 'UNPAID',
-        outstandingKobo: 4500000,
-        outstandingFormatted: LedgerEngine.koboToNaira(4500000),
-        virtualAccount: '9910840184 (Wema Bank)',
-      },
-      {
-        studentId: 'std-002',
-        fullName: 'Ngodoo Blessing Tsegha',
-        division: 'SECONDARY',
-        programme: 'Demonstration Secondary School (SS2 Science)',
-        level: 200,
-        matricNumber: 'COEKA/DSS/2024/042',
-        terminalAverage: '78.5%',
-        terminalPosition: '3rd of 45',
-        attendanceRate: '98%',
-        feeStatus: 'PAID',
-        outstandingKobo: 0,
-        outstandingFormatted: LedgerEngine.koboToNaira(0),
-        virtualAccount: '9910840185 (Wema Bank)',
-      },
-      {
-        studentId: 'std-003',
-        fullName: 'Terhide Kelvin Tsegha',
-        division: 'PRIMARY',
-        programme: 'Staff Primary School (Basic 4)',
-        level: 4,
-        matricNumber: 'COEKA/SPS/2022/019',
-        terminalAverage: '84.0%',
-        terminalPosition: '1st of 32',
-        attendanceRate: '100%',
-        feeStatus: 'PAID',
-        outstandingKobo: 0,
-        outstandingFormatted: LedgerEngine.koboToNaira(0),
-        virtualAccount: '9910840186 (Wema Bank)',
-      },
-    ],
+    success: true,
+    performance,
   });
 });
 
-// 2. Ward Terminal Report Card (Secondary & Primary)
+// 3. Ward Financial Invoices & Dedicated Bank Account
+parentRoutes.get('/wards/:id/invoices', async (c) => {
+  const childId = c.req.param('id');
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const parentService = new ParentService(container.db, container.cache, container.queue);
+
+  const identifier = user?.userId && user.userId !== 'demo-parent-001' ? user.userId : 'prt-001';
+
+  // Strict RBAC
+  const isAuthorized = await parentService.verifyWardOwnership(identifier, childId);
+  if (!isAuthorized && user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
+    return c.json({
+      error: 'Forbidden: You do not have guardian authorization to view invoices for this ward.',
+      childId,
+    }, 403);
+  }
+
+  const invoiceData = await parentService.getChildInvoices(childId);
+  return c.json({
+    success: true,
+    ...invoiceData,
+  });
+});
+
+// 4. Ward Terminal Report Card (Secondary & Primary)
 parentRoutes.get('/wards/:id/report-card', async (c) => {
   const wardId = c.req.param('id');
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const parentService = new ParentService(container.db, container.cache, container.queue);
 
-  if (wardId === 'std-002') {
-    // Demonstration Secondary Report Card (WAEC style)
+  const identifier = user?.userId && user.userId !== 'demo-parent-001' ? user.userId : 'prt-001';
+  const isAuthorized = await parentService.verifyWardOwnership(identifier, wardId);
+  if (!isAuthorized && user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
+    return c.json({
+      error: 'Forbidden: You do not have guardian authorization to access this report card.',
+      wardId,
+    }, 403);
+  }
+
+  if (wardId === 'std-002' || wardId === 'COEKA/DSS/2024/042') {
     return c.json({
       division: 'SECONDARY',
       school: 'COEKA Demonstration Secondary School',
@@ -100,4 +116,78 @@ parentRoutes.get('/wards/:id/report-card', async (c) => {
     message: 'Report card loaded',
     wardId,
   });
+});
+
+// 5. Consolidated Multi-Child Fee Payment Checkout
+parentRoutes.post('/pay', async (c) => {
+  const body = await c.req.json();
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const parentService = new ParentService(container.db, container.cache, container.queue);
+
+  const identifier = user?.userId && user.userId !== 'demo-parent-001' ? user.userId : 'prt-001';
+
+  // Normalize single child vs multi-child payment payload
+  let paymentItems: MultiChildPaymentItem[] = [];
+
+  if (Array.isArray(body.items) && body.items.length > 0) {
+    paymentItems = body.items;
+  } else if (body.childId && body.amountKobo) {
+    paymentItems = [
+      {
+        childId: body.childId,
+        childName: body.childName || 'Ward',
+        invoiceId: body.invoiceId || `inv-${body.childId}`,
+        feeTitle: body.feeTitle || 'Institutional Tuition & Levies',
+        amountKobo: Number(body.amountKobo),
+      },
+    ];
+  } else {
+    // Default demo cart item if no specific items provided
+    paymentItems = [
+      {
+        childId: 'std-001',
+        childName: 'Aondoaver Moses Iorliam',
+        invoiceId: 'inv-001',
+        feeTitle: '2026/2027 NCE Tuition & Consolidated Institutional Fees',
+        amountKobo: 4500000,
+      },
+    ];
+  }
+
+  // Strict RBAC: Verify parent ownership of all requested children
+  for (const item of paymentItems) {
+    const isOwned = await parentService.verifyWardOwnership(identifier, item.childId);
+    if (!isOwned && user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
+      return c.json({
+        error: `Forbidden: You do not have guardian authorization to settle fees for child '${item.childId}'.`,
+        unauthorizedChildId: item.childId,
+      }, 403);
+    }
+  }
+
+  try {
+    const result = await parentService.payConsolidated({
+      parentId: identifier,
+      parentName: user?.fullName || 'Mr. Joshua T. Tsegha',
+      parentEmail: (user as any)?.email || 'j.tsegha@gmail.com',
+      items: paymentItems,
+      gateway: body.gateway || 'PAYSTACK',
+      config: {
+        paystackSecret: c.env?.PAYSTACK_SECRET_KEY,
+        remitaMerchantId: c.env?.REMITA_MERCHANT_ID,
+        vpayApiKey: c.env?.VPAY_API_KEY,
+      },
+    });
+
+    return c.json({
+      success: true,
+      message: 'Consolidated payment session initialized successfully.',
+      payment: result,
+    });
+  } catch (err: any) {
+    return c.json({
+      error: err.message || 'Payment initialization failed',
+    }, 400);
+  }
 });
