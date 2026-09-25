@@ -45,6 +45,7 @@ import {
 import { AdminLayout } from './components/admin/AdminLayout';
 import { BursarModule } from './components/bursar/BursarModule';
 import { LecturerModule } from './components/lecturer/LecturerModule';
+import { StudentDashboard } from './components/student/StudentDashboard';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -133,16 +134,6 @@ export default function App() {
     isEligible: boolean;
     reason: string;
   } | null>(null);
-
-  // SIMS Course Registration State
-  const [registeredCourses, setRegisteredCourses] = useState<string[]>([
-    'CSC 111',
-    'CSC 112',
-    'MTH 111',
-    'EDU 111',
-    'GSE 111',
-  ]);
-  const [regSuccess, setRegSuccess] = useState(false);
 
   // Timer countdown simulation
   useEffect(() => {
@@ -560,156 +551,12 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 3: STUDENT INFORMATION MANAGEMENT SYSTEM (SIMS) */}
+        {/* TAB 3: STUDENT INFORMATION MANAGEMENT SYSTEM (SIMS - TERTIARY & BASIC) */}
         {activeTab === 'sims' && (
           <ProtectedRoute allowedRoles={['STUDENT', 'SUPER_ADMIN', 'ADMIN']}>
-            <div className="space-y-6">
-              {/* Student Welcome Header Banner */}
-              <div className="bento-card p-5 bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-emerald-800 shadow-md">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-emerald-800/80 px-2 py-0.5 rounded border border-emerald-700">
-                    Student Information System
-                  </span>
-                  <h2 className="text-xl font-extrabold text-white mt-1">
-                    Welcome, {userSession?.fullName || 'Aondoaver Moses Iorliam'}, {userSession?.role || 'STUDENT'}
-                  </h2>
-                  <p className="text-xs text-emerald-200">
-                    Matric No: {userSession?.username || 'COEKA/2026/NCE/084'} • Division: {userSession?.division || 'NCE'} • Session: 2026/2027
-                  </p>
-                </div>
-                <div className="text-left sm:text-right text-xs">
-                  <span className="text-slate-400 block text-[10px] uppercase">Portal Status</span>
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-400">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live & Enrolled
-                  </span>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bento-card p-6 flex flex-col justify-between bg-gradient-to-br from-emerald-900 to-slate-900 text-white shadow-lg">
-                <div>
-                  <div className="flex items-center justify-between pb-4 border-b border-emerald-800/80">
-                    <div className="flex items-center space-x-2">
-                      <GraduationCap className="w-5 h-5 text-amber-400" />
-                      <span className="text-xs font-bold tracking-widest text-amber-300 uppercase">Digital Student ID</span>
-                    </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-800 text-emerald-200 border border-emerald-700">
-                      VERIFIED
-                    </span>
-                  </div>
-
-                  <div className="mt-6 flex flex-col items-center text-center">
-                    <div className="w-24 h-24 rounded-2xl bg-amber-400 border-2 border-white shadow-md flex items-center justify-center text-3xl font-black text-emerald-950 mb-3">
-                      {userSession?.fullName ? userSession.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2) : 'MI'}
-                    </div>
-                    <h3 className="text-lg font-bold text-white">{userSession?.fullName || 'Aondoaver Moses Iorliam'}</h3>
-                    <span className="text-xs text-amber-300 font-mono mt-0.5">{userSession?.username || 'COEKA/2026/NCE/084'}</span>
-                    <span className="text-xs text-emerald-200 mt-1">{userSession?.division || 'NCE'} Computer Science / Maths</span>
-                  </div>
-                </div>
-
-              <div className="pt-6 border-t border-emerald-800/80 mt-6 flex items-center justify-between">
-                <div className="space-y-0.5 text-left text-xs">
-                  <span className="text-slate-400 block text-[10px] uppercase">Level & Session</span>
-                  <span className="font-semibold text-white">100 Level • 2026/2027</span>
-                </div>
-                <div className="p-2 bg-white rounded-lg shadow-sm">
-                  <QrCode className="w-10 h-10 text-slate-900" />
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-2 bento-card p-6 space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">Semester Course Registration</h3>
-                  <p className="text-xs text-slate-500">2026/2027 First Semester (Min 15, Max 24 Units)</p>
-                </div>
-                <div className="text-right">
-                  <span className="text-xs text-slate-500 block">Total Load:</span>
-                  <strong className="text-base font-bold text-emerald-700">
-                    {registeredCourses.length * 2 + 2} Units
-                  </strong>
-                </div>
-              </div>
-
-              {regSuccess && (
-                <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-900 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                  <span>Course registration submitted to Course Adviser (Dr. T. Kange) for electronic approval.</span>
-                </div>
-              )}
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
-                      <th className="py-2.5 px-3">Selected</th>
-                      <th className="py-2.5 px-3">Course Code</th>
-                      <th className="py-2.5 px-3">Course Title</th>
-                      <th className="py-2.5 px-3 text-center">Units</th>
-                      <th className="py-2.5 px-3">Type</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {[
-                      { code: 'CSC 111', title: 'Introduction to Computer Systems', units: 2, compulsory: true },
-                      { code: 'CSC 112', title: 'Problem Solving & BASIC Programming', units: 3, compulsory: true },
-                      { code: 'MTH 111', title: 'Algebra and Trigonometry', units: 3, compulsory: true },
-                      { code: 'MTH 112', title: 'Basic Calculus', units: 3, compulsory: false },
-                      { code: 'EDU 111', title: 'Introduction to Foundations of Education', units: 2, compulsory: true },
-                      { code: 'GSE 111', title: 'General English I', units: 2, compulsory: true },
-                    ].map((c) => {
-                      const isChecked = registeredCourses.includes(c.code);
-                      return (
-                        <tr key={c.code} className="hover:bg-slate-50/80">
-                          <td className="py-2.5 px-3">
-                            <input
-                              type="checkbox"
-                              checked={isChecked}
-                              disabled={c.compulsory}
-                              onChange={() => {
-                                if (isChecked) {
-                                  setRegisteredCourses(registeredCourses.filter((code) => code !== c.code));
-                                } else {
-                                  setRegisteredCourses([...registeredCourses, c.code]);
-                                }
-                              }}
-                              className="rounded text-emerald-700 focus:ring-emerald-600"
-                            />
-                          </td>
-                          <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{c.code}</td>
-                          <td className="py-2.5 px-3 font-medium text-slate-700">{c.title}</td>
-                          <td className="py-2.5 px-3 text-center font-bold text-slate-900">{c.units}</td>
-                          <td className="py-2.5 px-3">
-                            <span
-                              className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                                c.compulsory ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-600'
-                              }`}
-                            >
-                              {c.compulsory ? 'Compulsory' : 'Elective'}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={() => setRegSuccess(true)}
-                  className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow"
-                >
-                  Confirm & Submit Course Registration
-                </button>
-              </div>
-            </div>
-            </div>
-          </div>
-        </ProtectedRoute>
-      )}
+            <StudentDashboard />
+          </ProtectedRoute>
+        )}
 
         {/* TAB 4: BURSARY & FINANCIAL ENGINE */}
         {activeTab === 'finance' && (

@@ -22,6 +22,7 @@ export interface SessionUser {
   userType: string;
   division?: string;
   fullName?: string;
+  email?: string;
 }
 
 declare module 'hono' {
@@ -54,6 +55,7 @@ export async function authenticateSession(c: Context<{ Bindings: Env }>): Promis
         userType: session.userType,
         division: session.division,
         fullName: session.fullName,
+        email: (session as any).email,
       };
       c.set('user', user);
       return user;
