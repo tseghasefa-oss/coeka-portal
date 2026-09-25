@@ -7,6 +7,8 @@ import { FinanceAdminService } from '../../services/admin/financeAdminService';
 import { SystemAdminService } from '../../services/admin/systemAdminService';
 import { UserAdminService } from '../../services/admin/userAdminService';
 import { AuditService } from '../../services/admin/auditService';
+import { PromotionService } from '../../services/academic/promotionService';
+import { SessionBillingService } from '../../services/finance/sessionBillingService';
 
 export const adminRoutes = new Hono<{ Bindings: Env }>();
 
@@ -470,3 +472,105 @@ adminRoutes.patch('/settings', async (c) => {
     updated: results,
   });
 });
+
+// =============================================================
+// 6. STUDENT LIFECYCLE & SESSION PROGRESSION (Promotion, Billing Reset, Onboarding Stats)
+// =============================================================
+
+// Batch Student Promotion
+adminRoutes.post('/session/promote', async (c) => {
+  const container = getContainer(c.env);
+  const service = new PromotionService(container.db);
+  const body = await c.req.json().catch(() => ({}));
+
+  try {
+    const result = await service.promoteAllEligibleStudents({
+      divisionCode: body.divisionCode,
+      fromLevel: body.fromLevel ? Number(body.fromLevel) : undefined,
+    });
+
+    return c.json({
+      success: true,
+      message: `Batch promotion executed: ${result.promotedCount} promoted, ${result.probationCount} on probation, ${result.graduatedCount} graduated.`,
+      result,
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 400);
+  }
+});
+
+// Financial Reset: Apply New Session Fee Matrix
+adminRoutes.post('/session/billing-reset', async (c) => {
+  const container = getContainer(c.env);
+  const service = new SessionBillingService(container.db, container.cache);
+  const body = await c.req.json().catch(() => ({}));
+
+  const session = body.newSession || '2027/2028';
+
+  try {
+    const result = await service.applySessionFeeMatrix({
+      newSession: session,
+      divisionCode: body.divisionCode,
+      targetLevel: body.targetLevel ? Number(body.targetLevel) : undefined,
+    });
+
+    return c.json({
+      success: true,
+      message: `Session fee matrix applied for ${session}: ${result.totalInvoicesCreated} student invoices generated totaling ${result.formattedTotalBilled}.`,
+      result,
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 400);
+  }
+});
+
+// Admissions & Onboarding Lifecycle Statistics
+adminRoutes.get('/admissions/stats', async (c) => {
+  const container = getContainer(c.env);
+
+  const students = (await container.db.query<any>(
+    `SELECT s.id, s.matric_number, s.first_name, s.last_name, s.current_level, s.academic_status, s.state_of_origin, s.date_of_birth, s.passport_photo_url, d.code as divisionCode
+     FROM students s
+     LEFT JOIN divisions d ON s.division_id = d.id
+     ORDER BY s.id DESC`
+  )) || [];
+
+  const totalAdmitted = students.length;
+  const provisionalCount = students.filter((s) => s.academic_status === 'PROVISIONAL_ADMISSION').length;
+  const biodataCompletedCount = students.filter(
+    (s) => s.academic_status === 'BIODATA_COMPLETED' || (s.state_of_origin && s.date_of_birth)
+  ).length;
+  const activeCount = students.filter((s) => s.academic_status === 'ACTIVE').length;
+
+  const acceptanceInvoices =
+    (await container.db.query<any>(
+      `SELECT * FROM student_invoices WHERE (fee_schedule_id = 'fs-acceptance' OR invoice_number LIKE '%ACC%')`
+    )) || [];
+
+  const paidInvoices = acceptanceInvoices.filter((inv) => inv.status === 'PAID');
+  const acceptancePaidCount = paidInvoices.length;
+  const acceptanceTotalKobo = paidInvoices.reduce((sum, inv) => sum + (inv.amount_paid_kobo || 0), 0);
+
+  const completionPercentage = totalAdmitted > 0 ? Math.round((activeCount / totalAdmitted) * 100) : 0;
+
+  return c.json({
+    totalAdmitted,
+    provisionalCount,
+    biodataCompletedCount,
+    activeCount,
+    acceptancePaidCount,
+    acceptanceTotalKobo,
+    completionPercentage,
+    students: students.slice(0, 50).map((s) => ({
+      id: s.id,
+      matricNumber: s.matric_number,
+      fullName: `${s.first_name} ${s.last_name}`,
+      division: s.divisionCode || 'NCE',
+      level: s.current_level || 100,
+      academicStatus: s.academic_status || 'PROVISIONAL_ADMISSION',
+      hasPassport: Boolean(s.passport_photo_url && !s.passport_photo_url.includes('placeholder')),
+      hasBiodata: Boolean(s.state_of_origin && s.date_of_birth),
+    })),
+  });
+});
+

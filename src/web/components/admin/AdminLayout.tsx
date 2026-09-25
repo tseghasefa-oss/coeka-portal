@@ -18,12 +18,15 @@ import {
   Sun,
   Moon,
   ExternalLink,
+  UserCheck,
 } from 'lucide-react';
 import { useAppStore, AdminTab } from '../../stores/useAppStore';
 import { AdminCoursesTab } from './AdminCoursesTab';
 import { AdminFeesTab } from './AdminFeesTab';
 import { AdminUsersTab } from './AdminUsersTab';
 import { AdminSettingsTab } from './AdminSettingsTab';
+import { AdmissionManager } from './AdmissionManager';
+import { SessionControls } from './SessionControls';
 
 export const AdminLayout: React.FC = () => {
   const {
@@ -38,6 +41,7 @@ export const AdminLayout: React.FC = () => {
   } = useAppStore();
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [admissionsSubTab, setAdmissionsSubTab] = useState<'upload' | 'lifecycle'>('upload');
   const isNavy = uiPreferences.theme === 'navy';
 
   const navItems: { id: AdminTab; label: string; subLabel: string; icon: React.FC<{ className?: string }> }[] = [
@@ -58,6 +62,12 @@ export const AdminLayout: React.FC = () => {
       label: 'User & Staff Directory',
       subLabel: 'Staff, Students, RBAC Access',
       icon: Users,
+    },
+    {
+      id: 'admissions',
+      label: 'Admissions & Lifecycle',
+      subLabel: 'Bulk CSV, Promotion, Billing',
+      icon: UserCheck,
     },
     {
       id: 'settings',
@@ -331,6 +341,36 @@ export const AdminLayout: React.FC = () => {
           {adminTab === 'courses' && <AdminCoursesTab />}
           {adminTab === 'fees' && <AdminFeesTab />}
           {adminTab === 'users' && <AdminUsersTab />}
+          {adminTab === 'admissions' && (
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setAdmissionsSubTab('upload')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    admissionsSubTab === 'upload'
+                      ? 'bg-emerald-800 text-white shadow-sm'
+                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                  }`}
+                >
+                  Bulk Admissions & Onboarding
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAdmissionsSubTab('lifecycle')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    admissionsSubTab === 'lifecycle'
+                      ? 'bg-emerald-800 text-white shadow-sm'
+                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                  }`}
+                >
+                  Session Progression & Financial Reset
+                </button>
+              </div>
+
+              {admissionsSubTab === 'upload' ? <AdmissionManager /> : <SessionControls />}
+            </div>
+          )}
           {adminTab === 'settings' && <AdminSettingsTab />}
         </main>
       </div>

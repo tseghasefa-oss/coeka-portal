@@ -20,6 +20,7 @@ import { ReportCardView } from './ReportCardView';
 import { TimetableView } from './TimetableView';
 import { MyInvoices } from './MyInvoices';
 import { DigitalClearance } from './DigitalClearance';
+import { OnboardingView } from './OnboardingView';
 
 export const StudentDashboard: React.FC = () => {
   const { userSession } = useAppStore();
@@ -175,6 +176,19 @@ export const StudentDashboard: React.FC = () => {
           <span>Digital Clearance</span>
         </button>
 
+        {/* Admissions Onboarding Wizard */}
+        <button
+          onClick={() => setActiveSubTab('onboarding')}
+          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+            activeSubTab === 'onboarding'
+              ? 'bg-emerald-800 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+          }`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          <span>Admissions Onboarding</span>
+        </button>
+
         {/* Preview Toggle for demonstration purposes */}
         <div className="ml-auto flex items-center gap-1 px-2 text-[10px] text-slate-500 font-semibold">
           <span>Tier View:</span>
@@ -200,6 +214,10 @@ export const StudentDashboard: React.FC = () => {
       </div>
 
       {/* Sub-Tab View Rendering */}
+      {activeSubTab === 'onboarding' && (
+        <OnboardingView onComplete={() => setActiveSubTab('courseReg')} />
+      )}
+
       {activeSubTab === 'courseReg' && (
         <CourseRegistrationView onNavigateToInvoices={() => setActiveSubTab('invoices')} />
       )}

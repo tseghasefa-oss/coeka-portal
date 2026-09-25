@@ -26,7 +26,7 @@ export type ActiveTab =
   | 'login'
   | 'unauthorized';
 
-export type AdminTab = 'courses' | 'fees' | 'users' | 'settings';
+export type AdminTab = 'courses' | 'fees' | 'users' | 'admissions' | 'settings';
 
 export interface UserSession {
   userId?: string;

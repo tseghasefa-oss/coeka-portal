@@ -139,7 +139,16 @@ studentRoutes.post('/courses/register', async (c) => {
     feeCleared = !financialSummary.hasOutstandingDebt;
   }
 
-  const { selectedCourses } = body;
+  let selectedCourses = body.selectedCourses;
+  if (!selectedCourses && Array.isArray(body.courseIds)) {
+    const fetchedCourses = (await container.db.query<any>(
+      `SELECT id as courseId, code, title, credit_units as creditUnits, prerequisite_course_id as prerequisiteCourseId FROM courses`
+    )) || [];
+    selectedCourses = body.courseIds.map((cid: string) => {
+      const match = fetchedCourses.find((c: any) => c.courseId === cid || c.code === cid);
+      return match || { courseId: cid, code: cid, title: cid, creditUnits: 3 };
+    });
+  }
 
   // 2. Validate using CourseRegistrationEngine
   const validation = CourseRegistrationEngine.validateRegistration({
