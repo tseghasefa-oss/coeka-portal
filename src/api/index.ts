@@ -14,6 +14,7 @@ import { staffRoutes } from './routes/staff';
 import { parentRoutes } from './routes/parent';
 import { adminRoutes } from './routes/admin';
 import { studentRoutes } from './routes/student';
+import { bursarRoutes } from './routes/bursar';
 
 import { getContainer, ServiceContainer } from '../infrastructure/container';
 
@@ -62,6 +63,7 @@ app.route('/api/staff', staffRoutes);
 app.route('/api/parent', parentRoutes);
 app.route('/api/admin', adminRoutes);
 app.route('/api/student', studentRoutes);
+app.route('/api/bursar', bursarRoutes);
 
 // 4. Cloudflare Worker Export (Fetch, Queue, Scheduled)
 export default {

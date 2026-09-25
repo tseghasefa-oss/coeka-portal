@@ -266,6 +266,53 @@ export const transactions = sqliteTable('transactions', {
   reconciledAt: integer('reconciled_at'),
 });
 
+export const paymentTransactions = sqliteTable('payment_transactions', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').references(() => students.id),
+  invoiceId: text('invoice_id').references(() => studentInvoices.id),
+  transactionReference: text('transaction_reference').notNull().unique(),
+  bankReference: text('bank_reference'),
+  paymentChannel: text('payment_channel').notNull(), // 'DIRECT_BANK_TRANSFER', 'REMITA', 'VPAY', 'PAYVESSEL', 'POS', 'CASH_OFFICE'
+  amountKobo: integer('amount_kobo').notNull(),
+  channelFeeKobo: integer('channel_fee_kobo').notNull().default(0),
+  netAmountKobo: integer('net_amount_kobo').notNull(),
+  status: text('status').notNull().default('PENDING'), // 'PENDING', 'RECONCILED', 'FLAGGED', 'REJECTED'
+  payerName: text('payer_name'),
+  payerPhone: text('payer_phone'),
+  reconciledByStaffId: text('reconciled_by_staff_id'),
+  reconciledAt: integer('reconciled_at'),
+  reconciliationNotes: text('reconciliation_notes'),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const debtAlerts = sqliteTable('debt_alerts', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  invoiceId: text('invoice_id').notNull().references(() => studentInvoices.id, { onDelete: 'cascade' }),
+  outstandingAmountKobo: integer('outstanding_amount_kobo').notNull(),
+  severity: text('severity').notNull().default('WARNING'), // 'NOTICE', 'WARNING', 'FINAL_DEMAND', 'EXAM_BARRED'
+  channel: text('channel').notNull().default('PORTAL'), // 'PORTAL', 'SMS', 'EMAIL'
+  sentAt: integer('sent_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  isResolved: integer('is_resolved').notNull().default(0),
+  resolvedAt: integer('resolved_at'),
+  notes: text('notes'),
+});
+
+export const paymentReceipts = sqliteTable('payment_receipts', {
+  id: text('id').primaryKey(),
+  receiptNumber: text('receipt_number').notNull().unique(),
+  transactionId: text('transaction_id').notNull().unique().references(() => paymentTransactions.id),
+  invoiceId: text('invoice_id').notNull().references(() => studentInvoices.id),
+  studentId: text('student_id').notNull().references(() => students.id),
+  amountPaidKobo: integer('amount_paid_kobo').notNull(),
+  balanceRemainingKobo: integer('balance_remaining_kobo').notNull().default(0),
+  issuedAt: integer('issued_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  issuedByStaffId: text('issued_by_staff_id').notNull(),
+  verificationHash: text('verification_hash').notNull().unique(),
+  qrCodeUrl: text('qr_code_url'),
+  metadataJson: text('metadata_json'),
+});
+
 // 7. Hostel Management
 export const hostels = sqliteTable('hostels', {
   id: text('id').primaryKey(),

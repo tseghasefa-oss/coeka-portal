@@ -117,9 +117,17 @@ export class MemoryDatabaseAdapter implements IDatabaseProvider {
             if (fs.existsSync(seedPath)) {
               this.sqlite.exec(fs.readFileSync(seedPath, 'utf8'));
             }
+            const seedUsersPath = path.resolve(process.cwd(), 'src/database/migrations/0003_seed_users.sql');
+            if (fs.existsSync(seedUsersPath)) {
+              this.sqlite.exec(fs.readFileSync(seedUsersPath, 'utf8'));
+            }
             const sysSettingsPath = path.resolve(process.cwd(), 'src/database/migrations-drizzle/0001_striped_black_widow.sql');
             if (fs.existsSync(sysSettingsPath)) {
               this.sqlite.exec(fs.readFileSync(sysSettingsPath, 'utf8'));
+            }
+            const bursarMigrationPath = path.resolve(process.cwd(), 'src/database/migrations-drizzle/0002_good_eternity.sql');
+            if (fs.existsSync(bursarMigrationPath)) {
+              this.sqlite.exec(fs.readFileSync(bursarMigrationPath, 'utf8'));
             }
           } catch {
             // Optional fallback

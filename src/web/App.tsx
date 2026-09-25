@@ -43,6 +43,7 @@ import {
   useAdmissionsScreening,
 } from './hooks/usePortalData';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { BursarModule } from './components/bursar/BursarModule';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -721,133 +722,116 @@ export default function App() {
 
         {/* TAB 4: BURSARY & FINANCIAL ENGINE */}
         {activeTab === 'finance' && (
-          <ProtectedRoute allowedRoles={['BURSAR', 'BURSARY', 'SUPER_ADMIN', 'ADMIN']}>
-            <div className="space-y-6 max-w-5xl mx-auto">
-              {/* Bursar & Finance Dashboard Header Banner */}
-              <div className="bento-card p-5 bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-emerald-800 shadow-md">
-                <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-emerald-800/80 px-2 py-0.5 rounded border border-emerald-700">
-                    Bursary & Financial Operations
-                  </span>
-                  <h2 className="text-xl font-extrabold text-white mt-1">
-                    Welcome, {userSession?.fullName || 'Mr. Gabriel Ikyur'}, {userSession?.role || 'BURSAR'}
-                  </h2>
-                  <p className="text-xs text-emerald-200">
-                    Kobo-precision ledger reconciliation, collections, and automated virtual account clearing
-                  </p>
-                </div>
-                <div className="text-left sm:text-right text-xs">
-                  <span className="text-slate-400 block text-[10px] uppercase">Bursary Terminal</span>
-                  <span className="font-mono text-amber-300 font-bold">
-                    {userSession?.username || 'bursar_ikyur'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="bento-card p-6 bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-emerald-700">
-              <div className="space-y-2 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <span className="bg-amber-400 text-emerald-950 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase">
-                    VPay Dynamic NUBAN
-                  </span>
-                  <span className="text-xs text-emerald-200">Zero-Manual-Reconciliation Rail</span>
-                </div>
-                <h3 className="text-xl font-bold">Your Dedicated Student Bank Account</h3>
-                <p className="text-xs text-emerald-100 leading-relaxed">
-                  Parents or sponsors can transfer directly from any Nigerian bank app or USSD into this dedicated account. Your fee invoice will be reconciled and credited automatically in seconds without uploading deposit slips.
-                </p>
-              </div>
-
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 text-center w-full md:w-auto shrink-0 space-y-1.5">
-                <span className="text-xs text-amber-300 font-semibold block">{virtualAccount?.bank_name || 'Wema Bank (COEKA Collection)'}</span>
-                <div className="flex items-center justify-center gap-2">
-                  <span className="text-2xl font-mono font-black tracking-wider text-white">{virtualAccount?.account_number || '9910840184'}</span>
-                  <button
-                    onClick={() => handleCopyAccount(virtualAccount?.account_number || '9910840184')}
-                    className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition"
-                    title="Copy Account Number"
-                  >
-                    {copiedAccount ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                  </button>
-                </div>
-                <span className="text-[11px] text-emerald-200 block font-mono">{virtualAccount?.account_name || 'COEKA - MOSES IORLIAM'}</span>
-              </div>
-            </div>
-
-            <div className="bento-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-slate-900">Current Session Fee Invoices</h3>
-                {invoicesLoading && <span className="text-xs text-emerald-700 animate-pulse font-medium">Syncing live balances...</span>}
-              </div>
-              <div className="divide-y divide-slate-100">
-                {(invoices && invoices.length > 0 ? invoices : [
-                  {
-                    id: 'inv-001',
-                    feeTitle: '2026/2027 NCE Tuition & Consolidated Institutional Fees',
-                    invoiceNumber: 'INV-2026-COEKA-00184',
-                    amountDueKobo: 4500000,
-                    status: 'UNPAID',
-                    dueDate: 'Dec 15, 2026',
-                    formattedDue: '₦45,000.00',
-                  },
-                  {
-                    id: 'inv-002',
-                    feeTitle: 'Hostel Accommodation (Hall A - Female Bedspace)',
-                    invoiceNumber: 'INV-2026-COEKA-00185',
-                    amountDueKobo: 2000000,
-                    status: 'PAID',
-                    dueDate: 'Nov 30, 2026',
-                    formattedDue: '₦20,000.00',
-                  },
-                ]).map((inv: any) => {
-                  const isPaid = inv.status === 'PAID';
-                  const title = inv.feeTitle || inv.title;
-                  const displayAmount = inv.formattedDue || LedgerEngine.koboToNaira(inv.amountDueKobo || inv.amountKobo);
-                  return (
-                    <div key={inv.invoiceNumber} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span
-                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                            }`}
-                          >
-                            {inv.status}
-                          </span>
-                          <span className="text-xs font-mono text-slate-400">{inv.invoiceNumber}</span>
-                        </div>
-                        <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
-                        <span className="text-xs text-slate-500">Due: {inv.dueDate}</span>
+          <ProtectedRoute allowedRoles={['BURSAR', 'BURSARY', 'SUPER_ADMIN', 'ADMIN', 'STUDENT']}>
+            <BursarModule
+              renderStudentPaymentView={() => (
+                <div className="space-y-6">
+                  <div className="bento-card p-6 bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-emerald-700">
+                    <div className="space-y-2 max-w-xl">
+                      <div className="flex items-center gap-2">
+                        <span className="bg-amber-400 text-emerald-950 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase">
+                          VPay Dynamic NUBAN
+                        </span>
+                        <span className="text-xs text-emerald-200">Zero-Manual-Reconciliation Rail</span>
                       </div>
-
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <span className="text-xs text-slate-400 block">Total Due:</span>
-                          <strong className="text-base font-bold text-slate-900">
-                            {displayAmount}
-                          </strong>
-                        </div>
-
-                        {isPaid ? (
-                          <button className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 transition">
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Receipt</span>
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => alert(`Redirecting to ${selectedGateway} payment rail for ₦45,000.00`)}
-                            className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition"
-                          >
-                            Pay Online Now
-                          </button>
-                        )}
-                      </div>
+                      <h3 className="text-xl font-bold">Your Dedicated Student Bank Account</h3>
+                      <p className="text-xs text-emerald-100 leading-relaxed">
+                        Parents or sponsors can transfer directly from any Nigerian bank app or USSD into this dedicated account. Your fee invoice will be reconciled and credited automatically in seconds without uploading deposit slips.
+                      </p>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-            </div>
+
+                    <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 text-center w-full md:w-auto shrink-0 space-y-1.5">
+                      <span className="text-xs text-amber-300 font-semibold block">{virtualAccount?.bank_name || 'Wema Bank (COEKA Collection)'}</span>
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-2xl font-mono font-black tracking-wider text-white">{virtualAccount?.account_number || '9910840184'}</span>
+                        <button
+                          onClick={() => handleCopyAccount(virtualAccount?.account_number || '9910840184')}
+                          className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-white transition"
+                          title="Copy Account Number"
+                        >
+                          {copiedAccount ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      <span className="text-[11px] text-emerald-200 block font-mono">{virtualAccount?.account_name || 'COEKA - MOSES IORLIAM'}</span>
+                    </div>
+                  </div>
+
+                  <div className="bento-card p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-bold text-slate-900">Current Session Fee Invoices</h3>
+                      {invoicesLoading && <span className="text-xs text-emerald-700 animate-pulse font-medium">Syncing live balances...</span>}
+                    </div>
+                    <div className="divide-y divide-slate-100">
+                      {(invoices && invoices.length > 0 ? invoices : [
+                        {
+                          id: 'inv-001',
+                          feeTitle: '2026/2027 NCE Tuition & Consolidated Institutional Fees',
+                          invoiceNumber: 'INV-2026-COEKA-00184',
+                          amountDueKobo: 4500000,
+                          status: 'UNPAID',
+                          dueDate: 'Dec 15, 2026',
+                          formattedDue: '₦45,000.00',
+                        },
+                        {
+                          id: 'inv-002',
+                          feeTitle: 'Hostel Accommodation (Hall A - Female Bedspace)',
+                          invoiceNumber: 'INV-2026-COEKA-00185',
+                          amountDueKobo: 2000000,
+                          status: 'PAID',
+                          dueDate: 'Nov 30, 2026',
+                          formattedDue: '₦20,000.00',
+                        },
+                      ]).map((inv: any) => {
+                        const isPaid = inv.status === 'PAID';
+                        const title = inv.feeTitle || inv.title;
+                        const displayAmount = inv.formattedDue || LedgerEngine.koboToNaira(inv.amountDueKobo || inv.amountKobo);
+                        return (
+                          <div key={inv.invoiceNumber} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                    isPaid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                                  }`}
+                                >
+                                  {inv.status}
+                                </span>
+                                <span className="text-xs font-mono text-slate-400">{inv.invoiceNumber}</span>
+                              </div>
+                              <h4 className="text-sm font-semibold text-slate-900">{title}</h4>
+                              <span className="text-xs text-slate-500">Due: {inv.dueDate}</span>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <span className="text-xs text-slate-400 block">Total Due:</span>
+                                <strong className="text-base font-bold text-slate-900">
+                                  {displayAmount}
+                                </strong>
+                              </div>
+
+                              {isPaid ? (
+                                <button className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold text-xs px-4 py-2 rounded-lg flex items-center gap-1.5 transition">
+                                  <Download className="w-3.5 h-3.5" />
+                                  <span>Receipt</span>
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => alert(`Redirecting to ${selectedGateway} payment rail for ₦45,000.00`)}
+                                  className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow transition"
+                                >
+                                  Pay Online Now
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              )}
+            />
           </ProtectedRoute>
         )}
 
