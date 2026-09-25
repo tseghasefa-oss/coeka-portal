@@ -1,6 +1,7 @@
 import { IDatabaseProvider } from '../../infrastructure/interfaces/IDatabaseProvider';
 import { schema } from '../../database/client';
 import { eq, and } from 'drizzle-orm';
+import { AuditService } from './auditService';
 
 export interface DepartmentItem {
   id: string;
@@ -33,7 +34,11 @@ export interface FacultyCourseAllocationItem {
 }
 
 export class AcademicAdminService {
-  constructor(private db: IDatabaseProvider) {}
+  private auditService: AuditService;
+
+  constructor(private db: IDatabaseProvider, auditService?: AuditService) {
+    this.auditService = auditService || new AuditService(db);
+  }
 
   // -------------------------------------------------------------
   // Department Management
@@ -248,7 +253,7 @@ export class AcademicAdminService {
       ]
     );
 
-    return {
+    const courseItem: CourseItem = {
       id,
       programmeId: data.programmeId,
       code: data.code.toUpperCase(),
@@ -260,6 +265,22 @@ export class AcademicAdminService {
       prerequisiteCourseId: data.prerequisiteCourseId || null,
       createdAt: now,
     };
+
+    await this.auditService.logAdminAction({
+      actorUserId: 'system-admin',
+      action: 'CREATE_COURSE',
+      entityName: 'courses',
+      entityId: id,
+      newValue: {
+        code: data.code.toUpperCase(),
+        title: data.title,
+        creditUnits: data.creditUnits,
+        level: data.level,
+        programmeId: data.programmeId,
+      },
+    });
+
+    return courseItem;
   }
 
   async updateCourse(
@@ -349,6 +370,7 @@ export class AcademicAdminService {
   }
 
   async deleteCourse(id: string): Promise<boolean> {
+    const existing = await this.getCourseById(id);
     if (this.db.drizzle) {
       try {
         await this.db.drizzle.delete(schema.courses).where(eq(schema.courses.id, id));
@@ -357,7 +379,17 @@ export class AcademicAdminService {
       }
     }
     const res = await this.db.execute(`DELETE FROM courses WHERE id = ?`, [id]);
-    return (res.rowsAffected ?? 0) > 0;
+    const success = (res.rowsAffected ?? 0) > 0;
+    if (success && existing) {
+      await this.auditService.logAdminAction({
+        actorUserId: 'system-admin',
+        action: 'DELETE_COURSE',
+        entityName: 'courses',
+        entityId: id,
+        oldValue: { code: existing.code, title: existing.title },
+      });
+    }
+    return success;
   }
 
   async getCourseById(id: string): Promise<CourseItem | null> {

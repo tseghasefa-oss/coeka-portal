@@ -167,7 +167,7 @@ export const AdminLayout: React.FC = () => {
                     {userSession?.fullName || 'Engr. Prof. S. L. Tsegha'}
                   </span>
                   <span className="text-[10px] font-mono text-amber-300">
-                    SUPER_ADMIN
+                    {userSession?.role || 'SUPER_ADMIN'}
                   </span>
                 </div>
                 <div
@@ -295,7 +295,39 @@ export const AdminLayout: React.FC = () => {
         </aside>
 
         {/* MAIN CONTENT AREA */}
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0 space-y-6">
+          <div
+            className={`bento-card p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border shadow-md ${
+              isNavy
+                ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 border-slate-800'
+                : 'bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 border-emerald-800'
+            }`}
+          >
+            <div>
+              <span
+                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
+                  isNavy
+                    ? 'bg-blue-900/80 text-blue-300 border-blue-700'
+                    : 'bg-emerald-800/80 text-amber-300 border-emerald-700'
+                }`}
+              >
+                Institutional Executive Management
+              </span>
+              <h2 className="text-xl font-extrabold text-white mt-1">
+                Welcome, {userSession?.fullName || 'Administrator'}, {userSession?.role || 'SUPER_ADMIN'}
+              </h2>
+              <p className="text-xs text-slate-300">
+                Master Administration Area • Full Read/Write Governance Access
+              </p>
+            </div>
+            <div className="text-left sm:text-right text-xs">
+              <span className="text-slate-400 block text-[10px] uppercase">Active Scope</span>
+              <span className="font-mono text-amber-300 font-bold">
+                {activeDivision} Division
+              </span>
+            </div>
+          </div>
+
           {adminTab === 'courses' && <AdminCoursesTab />}
           {adminTab === 'fees' && <AdminFeesTab />}
           {adminTab === 'users' && <AdminUsersTab />}

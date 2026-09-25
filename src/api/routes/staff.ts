@@ -1,7 +1,11 @@
 import { Hono } from 'hono';
 import { Env } from '../../types/env';
+import { requireAuth, requireRole } from '../middleware/rbac';
 
 export const staffRoutes = new Hono<{ Bindings: Env }>();
+
+// Only Academic & Administrative Staff can access staff endpoints
+staffRoutes.use('*', requireAuth, requireRole(['LECTURER', 'DEAN', 'HOD']));
 
 // 1. Staff Profile & Workload Allocation
 staffRoutes.get('/profile', async (c) => {

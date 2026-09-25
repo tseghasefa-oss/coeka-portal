@@ -1,20 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Sliders,
   Calendar,
   CheckCircle2,
-  AlertCircle,
+  AlertTriangle,
   Clock,
-  ShieldCheck,
+  ShieldAlert,
   Building,
   Save,
   ToggleLeft,
   ToggleRight,
   Bell,
   RefreshCw,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useSystemSettings } from '../../hooks/useAdminData';
+import { ConfirmationModal } from '../common/ConfirmationModal';
 
 interface PortalModuleToggle {
   key: string;
@@ -31,7 +34,28 @@ export const AdminSettingsTab: React.FC = () => {
   // React Query Hook for System Settings
   const { settingsData, updateSettings, isUpdating, refetch } = useSystemSettings();
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  // Toast Notification state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  // Confirmation Modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    isDangerous?: boolean;
+    onConfirm: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: async () => {},
+  });
 
   // Portal Modules Status
   const [modules, setModules] = useState<PortalModuleToggle[]>([
@@ -65,11 +89,16 @@ export const AdminSettingsTab: React.FC = () => {
     },
   ]);
 
-  // Academic Calendar Dates
+  // Academic Calendar Dates (including Exam Dates)
   const [sessionName, setSessionName] = useState('2026/2027');
   const [startDate, setStartDate] = useState('2026-10-01');
   const [endDate, setEndDate] = useState('2027-08-31');
+  const [examStartDate, setExamStartDate] = useState('2027-02-15');
+  const [examEndDate, setExamEndDate] = useState('2027-03-05');
   const [semesterName, setSemesterName] = useState('First Semester');
+
+  // Maintenance Mode state
+  const [maintenanceMode, setMaintenanceMode] = useState<boolean>(false);
 
   // Institutional Settings
   const [institutionMotto, setInstitutionMotto] = useState('Knowledge, Character and Excellence');
@@ -77,11 +106,77 @@ export const AdminSettingsTab: React.FC = () => {
   const [maintenanceBanner, setMaintenanceBanner] = useState('Welcome to the 2026/2027 Academic Session. Portal is live.');
   const [maxCreditUnits, setMaxCreditUnits] = useState(24);
 
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+  // Sync state from server data when available
+  useEffect(() => {
+    if (settingsData) {
+      if (settingsData.maintenanceMode !== undefined) {
+        setMaintenanceMode(settingsData.maintenanceMode);
+      }
+      if (settingsData.academicCalendar) {
+        if (settingsData.academicCalendar.startDate) setStartDate(settingsData.academicCalendar.startDate);
+        if (settingsData.academicCalendar.endDate) setEndDate(settingsData.academicCalendar.endDate);
+        if (settingsData.academicCalendar.examStartDate) setExamStartDate(settingsData.academicCalendar.examStartDate);
+        if (settingsData.academicCalendar.examEndDate) setExamEndDate(settingsData.academicCalendar.examEndDate);
+      }
+      if (settingsData.portalStatus) {
+        setModules((prev) =>
+          prev.map((m) => {
+            const key = m.key as keyof typeof settingsData.portalStatus;
+            const val = settingsData.portalStatus[key];
+            return val !== undefined ? { ...m, isOpen: val } : m;
+          })
+        );
+      }
+    }
+  }, [settingsData]);
+
+  // Handle Maintenance Mode Toggle
+  const handleToggleMaintenanceMode = (targetState: boolean) => {
+    if (targetState) {
+      // Dangerous action - require confirmation modal
+      setConfirmModal({
+        isOpen: true,
+        title: 'Activate Portal Maintenance Mode',
+        message:
+          'Activating Maintenance Mode places the entire campus portal into a Read-Only state for all students, parents, and public users. All fee payments, course registrations, and admissions submissions will be temporarily blocked. Super Administrators retain full access. Proceed?',
+        confirmText: 'Activate Maintenance Mode',
+        isDangerous: true,
+        onConfirm: async () => {
+          try {
+            await updateSettings({ maintenanceMode: true });
+            setMaintenanceMode(true);
+            showToast('Maintenance Mode is now ACTIVE. Portal is in read-only state for students.');
+          } catch (err: any) {
+            showToast(err.message || 'Failed to activate maintenance mode.', 'error');
+          } finally {
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          }
+        },
+      });
+    } else {
+      // Deactivating maintenance mode
+      setConfirmModal({
+        isOpen: true,
+        title: 'Deactivate Maintenance Mode',
+        message: 'Resume standard campus portal operations? All student services, payments, and registrations will be immediately restored.',
+        confirmText: 'Resume Normal Operations',
+        isDangerous: false,
+        onConfirm: async () => {
+          try {
+            await updateSettings({ maintenanceMode: false });
+            setMaintenanceMode(false);
+            showToast('Maintenance Mode DEACTIVATED. Standard portal operations resumed.');
+          } catch (err: any) {
+            showToast(err.message || 'Failed to deactivate maintenance mode.', 'error');
+          } finally {
+            setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+          }
+        },
+      });
+    }
   };
 
+  // Handle Portal Module Toggle
   const handleToggleModule = async (key: string) => {
     const target = modules.find((m) => m.key === key);
     if (!target) return;
@@ -102,6 +197,7 @@ export const AdminSettingsTab: React.FC = () => {
     }
   };
 
+  // Handle Academic Calendar Save
   const handleSaveCalendar = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -109,13 +205,16 @@ export const AdminSettingsTab: React.FC = () => {
         calendarSessionId: 'sess-2026-2027',
         startDate,
         endDate,
+        examStartDate,
+        examEndDate,
       });
-      showToast(`Academic Calendar updated: ${sessionName} (${startDate} to ${endDate}).`);
-    } catch {
-      showToast(`Academic Calendar updated: ${sessionName}.`);
+      showToast(`Academic Calendar updated: ${sessionName} with exams scheduled ${examStartDate} to ${examEndDate}.`);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update academic calendar.', 'error');
     }
   };
 
+  // Handle Institutional Configurations Save
   const handleSaveInstitutional = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -133,12 +232,34 @@ export const AdminSettingsTab: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-slate-900 text-amber-300 border border-amber-400/40 px-4 py-3 rounded-xl shadow-2xl text-sm font-semibold animate-bounce">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          <span>{toastMessage}</span>
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold border animate-bounce ${
+            toast.type === 'success'
+              ? 'bg-slate-900 text-amber-300 border-amber-400/40'
+              : 'bg-red-950 text-red-200 border-red-500/40'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+          ) : (
+            <AlertTriangle className="w-5 h-5 text-red-400" />
+          )}
+          <span>{toast.message}</span>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        isDangerous={confirmModal.isDangerous}
+        isLoading={isUpdating}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
 
       {/* Top Banner */}
       <div>
@@ -147,13 +268,81 @@ export const AdminSettingsTab: React.FC = () => {
           Institutional System Configuration & Operational Controls
         </h2>
         <p className="text-xs text-slate-500">
-          Control portal access windows, adjust academic calendar dates, and manage institutional parameters.
+          Control portal access windows, enable read-only maintenance mode, adjust examination calendars, and manage institutional parameters.
         </p>
+      </div>
+
+      {/* 0. High-Visibility Maintenance Mode Card */}
+      <div
+        className={`p-6 rounded-3xl border transition-all ${
+          maintenanceMode
+            ? 'bg-amber-500/10 border-amber-500/40 shadow-lg shadow-amber-500/5'
+            : 'bg-white border-slate-200/80 shadow-sm'
+        }`}
+      >
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div
+              className={`p-3.5 rounded-2xl shrink-0 ${
+                maintenanceMode
+                  ? 'bg-amber-500 text-slate-950 animate-pulse'
+                  : 'bg-slate-100 text-slate-700'
+              }`}
+            >
+              {maintenanceMode ? (
+                <ShieldAlert className="w-6 h-6" />
+              ) : (
+                <Lock className="w-6 h-6 text-slate-500" />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-black text-slate-900">
+                  Campus Portal Maintenance Mode
+                </h3>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    maintenanceMode
+                      ? 'bg-amber-200 text-amber-900 border border-amber-400'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  {maintenanceMode ? 'Active (Read-Only)' : 'Normal Operations (Live)'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 mt-1 max-w-2xl font-medium">
+                When activated, students, parents, and prospective applicants can browse information, but all write mutations (course registration, payment initialization, hostel booking, and application submission) are paused. Super Administrators retain full read/write management authority.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handleToggleMaintenanceMode(!maintenanceMode)}
+            className={`px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-md shrink-0 ${
+              maintenanceMode
+                ? 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-emerald-700/20'
+                : 'bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-amber-500/20'
+            }`}
+          >
+            {maintenanceMode ? (
+              <>
+                <Unlock className="w-4 h-4" />
+                <span>Deactivate Maintenance Mode</span>
+              </>
+            ) : (
+              <>
+                <Lock className="w-4 h-4" />
+                <span>Enable Read-Only Mode</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Grid of Settings */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 1. Portal Operational Toggles */}
+        {/* 1. Portal Operational Access Toggles */}
         <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-100">
             <div>
@@ -205,15 +394,15 @@ export const AdminSettingsTab: React.FC = () => {
           </div>
         </div>
 
-        {/* 2. Academic Calendar Settings */}
+        {/* 2. Academic Calendar & Exam Dates Settings */}
         <div className="p-6 bg-white rounded-3xl border border-slate-200/80 shadow-sm space-y-4">
           <div className="pb-3 border-b border-slate-100">
             <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-600" />
-              Academic Calendar & Session Timelines
+              Academic Calendar & Examination Dates
             </h3>
             <p className="text-xs text-slate-500">
-              Defines the official boundaries for 2026/2027 fee generation and registrations.
+              Defines semester dates and official examination capture periods for 2026/2027.
             </p>
           </div>
 
@@ -273,15 +462,44 @@ export const AdminSettingsTab: React.FC = () => {
               </div>
             </div>
 
+            {/* Examination Dates */}
+            <div className="grid grid-cols-2 gap-3 pt-1 border-t border-slate-100">
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Examination Start Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={examStartDate}
+                  onChange={(e) => setExamStartDate(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-medium"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-700 block mb-1">
+                  Examination End Date
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={examEndDate}
+                  onChange={(e) => setExamEndDate(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-medium"
+                />
+              </div>
+            </div>
+
             <div className="pt-2">
               <button
                 type="submit"
-                className={`w-full py-2.5 text-xs font-bold rounded-xl text-white shadow flex items-center justify-center gap-2 ${
+                disabled={isUpdating}
+                className={`w-full py-2.5 text-xs font-bold rounded-xl text-white shadow flex items-center justify-center gap-2 transition-all ${
                   isNavy ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-700 hover:bg-emerald-600'
                 }`}
               >
                 <Save className="w-4 h-4" />
-                <span>Save Academic Calendar</span>
+                <span>Save Academic & Exam Calendar</span>
               </button>
             </div>
           </form>
@@ -304,6 +522,7 @@ export const AdminSettingsTab: React.FC = () => {
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-500">Brand Theme:</span>
               <button
+                type="button"
                 onClick={() => setUiPreferences({ theme: 'emerald' })}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   !isNavy ? 'bg-emerald-800 text-amber-300 shadow' : 'bg-slate-100 text-slate-600'
@@ -312,6 +531,7 @@ export const AdminSettingsTab: React.FC = () => {
                 Emerald
               </button>
               <button
+                type="button"
                 onClick={() => setUiPreferences({ theme: 'navy' })}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   isNavy ? 'bg-slate-900 text-blue-400 shadow' : 'bg-slate-100 text-slate-600'
@@ -380,6 +600,7 @@ export const AdminSettingsTab: React.FC = () => {
             <div className="md:col-span-2 pt-2">
               <button
                 type="submit"
+                disabled={isUpdating}
                 className={`w-full py-2.5 text-xs font-bold rounded-xl text-white shadow flex items-center justify-center gap-2 ${
                   isNavy ? 'bg-blue-600 hover:bg-blue-500' : 'bg-emerald-700 hover:bg-emerald-600'
                 }`}

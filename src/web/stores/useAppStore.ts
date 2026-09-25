@@ -1,16 +1,41 @@
 import { create } from 'zustand';
 
 export type SchoolDivision = 'NCE' | 'DEGREE' | 'SECONDARY' | 'PRIMARY';
-export type UserRole = 'STUDENT' | 'STAFF' | 'PARENT' | 'BURSARY' | 'ADMIN' | 'SUPER_ADMIN';
-export type ActiveTab = 'website' | 'admissions' | 'sims' | 'finance' | 'results' | 'hostels' | 'staff' | 'parent' | 'admin';
+export type UserRole =
+  | 'STUDENT'
+  | 'STAFF'
+  | 'LECTURER'
+  | 'DEAN'
+  | 'HOD'
+  | 'BURSAR'
+  | 'BURSARY'
+  | 'ADMIN'
+  | 'SUPER_ADMIN'
+  | 'PARENT';
+
+export type ActiveTab =
+  | 'website'
+  | 'admissions'
+  | 'sims'
+  | 'finance'
+  | 'results'
+  | 'hostels'
+  | 'staff'
+  | 'parent'
+  | 'admin'
+  | 'login'
+  | 'unauthorized';
+
 export type AdminTab = 'courses' | 'fees' | 'users' | 'settings';
 
 export interface UserSession {
+  userId?: string;
   username: string;
   fullName: string;
   role: UserRole;
-  division: SchoolDivision;
-  token: string;
+  division: SchoolDivision | string;
+  token?: string;
+  email?: string;
 }
 
 export interface UiPreferences {
@@ -39,6 +64,8 @@ export interface AppState {
   // User Authentication & Session State
   userSession: UserSession | null;
   setUserSession: (session: UserSession | null) => void;
+  authLoading: boolean;
+  setAuthLoading: (loading: boolean) => void;
 
   // Global UI Preferences
   uiPreferences: UiPreferences;
@@ -62,6 +89,7 @@ export const useAppStore = create<AppState>((set) => ({
   setActiveWardId: (activeWardId) => set({ activeWardId }),
 
   userSession: {
+    userId: 'usr-std-001',
     username: 'COEKA/2026/NCE/084',
     fullName: 'Aondoaver Moses Iorliam',
     role: 'STUDENT',
@@ -69,6 +97,9 @@ export const useAppStore = create<AppState>((set) => ({
     token: 'jwt-coeka-demo-token',
   },
   setUserSession: (userSession) => set({ userSession }),
+
+  authLoading: false,
+  setAuthLoading: (authLoading) => set({ authLoading }),
 
   uiPreferences: {
     theme: 'emerald',
@@ -83,6 +114,36 @@ export const useAppStore = create<AppState>((set) => ({
   logout: () =>
     set({
       userSession: null,
-      activeTab: 'website',
+      activeTab: 'login',
+      adminTab: 'courses',
     }),
 }));
+
+/**
+ * Resolves the appropriate dashboard view tab based on the authenticated user's role.
+ * SUPER_ADMIN / ADMIN -> 'admin'
+ * LECTURER / DEAN / HOD / STAFF -> 'staff'
+ * BURSAR / BURSARY -> 'finance'
+ * PARENT -> 'parent'
+ * STUDENT (or default) -> 'sims'
+ */
+export function resolveDashboardTab(role?: string): ActiveTab {
+  switch (role) {
+    case 'SUPER_ADMIN':
+    case 'ADMIN':
+      return 'admin';
+    case 'LECTURER':
+    case 'DEAN':
+    case 'HOD':
+    case 'STAFF':
+      return 'staff';
+    case 'BURSAR':
+    case 'BURSARY':
+      return 'finance';
+    case 'PARENT':
+      return 'parent';
+    case 'STUDENT':
+    default:
+      return 'sims';
+  }
+}

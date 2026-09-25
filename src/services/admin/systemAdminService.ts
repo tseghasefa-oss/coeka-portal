@@ -1,6 +1,6 @@
 import { IDatabaseProvider } from '../../infrastructure/interfaces/IDatabaseProvider';
 import { schema } from '../../database/client';
-import { eq } from 'drizzle-orm';
+import { AuditService } from './auditService';
 
 export interface SystemSettingItem {
   key: string;
@@ -12,7 +12,11 @@ export interface SystemSettingItem {
 }
 
 export class SystemAdminService {
-  constructor(private db: IDatabaseProvider) {}
+  private auditService: AuditService;
+
+  constructor(private db: IDatabaseProvider, auditService?: AuditService) {
+    this.auditService = auditService || new AuditService(db);
+  }
 
   // -------------------------------------------------------------
   // Key-Value Institutional Configuration
@@ -34,6 +38,7 @@ export class SystemAdminService {
     updatedBy?: string
   ): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
+    const existing = await this.getSetting(key);
 
     if (this.db.drizzle) {
       try {
@@ -57,23 +62,43 @@ export class SystemAdminService {
               updatedAt: now,
             },
           });
-        return;
       } catch {
         // Fallback to SQLite INSERT OR REPLACE
+        await this.db.execute(
+          `INSERT INTO system_settings (key, value, description, category, updated_by, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON CONFLICT(key) DO UPDATE SET
+             value = excluded.value,
+             description = COALESCE(excluded.description, system_settings.description),
+             category = excluded.category,
+             updated_by = excluded.updated_by,
+             updated_at = excluded.updated_at`,
+          [key, value, description || null, category, updatedBy || null, now]
+        );
       }
+    } else {
+      await this.db.execute(
+        `INSERT INTO system_settings (key, value, description, category, updated_by, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET
+           value = excluded.value,
+           description = COALESCE(excluded.description, system_settings.description),
+           category = excluded.category,
+           updated_by = excluded.updated_by,
+           updated_at = excluded.updated_at`,
+        [key, value, description || null, category, updatedBy || null, now]
+      );
     }
 
-    await this.db.execute(
-      `INSERT INTO system_settings (key, value, description, category, updated_by, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)
-       ON CONFLICT(key) DO UPDATE SET
-         value = excluded.value,
-         description = COALESCE(excluded.description, system_settings.description),
-         category = excluded.category,
-         updated_by = excluded.updated_by,
-         updated_at = excluded.updated_at`,
-      [key, value, description || null, category, updatedBy || null, now]
-    );
+    // Cryptographic audit logging
+    await this.auditService.logAdminAction({
+      actorUserId: updatedBy || 'system-admin',
+      action: 'UPDATE_SYSTEM_SETTING',
+      entityName: 'system_settings',
+      entityId: key,
+      oldValue: { value: existing },
+      newValue: { value, category, description },
+    });
   }
 
   async getAllSettings(category?: string): Promise<Record<string, string>> {
@@ -121,6 +146,16 @@ export class SystemAdminService {
       await this.db.execute(`UPDATE semesters_terms SET result_upload_open = ? WHERE is_current = 1`, [intVal]);
     }
 
+    // Cryptographic audit logging
+    await this.auditService.logAdminAction({
+      actorUserId: updatedBy || 'system-admin',
+      action: 'SET_PORTAL_STATUS',
+      entityName: 'portal_module',
+      entityId: module,
+      oldValue: { isOpen: !isOpen },
+      newValue: { isOpen },
+    });
+
     return { module, isOpen };
   }
 
@@ -135,7 +170,7 @@ export class SystemAdminService {
     // Default heuristics based on current database records
     if (module === 'admissions') {
       const cycle = await this.db.queryFirst<{ is_open: number }>(
-        `SELECT is_open FROM admissions_cycles ORDER BY created_at DESC LIMIT 1`
+        `SELECT is_open FROM admissions_cycles ORDER BY start_date DESC LIMIT 1`
       );
       return cycle ? Boolean(cycle.is_open) : true;
     } else if (module === 'course_registration') {
@@ -154,6 +189,40 @@ export class SystemAdminService {
   }
 
   // -------------------------------------------------------------
+  // Maintenance Mode (Read-Only for Students & General Public)
+  // -------------------------------------------------------------
+
+  async setMaintenanceMode(
+    enabled: boolean,
+    updatedBy?: string
+  ): Promise<{ maintenanceMode: boolean }> {
+    const valStr = enabled ? 'true' : 'false';
+    await this.setSetting(
+      'maintenance_mode',
+      valStr,
+      'PORTAL_CONTROLS',
+      'System-wide maintenance mode putting portal into read-only state for students and non-admins',
+      updatedBy
+    );
+
+    await this.auditService.logAdminAction({
+      actorUserId: updatedBy || 'system-admin',
+      action: 'SET_MAINTENANCE_MODE',
+      entityName: 'system_settings',
+      entityId: 'maintenance_mode',
+      oldValue: { maintenanceMode: !enabled },
+      newValue: { maintenanceMode: enabled },
+    });
+
+    return { maintenanceMode: enabled };
+  }
+
+  async getMaintenanceMode(): Promise<boolean> {
+    const val = await this.getSetting('maintenance_mode');
+    return val === 'true';
+  }
+
+  // -------------------------------------------------------------
   // Academic Calendar & Sessions Management
   // -------------------------------------------------------------
 
@@ -161,15 +230,23 @@ export class SystemAdminService {
     sessionId: string;
     startDate: string;
     endDate: string;
+    examStartDate?: string;
+    examEndDate?: string;
     updatedBy?: string;
-  }): Promise<{ sessionId: string; startDate: string; endDate: string }> {
+  }): Promise<{
+    sessionId: string;
+    startDate: string;
+    endDate: string;
+    examStartDate?: string;
+    examEndDate?: string;
+  }> {
     // 1. Update academic_sessions record
     await this.db.execute(
       `UPDATE academic_sessions SET start_date = ?, end_date = ? WHERE id = ?`,
       [data.startDate, data.endDate, data.sessionId]
     );
 
-    // 2. Persist in system_settings audit key-value
+    // 2. Persist in system_settings key-values
     await this.setSetting(
       `academic_calendar_${data.sessionId}_start`,
       data.startDate,
@@ -185,10 +262,46 @@ export class SystemAdminService {
       data.updatedBy
     );
 
+    if (data.examStartDate) {
+      await this.setSetting(
+        `academic_calendar_${data.sessionId}_exam_start`,
+        data.examStartDate,
+        'ACADEMIC_CALENDAR',
+        `Examination start date for Academic Session ${data.sessionId}`,
+        data.updatedBy
+      );
+    }
+
+    if (data.examEndDate) {
+      await this.setSetting(
+        `academic_calendar_${data.sessionId}_exam_end`,
+        data.examEndDate,
+        'ACADEMIC_CALENDAR',
+        `Examination end date for Academic Session ${data.sessionId}`,
+        data.updatedBy
+      );
+    }
+
+    // Cryptographic audit log
+    await this.auditService.logAdminAction({
+      actorUserId: data.updatedBy || 'system-admin',
+      action: 'UPDATE_ACADEMIC_CALENDAR',
+      entityName: 'academic_sessions',
+      entityId: data.sessionId,
+      newValue: {
+        startDate: data.startDate,
+        endDate: data.endDate,
+        examStartDate: data.examStartDate,
+        examEndDate: data.examEndDate,
+      },
+    });
+
     return {
       sessionId: data.sessionId,
       startDate: data.startDate,
       endDate: data.endDate,
+      examStartDate: data.examStartDate,
+      examEndDate: data.examEndDate,
     };
   }
 
@@ -196,6 +309,8 @@ export class SystemAdminService {
     currentSession: any;
     allSessions: any[];
     semesters: any[];
+    examStartDate?: string | null;
+    examEndDate?: string | null;
   }> {
     const currentSession = await this.db.queryFirst<any>(
       sessionId
@@ -208,18 +323,23 @@ export class SystemAdminService {
       `SELECT * FROM academic_sessions ORDER BY start_date DESC`
     );
 
-    const currentSessionId = currentSession?.id || allSessions[0]?.id;
-    const semesters = currentSessionId
+    const targetSessionId = currentSession?.id || allSessions[0]?.id || 'sess-2026-2027';
+    const semesters = targetSessionId
       ? await this.db.query<any>(
           `SELECT * FROM semesters_terms WHERE session_id = ? ORDER BY term_number ASC`,
-          [currentSessionId]
+          [targetSessionId]
         )
       : [];
+
+    const examStartDate = await this.getSetting(`academic_calendar_${targetSessionId}_exam_start`);
+    const examEndDate = await this.getSetting(`academic_calendar_${targetSessionId}_exam_end`);
 
     return {
       currentSession,
       allSessions,
       semesters,
+      examStartDate: examStartDate || '2027-02-15',
+      examEndDate: examEndDate || '2027-03-05',
     };
   }
 }

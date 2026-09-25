@@ -25,12 +25,14 @@ import {
   Send,
   Heart,
   TrendingUp,
+  LogOut,
+  LogIn,
 } from 'lucide-react';
 import { LedgerEngine } from '../services/finance/ledgerEngine';
 import { GradingPolicyEngine } from '../services/academic/gradingPolicyEngine';
 import { ResultComputer } from '../services/academic/resultComputer';
 import { ScreeningEngine } from '../services/admissions/screeningEngine';
-import { useAppStore, SchoolDivision, ActiveTab } from './stores/useAppStore';
+import { useAppStore, SchoolDivision, ActiveTab, resolveDashboardTab } from './stores/useAppStore';
 import {
   useInvoices,
   useVirtualAccount,
@@ -41,6 +43,10 @@ import {
   useAdmissionsScreening,
 } from './hooks/usePortalData';
 import { AdminLayout } from './components/admin/AdminLayout';
+import { useSystemSettings } from './hooks/useAdminData';
+import { useAuth } from './hooks/useAuth';
+import { LoginPage } from './pages/LoginPage';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 export default function App() {
   // Global Client State via Zustand
@@ -55,23 +61,50 @@ export default function App() {
     setUserSession,
   } = useAppStore();
 
-  // Guard Admin Route: If user is not SUPER_ADMIN, redirect to homepage
-  useEffect(() => {
-    if (activeTab === 'admin' && userSession?.role !== 'SUPER_ADMIN') {
-      setActiveTab('website');
-    }
-  }, [activeTab, userSession?.role, setActiveTab]);
+  // Session Synchronization via useAuth
+  const { logout } = useAuth();
 
-  // Support /admin URL path on page load
+  // Guard Admin Route: If non-admin attempts to access admin tab, redirect to their authorized dashboard
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')) {
-      if (userSession?.role === 'SUPER_ADMIN') {
-        setActiveTab('admin');
+    if (activeTab === 'admin' && userSession?.role !== 'SUPER_ADMIN' && userSession?.role !== 'ADMIN') {
+      if (userSession) {
+        setActiveTab(resolveDashboardTab(userSession.role));
       } else {
-        setActiveTab('website');
+        setActiveTab('login');
       }
     }
-  }, [userSession?.role, setActiveTab]);
+  }, [activeTab, userSession, setActiveTab]);
+
+  // Support /dashboard, /admin, and /login URL routing on page load and browser history events
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleLocationChange = () => {
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/dashboard')) {
+        if (userSession) {
+          setActiveTab(resolveDashboardTab(userSession.role));
+        } else {
+          setActiveTab('login');
+        }
+      } else if (pathname.startsWith('/admin')) {
+        if (userSession?.role === 'SUPER_ADMIN' || userSession?.role === 'ADMIN') {
+          setActiveTab('admin');
+        } else if (userSession) {
+          // Non-admin logged in user (e.g. Student) attempting to access /admin -> redirect to authorized dashboard
+          setActiveTab(resolveDashboardTab(userSession.role));
+        } else {
+          setActiveTab('login');
+        }
+      } else if (pathname.startsWith('/login')) {
+        setActiveTab('login');
+      }
+    };
+
+    handleLocationChange();
+    window.addEventListener('popstate', handleLocationChange);
+    return () => window.removeEventListener('popstate', handleLocationChange);
+  }, [userSession, setActiveTab]);
 
   // Server State via TanStack React Query
   const { data: invoices, isLoading: invoicesLoading } = useInvoices();
@@ -81,6 +114,8 @@ export default function App() {
   const { data: studentResult } = useStudentResult(activeDivision);
   const { data: parentData } = useParentWards();
   const admissionsMutation = useAdmissionsScreening();
+  const { settingsData } = useSystemSettings();
+  const isMaintenanceMode = Boolean(settingsData?.maintenanceMode);
 
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [selectedGateway, setSelectedGateway] = useState<'VPAY' | 'PAYSTACK' | 'REMITA_BSCPP'>('VPAY');
@@ -159,13 +194,41 @@ export default function App() {
     );
   };
 
-  // Render guarded full Master Admin shell if activeTab === 'admin' and user is SUPER_ADMIN
-  if (activeTab === 'admin' && userSession?.role === 'SUPER_ADMIN') {
-    return <AdminLayout />;
+  // If activeTab is 'login', render high-fidelity LoginPage
+  if (activeTab === 'login') {
+    return <LoginPage />;
+  }
+
+  // Render guarded full Master Admin shell if activeTab === 'admin'
+  if (activeTab === 'admin') {
+    return (
+      <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
+        <AdminLayout />
+      </ProtectedRoute>
+    );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
+      {/* Maintenance Mode Read-Only Banner */}
+      {isMaintenanceMode && (
+        <div className="bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2.5 shadow-md border-b border-amber-600 sticky top-0 z-[60]">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-slate-950 animate-pulse" />
+              <span>
+                <strong>CAMPUS PORTAL MAINTENANCE MODE ACTIVE:</strong> The portal is currently in Read-Only mode for students and general public while administrative updates are applied.
+              </span>
+            </div>
+            {userSession?.role === 'SUPER_ADMIN' && (
+              <span className="px-2 py-0.5 rounded bg-slate-900 text-amber-300 font-mono text-[10px] shrink-0">
+                Super Admin Bypass Active
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Top Banner & Header */}
       <header className="bg-emerald-900 text-white border-b border-emerald-800 sticky top-0 z-50 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -218,53 +281,42 @@ export default function App() {
               })}
             </nav>
 
-            {/* User Session Quick Badge & Role Switcher */}
+            {/* Authenticated User Session Badge & Logout Button */}
             <div className="flex items-center space-x-3">
-              <select
-                value={userSession?.role || 'STUDENT'}
-                onChange={(e) => {
-                  const newRole = e.target.value as any;
-                  if (newRole === 'SUPER_ADMIN') {
-                    setUserSession({
-                      username: 'COEKA/ADM/001',
-                      fullName: 'Engr. Prof. S. L. Tsegha',
-                      role: 'SUPER_ADMIN',
-                      division: 'NCE',
-                      token: 'jwt-coeka-admin-token',
-                    });
-                  } else if (newRole === 'STAFF') {
-                    setUserSession({
-                      username: 'COEKA/STF/2026/001',
-                      fullName: 'Dr. Olufemi Adeyemi',
-                      role: 'STAFF',
-                      division: 'NCE',
-                      token: 'jwt-coeka-staff-token',
-                    });
-                  } else {
-                    setUserSession({
-                      username: 'COEKA/2026/NCE/084',
-                      fullName: 'Aondoaver Moses Iorliam',
-                      role: 'STUDENT',
-                      division: 'NCE',
-                      token: 'jwt-coeka-student-token',
-                    });
-                  }
-                }}
-                className="text-xs bg-emerald-800/90 border border-emerald-700 text-amber-300 font-bold rounded-lg px-2.5 py-1.5 focus:outline-none cursor-pointer"
-                title="Switch User Role Context (Demo RBAC)"
-              >
-                <option value="STUDENT">Student View</option>
-                <option value="STAFF">Lecturer View</option>
-                <option value="SUPER_ADMIN">Super Admin View</option>
-              </select>
-
-              <div className="hidden sm:flex flex-col text-right">
-                <span className="text-xs font-semibold text-white">{userSession?.fullName || 'Moses Iorliam'}</span>
-                <span className="text-[11px] text-amber-300 font-mono">{userSession?.username || 'COEKA/2026/NCE/084'}</span>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-emerald-700 border border-emerald-600 flex items-center justify-center text-amber-300 font-bold text-sm">
-                {userSession ? userSession.fullName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'MI'}
-              </div>
+              {userSession ? (
+                <>
+                  <div className="hidden sm:flex flex-col text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span className="text-xs font-bold text-white">{userSession.fullName}</span>
+                      <span className="text-[10px] font-semibold bg-emerald-800 text-amber-300 px-1.5 py-0.5 rounded border border-emerald-700">
+                        {userSession.role}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-emerald-300 font-mono">
+                      {userSession.username} • {userSession.division}
+                    </span>
+                  </div>
+                  <div className="w-9 h-9 rounded-full bg-emerald-700 border border-emerald-600 flex items-center justify-center text-amber-300 font-bold text-xs shadow-inner">
+                    {userSession.fullName ? userSession.fullName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'MI'}
+                  </div>
+                  <button
+                    onClick={() => logout()}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/70 hover:bg-rose-900 text-rose-200 border border-rose-800/60 shadow-sm transition-all cursor-pointer"
+                    title="Sign Out of COEKA Portal"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span className="hidden md:inline">Logout</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => setActiveTab('login')}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold bg-amber-400 hover:bg-amber-300 text-emerald-950 shadow-md transition-all transform active:scale-95 cursor-pointer"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -518,28 +570,51 @@ export default function App() {
 
         {/* TAB 3: STUDENT INFORMATION MANAGEMENT SYSTEM (SIMS) */}
         {activeTab === 'sims' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="bento-card p-6 flex flex-col justify-between bg-gradient-to-br from-emerald-900 to-slate-900 text-white shadow-lg">
-              <div>
-                <div className="flex items-center justify-between pb-4 border-b border-emerald-800/80">
-                  <div className="flex items-center space-x-2">
-                    <GraduationCap className="w-5 h-5 text-amber-400" />
-                    <span className="text-xs font-bold tracking-widest text-amber-300 uppercase">Digital Student ID</span>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-800 text-emerald-200 border border-emerald-700">
-                    VERIFIED
+          <ProtectedRoute allowedRoles={['STUDENT', 'SUPER_ADMIN', 'ADMIN']}>
+            <div className="space-y-6">
+              {/* Student Welcome Header Banner */}
+              <div className="bento-card p-5 bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-emerald-800 shadow-md">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-emerald-800/80 px-2 py-0.5 rounded border border-emerald-700">
+                    Student Information System
+                  </span>
+                  <h2 className="text-xl font-extrabold text-white mt-1">
+                    Welcome, {userSession?.fullName || 'Aondoaver Moses Iorliam'}, {userSession?.role || 'STUDENT'}
+                  </h2>
+                  <p className="text-xs text-emerald-200">
+                    Matric No: {userSession?.username || 'COEKA/2026/NCE/084'} • Division: {userSession?.division || 'NCE'} • Session: 2026/2027
+                  </p>
+                </div>
+                <div className="text-left sm:text-right text-xs">
+                  <span className="text-slate-400 block text-[10px] uppercase">Portal Status</span>
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-emerald-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> Live & Enrolled
                   </span>
                 </div>
-
-                <div className="mt-6 flex flex-col items-center text-center">
-                  <div className="w-24 h-24 rounded-2xl bg-amber-400 border-2 border-white shadow-md flex items-center justify-center text-3xl font-black text-emerald-950 mb-3">
-                    MI
-                  </div>
-                  <h3 className="text-lg font-bold text-white">Aondoaver Moses Iorliam</h3>
-                  <span className="text-xs text-amber-300 font-mono mt-0.5">COEKA/2026/NCE/084</span>
-                  <span className="text-xs text-emerald-200 mt-1">NCE Computer Science / Maths</span>
-                </div>
               </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="bento-card p-6 flex flex-col justify-between bg-gradient-to-br from-emerald-900 to-slate-900 text-white shadow-lg">
+                <div>
+                  <div className="flex items-center justify-between pb-4 border-b border-emerald-800/80">
+                    <div className="flex items-center space-x-2">
+                      <GraduationCap className="w-5 h-5 text-amber-400" />
+                      <span className="text-xs font-bold tracking-widest text-amber-300 uppercase">Digital Student ID</span>
+                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-800 text-emerald-200 border border-emerald-700">
+                      VERIFIED
+                    </span>
+                  </div>
+
+                  <div className="mt-6 flex flex-col items-center text-center">
+                    <div className="w-24 h-24 rounded-2xl bg-amber-400 border-2 border-white shadow-md flex items-center justify-center text-3xl font-black text-emerald-950 mb-3">
+                      {userSession?.fullName ? userSession.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2) : 'MI'}
+                    </div>
+                    <h3 className="text-lg font-bold text-white">{userSession?.fullName || 'Aondoaver Moses Iorliam'}</h3>
+                    <span className="text-xs text-amber-300 font-mono mt-0.5">{userSession?.username || 'COEKA/2026/NCE/084'}</span>
+                    <span className="text-xs text-emerald-200 mt-1">{userSession?.division || 'NCE'} Computer Science / Maths</span>
+                  </div>
+                </div>
 
               <div className="pt-6 border-t border-emerald-800/80 mt-6 flex items-center justify-between">
                 <div className="space-y-0.5 text-left text-xs">
@@ -639,13 +714,37 @@ export default function App() {
                 </button>
               </div>
             </div>
+            </div>
           </div>
-        )}
+        </ProtectedRoute>
+      )}
 
         {/* TAB 4: BURSARY & FINANCIAL ENGINE */}
         {activeTab === 'finance' && (
-          <div className="space-y-6 max-w-5xl mx-auto">
-            <div className="bento-card p-6 bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-emerald-700">
+          <ProtectedRoute allowedRoles={['BURSAR', 'BURSARY', 'SUPER_ADMIN', 'ADMIN']}>
+            <div className="space-y-6 max-w-5xl mx-auto">
+              {/* Bursar & Finance Dashboard Header Banner */}
+              <div className="bento-card p-5 bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-emerald-800 shadow-md">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-300 bg-emerald-800/80 px-2 py-0.5 rounded border border-emerald-700">
+                    Bursary & Financial Operations
+                  </span>
+                  <h2 className="text-xl font-extrabold text-white mt-1">
+                    Welcome, {userSession?.fullName || 'Mr. Gabriel Ikyur'}, {userSession?.role || 'BURSAR'}
+                  </h2>
+                  <p className="text-xs text-emerald-200">
+                    Kobo-precision ledger reconciliation, collections, and automated virtual account clearing
+                  </p>
+                </div>
+                <div className="text-left sm:text-right text-xs">
+                  <span className="text-slate-400 block text-[10px] uppercase">Bursary Terminal</span>
+                  <span className="font-mono text-amber-300 font-bold">
+                    {userSession?.username || 'bursar_ikyur'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bento-card p-6 bg-gradient-to-r from-emerald-900 via-emerald-800 to-slate-900 text-white shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-emerald-700">
               <div className="space-y-2 max-w-xl">
                 <div className="flex items-center gap-2">
                   <span className="bg-amber-400 text-emerald-950 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase">
@@ -748,7 +847,8 @@ export default function App() {
                 })}
               </div>
             </div>
-          </div>
+            </div>
+          </ProtectedRoute>
         )}
 
         {/* TAB 5: ACADEMIC RESULTS */}
@@ -918,12 +1018,15 @@ export default function App() {
 
         {/* TAB 7: STAFF HUB (SCORE UPLOAD & WORKLOAD) */}
         {activeTab === 'staff' && (
-          <div className="space-y-6 max-w-5xl mx-auto">
+          <ProtectedRoute allowedRoles={['LECTURER', 'DEAN', 'HOD', 'STAFF', 'SUPER_ADMIN', 'ADMIN']}>
+            <div className="space-y-6 max-w-5xl mx-auto">
             <div className="bento-card p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-emerald-950 text-white">
               <div>
                 <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">Faculty Workspace</span>
-                <h3 className="text-xl font-bold">Dr. Terver Kange (Senior Lecturer)</h3>
-                <p className="text-xs text-emerald-200">Department of Computer Science • School of Sciences</p>
+                <h3 className="text-xl font-bold">
+                  Welcome, {userSession?.fullName || 'Dr. Terver Kange'}, {userSession?.role || 'LECTURER'}
+                </h3>
+                <p className="text-xs text-emerald-200">Department of Computer Science • School of Sciences • {userSession?.username || 'lecturer1'}</p>
               </div>
               <div className="text-left sm:text-right text-xs">
                 <span className="text-slate-400 block">Assigned Workload:</span>
@@ -1032,16 +1135,20 @@ export default function App() {
               </div>
             </div>
           </div>
-        )}
+        </ProtectedRoute>
+      )}
 
         {/* TAB 8: PARENT PORTAL (MULTI-WARD TELEMETRY) */}
         {activeTab === 'parent' && (
-          <div className="space-y-6 max-w-5xl mx-auto">
+          <ProtectedRoute allowedRoles={['PARENT', 'SUPER_ADMIN', 'ADMIN']}>
+            <div className="space-y-6 max-w-5xl mx-auto">
             <div className="bento-card p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-slate-900 to-emerald-950 text-white">
               <div>
                 <span className="text-xs font-bold text-amber-300 uppercase tracking-wider block">Parent & Guardian Hub</span>
-                <h3 className="text-xl font-bold">Mr. Joshua T. Tsegha</h3>
-                <p className="text-xs text-emerald-200">Registered Phone: 08064377594 • Katsina-Ala, Benue State</p>
+                <h3 className="text-xl font-bold">
+                  Welcome, {userSession?.fullName || 'Mr. Joshua T. Tsegha'}, {userSession?.role || 'PARENT'}
+                </h3>
+                <p className="text-xs text-emerald-200">Registered Account: {userSession?.username || 'parent_tsegha'} • Katsina-Ala, Benue State</p>
               </div>
               <div className="text-left sm:text-right text-xs">
                 <span className="text-slate-400 block">Monitored Wards:</span>
@@ -1188,40 +1295,8 @@ export default function App() {
               </div>
             )}
           </div>
-        )}
-
-        {/* TAB 9: EXECUTIVE DASHBOARD */}
-        {activeTab === 'admin' && (
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-xl font-bold text-slate-900">Executive Management Dashboard</h3>
-              <p className="text-xs text-slate-500">Real-time institutional metrics for College Provost and Directorate</p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {[
-                { title: 'Total Active Students', value: '4,820', sub: 'Across 4 Divisions', icon: GraduationCap, color: 'text-emerald-700' },
-                { title: 'Session Fee Collection', value: '₦184.2M', sub: '92% Collection Rate', icon: DollarSign, color: 'text-amber-600' },
-                { title: 'Admissions Processed', value: '1,420', sub: '2026/2027 Cycle', icon: FileText, color: 'text-blue-600' },
-                { title: 'Hostel Occupancy', value: '94.5%', sub: '416 / 440 Bedspaces', icon: Building, color: 'text-purple-600' },
-              ].map((stat, i) => {
-                const Icon = stat.icon;
-                return (
-                  <div key={i} className="bento-card p-6 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-500">{stat.title}</span>
-                      <h4 className="text-2xl font-black text-slate-900 mt-1">{stat.value}</h4>
-                      <span className="text-[11px] text-emerald-600 font-medium">{stat.sub}</span>
-                    </div>
-                    <div className={`p-3 rounded-xl bg-slate-50 ${stat.color}`}>
-                      <Icon className="w-6 h-6" />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
+        </ProtectedRoute>
+      )}
       </main>
 
       {/* Footer */}

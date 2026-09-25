@@ -1,16 +1,17 @@
 import { Hono } from 'hono';
 import { Env } from '../../types/env';
 import { getContainer } from '../../infrastructure/container';
-import { authMiddleware } from '../middleware/auth';
-import { requireSuperAdmin } from '../middleware/rbac';
+import { requireAuth, requireRole } from '../middleware/rbac';
 import { AcademicAdminService } from '../../services/admin/academicAdminService';
 import { FinanceAdminService } from '../../services/admin/financeAdminService';
 import { SystemAdminService } from '../../services/admin/systemAdminService';
+import { UserAdminService } from '../../services/admin/userAdminService';
+import { AuditService } from '../../services/admin/auditService';
 
 export const adminRoutes = new Hono<{ Bindings: Env }>();
 
-// Enforce authentication & strict SUPER_ADMIN RBAC on all admin routes
-adminRoutes.use('*', authMiddleware, requireSuperAdmin());
+// Enforce authentication & RBAC on all admin routes
+adminRoutes.use('*', requireAuth, requireRole(['SUPER_ADMIN', 'ADMIN']));
 
 // =============================================================
 // 1. ACADEMIC MANAGEMENT (Courses, Departments, Faculty Allocations)
@@ -280,21 +281,123 @@ adminRoutes.delete('/fees/:id', async (c) => {
 });
 
 // =============================================================
-// 3. SYSTEM CONFIGURATION & INSTITUTIONAL SETTINGS
+// 3. USER MANAGEMENT & ACCESS CONTROL
 // =============================================================
 
-// Get System Settings & Portal Controls
+// List Users with Filters
+adminRoutes.get('/users', async (c) => {
+  const container = getContainer(c.env);
+  const service = new UserAdminService(container.db);
+
+  const role = c.req.query('role');
+  const division = c.req.query('division');
+  const search = c.req.query('search');
+  const limit = c.req.query('limit') ? parseInt(c.req.query('limit')!, 10) : undefined;
+
+  const users = await service.listUsers({ role, division, search, limit });
+  return c.json({ users });
+});
+
+// Promote User to Admin / Super Admin
+adminRoutes.patch('/users/:id/promote', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const service = new UserAdminService(container.db);
+  const body = await c.req.json();
+
+  const newRole = body.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN';
+
+  try {
+    const updatedUser = await service.promoteUser(id, newRole, user?.username || 'admin');
+    return c.json({
+      message: `User ${updatedUser.name} has been promoted to ${newRole}`,
+      user: updatedUser,
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 400);
+  }
+});
+
+// Suspend / Activate User Account
+adminRoutes.patch('/users/:id/status', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const service = new UserAdminService(container.db);
+  const body = await c.req.json();
+
+  if (body.isActive === undefined) {
+    return c.json({ error: 'Validation Error: isActive (boolean) is required' }, 400);
+  }
+
+  try {
+    const result = await service.setUserStatus(id, Boolean(body.isActive), user?.username || 'admin');
+    return c.json({
+      message: `User account ${result.isActive ? 'activated' : 'suspended'} successfully`,
+      ...result,
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 400);
+  }
+});
+
+// Reset User Password
+adminRoutes.post('/users/:id/reset-password', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const service = new UserAdminService(container.db);
+
+  try {
+    const result = await service.resetPassword(id, user?.username || 'admin');
+    return c.json(result);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 400);
+  }
+});
+
+// =============================================================
+// 4. CRYPTOGRAPHIC AUDIT TRAIL
+// =============================================================
+
+// Get Cryptographic Audit Logs
+adminRoutes.get('/audit', async (c) => {
+  const container = getContainer(c.env);
+  const service = new AuditService(container.db);
+  const limit = c.req.query('limit') ? parseInt(c.req.query('limit')!, 10) : 50;
+
+  const logs = await service.getAuditLogs(limit);
+  return c.json({ auditLogs: logs });
+});
+
+// Verify Cryptographic Signature of an Audit Log
+adminRoutes.post('/audit/verify/:id', async (c) => {
+  const id = c.req.param('id');
+  const container = getContainer(c.env);
+  const service = new AuditService(container.db);
+
+  const verification = await service.verifyAuditLog(id);
+  return c.json(verification);
+});
+
+// =============================================================
+// 5. SYSTEM CONFIGURATION & INSTITUTIONAL SETTINGS
+// =============================================================
+
+// Get System Settings, Portal Controls, Academic Calendar, & Maintenance Mode
 adminRoutes.get('/settings', async (c) => {
   const container = getContainer(c.env);
   const service = new SystemAdminService(container.db);
   const category = c.req.query('category');
 
-  const [settings, admissionsOpen, regOpen, resultOpen, calendar] = await Promise.all([
+  const [settings, admissionsOpen, regOpen, resultOpen, calendar, maintenanceMode] = await Promise.all([
     service.getSettingsList(category),
     service.getPortalStatus('admissions'),
     service.getPortalStatus('course_registration'),
     service.getPortalStatus('result_upload'),
     service.getAcademicCalendar(),
+    service.getMaintenanceMode(),
   ]);
 
   return c.json({
@@ -305,10 +408,11 @@ adminRoutes.get('/settings', async (c) => {
       resultUpload: resultOpen,
     },
     academicCalendar: calendar,
+    maintenanceMode,
   });
 });
 
-// Update Settings / Portal Controls / Academic Calendar
+// Update Settings / Portal Controls / Academic Calendar / Maintenance Mode
 adminRoutes.patch('/settings', async (c) => {
   const user = c.get('user');
   const container = getContainer(c.env);
@@ -317,7 +421,16 @@ adminRoutes.patch('/settings', async (c) => {
 
   const results: any = {};
 
-  // 1. Portal Status Switch (e.g., open/close admissions, course reg, result upload)
+  // 1. Maintenance Mode Toggle
+  if (body.maintenanceMode !== undefined) {
+    const mmResult = await service.setMaintenanceMode(
+      Boolean(body.maintenanceMode),
+      user?.username
+    );
+    results.maintenanceMode = mmResult.maintenanceMode;
+  }
+
+  // 2. Portal Status Switch (e.g., open/close admissions, course reg, result upload)
   if (body.portalModule && body.isOpen !== undefined) {
     const statusResult = await service.setPortalStatus(
       body.portalModule,
@@ -327,18 +440,20 @@ adminRoutes.patch('/settings', async (c) => {
     results.portalStatus = statusResult;
   }
 
-  // 2. Academic Calendar Update
+  // 3. Academic Calendar Update
   if (body.calendarSessionId && body.startDate && body.endDate) {
     const calResult = await service.setAcademicCalendarDates({
       sessionId: body.calendarSessionId,
       startDate: body.startDate,
       endDate: body.endDate,
+      examStartDate: body.examStartDate,
+      examEndDate: body.examEndDate,
       updatedBy: user?.username,
     });
     results.academicCalendar = calResult;
   }
 
-  // 3. Key-Value Configuration
+  // 4. Key-Value Configuration
   if (body.key && body.value !== undefined) {
     await service.setSetting(
       body.key,

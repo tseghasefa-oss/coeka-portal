@@ -13,6 +13,7 @@ import { simsRoutes } from './routes/sims';
 import { staffRoutes } from './routes/staff';
 import { parentRoutes } from './routes/parent';
 import { adminRoutes } from './routes/admin';
+import { studentRoutes } from './routes/student';
 
 import { getContainer, ServiceContainer } from '../infrastructure/container';
 
@@ -26,16 +27,17 @@ export const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 // 1. Global Middleware
 app.use('*', logger());
 app.use('*', cors({
-  origin: '*',
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Demo-Role'],
+  origin: (origin) => origin || '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Demo-Role', 'Cookie'],
+  credentials: true,
 }));
 app.use('*', async (c, next) => {
   const container = getContainer(c.env);
   c.set('container', container);
   await next();
 });
-app.use('/api/*', rateLimiter(120, 60)); // 120 requests per minute
+app.use('/api/*', rateLimiter(300, 60, 'global')); // 300 requests per minute
 
 // 2. Health & Institutional Metadata
 app.get('/api/health', (c) => {
@@ -59,6 +61,7 @@ app.route('/api/sims', simsRoutes);
 app.route('/api/staff', staffRoutes);
 app.route('/api/parent', parentRoutes);
 app.route('/api/admin', adminRoutes);
+app.route('/api/student', studentRoutes);
 
 // 4. Cloudflare Worker Export (Fetch, Queue, Scheduled)
 export default {

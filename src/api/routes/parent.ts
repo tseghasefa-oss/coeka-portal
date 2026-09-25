@@ -1,8 +1,12 @@
 import { Hono } from 'hono';
 import { Env } from '../../types/env';
 import { LedgerEngine } from '../../services/finance/ledgerEngine';
+import { requireAuth, requireRole } from '../middleware/rbac';
 
 export const parentRoutes = new Hono<{ Bindings: Env }>();
+
+// Only parents can access parent dashboard endpoints
+parentRoutes.use('*', requireAuth, requireRole(['PARENT']));
 
 // 1. Parent Wards Telemetry
 parentRoutes.get('/wards', async (c) => {

@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LedgerEngine } from '../../services/finance/ledgerEngine';
 import { ScreeningEngine, ScreeningEvaluationInput, ScreeningResult } from '../../services/admissions/screeningEngine';
+import { API_HOST } from '../config/api';
 
-const API_BASE = '/api';
+const API_BASE = `${API_HOST}/api`;
 
 export interface InvoiceItem {
   id: string;

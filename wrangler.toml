@@ -4,27 +4,30 @@ compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
 
 # Static Assets (React SPA output)
-assets = { directory = "./dist" }
+assets = { directory = "./dist", not_found_handling = "single-page-application" }
 
-# Route mappings for COEKA
-routes = [
-  { pattern = "portal.coekatsinaala.edu.ng/*", zone_name = "coekatsinaala.edu.ng" }
-]
+workers_dev = true
+
+# Route mappings for COEKA (uncomment once coekatsinaala.edu.ng is active in Cloudflare)
+# routes = [
+#   { pattern = "portal.coekatsinaala.edu.ng/*", zone_name = "coekatsinaala.edu.ng" }
+# ]
 
 # 1. Cloudflare D1 SQL Database Binding
 [[d1_databases]]
 binding = "DB"
 database_name = "coeka-production-db"
-database_id = "coeka-d1-prod-001"
+database_id = "52040074-37c6-4b74-9b05-e873fe5e181d"
+migrations_dir = "src/database/migrations-drizzle"
 
 # 2. Cloudflare KV Bindings
 [[kv_namespaces]]
 binding = "SESSION_KV"
-id = "coeka-kv-sessions-prod"
+id = "8f5649f5ff474989b6258d053c17fe93"
 
 [[kv_namespaces]]
 binding = "RATE_LIMIT_KV"
-id = "coeka-kv-ratelimit-prod"
+id = "d2e6170ab1fb4f8bb8b7cf083e41a852"
 
 # 3. Cloudflare R2 Object Storage Binding
 [[r2_buckets]]

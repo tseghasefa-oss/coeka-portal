@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useAppStore, SchoolDivision } from '../../stores/useAppStore';
 import { useFeeSchedules, FeeScheduleItem, FeeCategoryItem } from '../../hooks/useAdminData';
+import { ConfirmationModal } from '../common/ConfirmationModal';
 
 export const AdminFeesTab: React.FC = () => {
   const { uiPreferences, activeDivision, setActiveDivision } = useAppStore();
@@ -32,6 +33,7 @@ export const AdminFeesTab: React.FC = () => {
     isSettingPrice,
     updateFeeSchedule,
     deleteFeeSchedule,
+    isDeleting,
     applyToAllLevels,
     isApplyingToAll,
     refetch,
@@ -58,6 +60,21 @@ export const AdminFeesTab: React.FC = () => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    isDangerous?: boolean;
+    onConfirm: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: async () => {},
+  });
 
   // Division level configurations
   const divisionLevelsMap: Record<SchoolDivision, (number | string)[]> = {
@@ -412,11 +429,24 @@ export const AdminFeesTab: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <button
-                        onClick={async () => {
-                          if (confirm(`Remove fee schedule for ${sched.categoryName}?`)) {
-                            await deleteFeeSchedule(sched.id);
-                            showToast('Fee schedule deleted.');
-                          }
+                        onClick={() => {
+                          setConfirmModal({
+                            isOpen: true,
+                            title: 'Delete Fee Schedule',
+                            message: `Are you sure you want to delete the fee schedule for "${sched.categoryName}" (${sched.level} Level)? Student ledger calculations and billing invoices will be recalculated.`,
+                            confirmText: 'Delete Schedule',
+                            isDangerous: true,
+                            onConfirm: async () => {
+                              try {
+                                await deleteFeeSchedule(sched.id);
+                                showToast('Fee schedule deleted.');
+                              } catch (err: any) {
+                                showToast(`Delete failed: ${err.message}`);
+                              } finally {
+                                setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+                              }
+                            },
+                          });
                         }}
                         className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
                         title="Delete Schedule"
@@ -587,6 +617,18 @@ export const AdminFeesTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        isDangerous={confirmModal.isDangerous}
+        isLoading={isDeleting || isApplyingToAll}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

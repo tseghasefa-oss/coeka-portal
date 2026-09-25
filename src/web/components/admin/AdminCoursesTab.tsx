@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useCourses, CourseItem } from '../../hooks/useAdminData';
+import { ConfirmationModal } from '../common/ConfirmationModal';
 
 export const AdminCoursesTab: React.FC = () => {
   const { uiPreferences, activeDivision } = useAppStore();
@@ -134,15 +135,39 @@ export const AdminCoursesTab: React.FC = () => {
     }
   };
 
-  const handleDeleteCourse = async (id: string, code: string) => {
-    if (confirm(`Are you sure you want to delete course ${code}?`)) {
-      try {
-        await deleteCourse(id);
-        showToast(`Course ${code} removed.`);
-      } catch (err: any) {
-        alert(`Delete failed: ${err.message}`);
-      }
-    }
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    isDangerous?: boolean;
+    onConfirm: () => Promise<void>;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: async () => {},
+  });
+
+  const handleDeleteCourse = (id: string, code: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Curriculum Course',
+      message: `Are you sure you want to permanently delete course "${code}"? Students will no longer be able to register for this course unit and any pending staff allocations will be revoked.`,
+      confirmText: 'Delete Course',
+      isDangerous: true,
+      onConfirm: async () => {
+        try {
+          await deleteCourse(id);
+          showToast(`Course ${code} removed.`);
+        } catch (err: any) {
+          showToast(`Delete failed: ${err.message}`);
+        } finally {
+          setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
   };
 
   // Filter courses based on search & selected division
@@ -565,6 +590,18 @@ export const AdminCoursesTab: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        confirmText={confirmModal.confirmText}
+        isDangerous={confirmModal.isDangerous}
+        isLoading={isDeleting}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

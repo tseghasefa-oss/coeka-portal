@@ -1,8 +1,12 @@
 import { Hono } from 'hono';
 import { Env } from '../../types/env';
 import { CourseRegistrationEngine, CourseToRegister } from '../../services/students/courseRegistrationEngine';
+import { requireAuth, requireRole } from '../middleware/rbac';
 
 export const simsRoutes = new Hono<{ Bindings: Env }>();
+
+// Only students can access SIMS operations
+simsRoutes.use('*', requireAuth, requireRole(['STUDENT']));
 
 simsRoutes.get('/profile', async (c) => {
   return c.json({

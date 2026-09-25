@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAppStore } from '../stores/useAppStore';
+import { API_HOST } from '../config/api';
 
-const API_BASE = '/api/admin';
+const API_BASE = `${API_HOST}/api/admin`;
 
 export interface CourseItem {
   id: string;
@@ -40,6 +41,36 @@ export interface FeeScheduleItem {
   formattedAmount?: string;
 }
 
+export interface UserDirectoryItem {
+  id: string;
+  username: string;
+  name: string;
+  identifier: string;
+  email: string;
+  phoneNumber: string;
+  role: string;
+  userType: string;
+  departmentOrProg: string;
+  division: string;
+  isActive: boolean;
+  twoFactorEnabled: boolean;
+  createdAt: number;
+}
+
+export interface AuditLogItem {
+  id: string;
+  actorUserId: string;
+  action: string;
+  entityName: string;
+  entityId: string;
+  ipAddress: string;
+  userAgent: string;
+  oldValueJson: string | null;
+  newValueJson: string | null;
+  createdAt: number;
+  signature: string;
+}
+
 export interface SystemSettingsData {
   settings: {
     key: string;
@@ -57,7 +88,10 @@ export interface SystemSettingsData {
     sessionId: string;
     startDate: string;
     endDate: string;
+    examStartDate?: string;
+    examEndDate?: string;
   };
+  maintenanceMode?: boolean;
 }
 
 export interface CreateCourseInput {
@@ -458,7 +492,6 @@ export function useFeeSchedules(filters?: { sessionId?: string; divisionId?: str
       return res.json();
     },
     onSuccess: () => {
-      // Invalidate fee schedules AND student invoices cache so students see updated prices immediately
       queryClient.invalidateQueries({ queryKey: ['admin', 'fees'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
@@ -525,7 +558,6 @@ export function useFeeSchedules(filters?: { sessionId?: string; divisionId?: str
       return { success: true, count: input.levels.length };
     },
     onSuccess: () => {
-      // Invalidate fee schedules and invoices
       queryClient.invalidateQueries({ queryKey: ['admin', 'fees'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
     },
@@ -546,6 +578,284 @@ export function useFeeSchedules(filters?: { sessionId?: string; divisionId?: str
     isDeleting: deleteFeeScheduleMutation.isPending,
     applyToAllLevels: applyToAllLevelsMutation.mutateAsync,
     isApplyingToAll: applyToAllLevelsMutation.isPending,
+  };
+}
+
+/**
+ * Hook for User Directory & Identity Management
+ */
+export function useUsers(filters?: { role?: string; division?: string; search?: string }) {
+  const queryClient = useQueryClient();
+  const { userSession } = useAppStore();
+
+  const usersQuery = useQuery<UserDirectoryItem[]>({
+    queryKey: ['admin', 'users', filters],
+    queryFn: async () => {
+      try {
+        const params = new URLSearchParams();
+        if (filters?.role && filters.role !== 'ALL') params.append('role', filters.role);
+        if (filters?.division && filters.division !== 'ALL') params.append('division', filters.division);
+        if (filters?.search) params.append('search', filters.search);
+
+        const res = await fetch(`${API_BASE}/users?${params.toString()}`, {
+          headers: getAdminHeaders(userSession?.role, userSession?.token),
+        });
+
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const data: any = await res.json();
+        return (data.users || []) as UserDirectoryItem[];
+      } catch (err) {
+        // Fallback baseline user records
+        return [
+          {
+            id: 'usr-admin-001',
+            username: 'founder_tsegha',
+            name: 'Engr. Prof. S. L. Tsegha',
+            identifier: 'COEKA/ADM/001',
+            email: 'founder@fruitfulujah.com',
+            phoneNumber: '08022223344',
+            role: 'SUPER_ADMIN',
+            userType: 'ADMIN',
+            departmentOrProg: 'Directorate of ICT & System Architecture',
+            division: 'CENTRAL',
+            isActive: true,
+            twoFactorEnabled: true,
+            createdAt: 1727180000,
+          },
+          {
+            id: 'usr-staff-001',
+            username: 'lecturer1',
+            name: 'Dr. Olufemi Adeyemi',
+            identifier: 'COEKA/STF/2026/001',
+            email: 'lecturer1@coeka.edu.ng',
+            phoneNumber: '08011112233',
+            role: 'LECTURER',
+            userType: 'STAFF',
+            departmentOrProg: 'Department of Computer Science',
+            division: 'NCE',
+            isActive: true,
+            twoFactorEnabled: true,
+            createdAt: 1727181000,
+          },
+          {
+            id: 'usr-dean-001',
+            username: 'dean_tyav',
+            name: 'Dr. (Mrs) Bridget Tyav',
+            identifier: 'COEKA/STF/2026/012',
+            email: 'btyav@coeka.edu.ng',
+            phoneNumber: '08033334455',
+            role: 'DEAN',
+            userType: 'STAFF',
+            departmentOrProg: 'School of Education',
+            division: 'NCE',
+            isActive: true,
+            twoFactorEnabled: true,
+            createdAt: 1727182000,
+          },
+          {
+            id: 'usr-bur-001',
+            username: 'bursar_ikyur',
+            name: 'Mr. Gabriel Ikyur',
+            identifier: 'COEKA/BUR/005',
+            email: 'bursar.office@coeka.edu.ng',
+            phoneNumber: '08044445566',
+            role: 'BURSAR',
+            userType: 'STAFF',
+            departmentOrProg: 'Bursary Revenue & Accounts Unit',
+            division: 'CENTRAL',
+            isActive: true,
+            twoFactorEnabled: true,
+            createdAt: 1727183000,
+          },
+          {
+            id: 'usr-std-001',
+            username: 'std_iorliam',
+            name: 'Aondoaver Moses Iorliam',
+            identifier: 'COEKA/2026/NCE/084',
+            email: 'm.iorliam@student.coeka.edu.ng',
+            phoneNumber: '08055556677',
+            role: 'STUDENT',
+            userType: 'STUDENT',
+            departmentOrProg: 'NCE Computer Science / Mathematics',
+            division: 'NCE',
+            isActive: true,
+            twoFactorEnabled: false,
+            createdAt: 1727184000,
+          },
+          {
+            id: 'usr-std-002',
+            username: 'std_gbadu',
+            name: 'Doose Mercy Gbadu',
+            identifier: 'COEKA/2026/NCE/087',
+            email: 'd.gbadu@student.coeka.edu.ng',
+            phoneNumber: '08066667788',
+            role: 'STUDENT',
+            userType: 'STUDENT',
+            departmentOrProg: 'NCE Biology / Integrated Science',
+            division: 'NCE',
+            isActive: true,
+            twoFactorEnabled: false,
+            createdAt: 1727185000,
+          },
+          {
+            id: 'usr-std-003',
+            username: 'std_chia',
+            name: 'Terna Victor Chia',
+            identifier: 'COEKA/2026/DEG/018',
+            email: 'v.chia@degree.coeka.edu.ng',
+            phoneNumber: '08077778899',
+            role: 'STUDENT',
+            userType: 'STUDENT',
+            departmentOrProg: 'B.Ed Business Education',
+            division: 'DEGREE',
+            isActive: true,
+            twoFactorEnabled: false,
+            createdAt: 1727186000,
+          },
+          {
+            id: 'usr-par-001',
+            username: 'parent_iorliam',
+            name: 'Elder Tor Iorliam',
+            identifier: 'PAR/2026/099',
+            email: 'tor.iorliam@gmail.com',
+            phoneNumber: '08088889900',
+            role: 'PARENT',
+            userType: 'PARENT',
+            departmentOrProg: 'Parent / Guardian Association',
+            division: 'NCE',
+            isActive: true,
+            twoFactorEnabled: false,
+            createdAt: 1727187000,
+          },
+        ];
+      }
+    },
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const promoteUserMutation = useMutation({
+    mutationFn: async ({ id, role }: { id: string; role: 'ADMIN' | 'SUPER_ADMIN' }) => {
+      const res = await fetch(`${API_BASE}/users/${id}/promote`, {
+        method: 'PATCH',
+        headers: getAdminHeaders(userSession?.role, userSession?.token),
+        body: JSON.stringify({ role }),
+      });
+
+      if (!res.ok) {
+        const errData: any = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP Error ${res.status}`);
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] });
+    },
+  });
+
+  const toggleUserStatusMutation = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      const res = await fetch(`${API_BASE}/users/${id}/status`, {
+        method: 'PATCH',
+        headers: getAdminHeaders(userSession?.role, userSession?.token),
+        body: JSON.stringify({ isActive }),
+      });
+
+      if (!res.ok) {
+        const errData: any = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP Error ${res.status}`);
+      }
+
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`${API_BASE}/users/${id}/reset-password`, {
+        method: 'POST',
+        headers: getAdminHeaders(userSession?.role, userSession?.token),
+      });
+
+      if (!res.ok) {
+        const errData: any = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP Error ${res.status}`);
+      }
+
+      return res.json() as Promise<{ tempPassword: string; message: string }>;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] });
+    },
+  });
+
+  return {
+    users: usersQuery.data || [],
+    isLoading: usersQuery.isLoading,
+    isError: usersQuery.isError,
+    error: usersQuery.error,
+    refetch: usersQuery.refetch,
+    promoteUser: promoteUserMutation.mutateAsync,
+    isPromoting: promoteUserMutation.isPending,
+    toggleUserStatus: toggleUserStatusMutation.mutateAsync,
+    isTogglingStatus: toggleUserStatusMutation.isPending,
+    resetPassword: resetPasswordMutation.mutateAsync,
+    isResettingPassword: resetPasswordMutation.isPending,
+  };
+}
+
+/**
+ * Hook for Cryptographic Audit Trail
+ */
+export function useAuditLogs(limit: number = 30) {
+  const queryClient = useQueryClient();
+  const { userSession } = useAppStore();
+
+  const auditQuery = useQuery<AuditLogItem[]>({
+    queryKey: ['admin', 'audit', limit],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`${API_BASE}/audit?limit=${limit}`, {
+          headers: getAdminHeaders(userSession?.role, userSession?.token),
+        });
+
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const data: any = await res.json();
+        return (data.auditLogs || []) as AuditLogItem[];
+      } catch (err) {
+        return [];
+      }
+    },
+    staleTime: 1000 * 30, // 30 seconds
+  });
+
+  const verifyAuditLogMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`${API_BASE}/audit/verify/${id}`, {
+        method: 'POST',
+        headers: getAdminHeaders(userSession?.role, userSession?.token),
+      });
+
+      if (!res.ok) {
+        const errData: any = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP Error ${res.status}`);
+      }
+
+      return res.json() as Promise<{ isValid: boolean; entry: AuditLogItem | null }>;
+    },
+  });
+
+  return {
+    auditLogs: auditQuery.data || [],
+    isLoading: auditQuery.isLoading,
+    refetch: auditQuery.refetch,
+    verifyAuditLog: verifyAuditLogMutation.mutateAsync,
+    isVerifying: verifyAuditLogMutation.isPending,
   };
 }
 
@@ -586,7 +896,10 @@ export function useSystemSettings() {
             sessionId: 'sess-2026-2027',
             startDate: '2026-10-01',
             endDate: '2027-08-31',
+            examStartDate: '2027-02-15',
+            examEndDate: '2027-03-05',
           },
+          maintenanceMode: false,
         };
       }
     },
@@ -600,6 +913,9 @@ export function useSystemSettings() {
       calendarSessionId?: string;
       startDate?: string;
       endDate?: string;
+      examStartDate?: string;
+      examEndDate?: string;
+      maintenanceMode?: boolean;
       key?: string;
       value?: string;
       category?: string;
@@ -620,6 +936,7 @@ export function useSystemSettings() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'audit'] });
     },
   });
 

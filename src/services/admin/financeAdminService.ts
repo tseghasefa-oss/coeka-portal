@@ -2,6 +2,7 @@ import { IDatabaseProvider } from '../../infrastructure/interfaces/IDatabaseProv
 import { schema } from '../../database/client';
 import { LedgerEngine } from '../finance/ledgerEngine';
 import { eq, and } from 'drizzle-orm';
+import { AuditService } from './auditService';
 
 export interface FeeCategoryItem {
   id: string;
@@ -27,7 +28,11 @@ export interface FeeScheduleItem {
 }
 
 export class FinanceAdminService {
-  constructor(private db: IDatabaseProvider) {}
+  private auditService: AuditService;
+
+  constructor(private db: IDatabaseProvider, auditService?: AuditService) {
+    this.auditService = auditService || new AuditService(db);
+  }
 
   /**
    * Validate that an amount is strictly an integer in Kobo and non-negative.
@@ -156,7 +161,15 @@ export class FinanceAdminService {
         [data.amountKobo, data.dueDate || null, existing.id]
       );
 
-      return (await this.getFeeScheduleById(existing.id))!;
+      const feeSchedule = (await this.getFeeScheduleById(existing.id))!;
+      await this.auditService.logAdminAction({
+        actorUserId: 'system-admin',
+        action: 'UPDATE_FEE_SCHEDULE',
+        entityName: 'fee_schedules',
+        entityId: existing.id,
+        newValue: { amountKobo: data.amountKobo, dueDate: data.dueDate, level: data.level },
+      });
+      return feeSchedule;
     } else {
       // Create new schedule
       const id = `fs-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
@@ -176,7 +189,15 @@ export class FinanceAdminService {
             })
             .returning();
           if (res && res.length > 0) {
-            return (await this.getFeeScheduleById(id))!;
+            const feeSchedule = (await this.getFeeScheduleById(id))!;
+            await this.auditService.logAdminAction({
+              actorUserId: 'system-admin',
+              action: 'CREATE_FEE_SCHEDULE',
+              entityName: 'fee_schedules',
+              entityId: id,
+              newValue: { amountKobo: data.amountKobo, level: data.level, categoryId: data.categoryId },
+            });
+            return feeSchedule;
           }
         } catch {
           // Fallback
@@ -189,7 +210,15 @@ export class FinanceAdminService {
         [id, data.categoryId, data.sessionId, data.level, data.amountKobo, data.dueDate || null, now]
       );
 
-      return (await this.getFeeScheduleById(id))!;
+      const feeSchedule = (await this.getFeeScheduleById(id))!;
+      await this.auditService.logAdminAction({
+        actorUserId: 'system-admin',
+        action: 'CREATE_FEE_SCHEDULE',
+        entityName: 'fee_schedules',
+        entityId: id,
+        newValue: { amountKobo: data.amountKobo, level: data.level, categoryId: data.categoryId },
+      });
+      return feeSchedule;
     }
   }
 
@@ -276,6 +305,7 @@ export class FinanceAdminService {
   }
 
   async deleteFeeSchedule(id: string): Promise<boolean> {
+    const existing = await this.getFeeScheduleById(id);
     if (this.db.drizzle) {
       try {
         await this.db.drizzle.delete(schema.feeSchedules).where(eq(schema.feeSchedules.id, id));
@@ -284,7 +314,17 @@ export class FinanceAdminService {
       }
     }
     const res = await this.db.execute(`DELETE FROM fee_schedules WHERE id = ?`, [id]);
-    return (res.rowsAffected ?? 0) > 0;
+    const success = (res.rowsAffected ?? 0) > 0;
+    if (success && existing) {
+      await this.auditService.logAdminAction({
+        actorUserId: 'system-admin',
+        action: 'DELETE_FEE_SCHEDULE',
+        entityName: 'fee_schedules',
+        entityId: id,
+        oldValue: { amountKobo: existing.amountKobo, categoryId: existing.categoryId },
+      });
+    }
+    return success;
   }
 
   async getFeeScheduleById(id: string): Promise<FeeScheduleItem | null> {

@@ -1,139 +1,196 @@
 # COEKA ENTERPRISE DIGITAL CAMPUS PORTAL
 ## CLOUDFLARE EDGE DEPLOYMENT & PRODUCTION RUNBOOK
 
-**Target Environment:** Cloudflare Workers, Pages, D1 SQL, KV, Queues, and R2  
+**Target Environment:** Cloudflare Workers, Cloudflare Pages, D1 SQL (Drizzle ORM), KV Namespaces, Queues, and R2  
 **Domain:** `portal.coekatsinaala.edu.ng` / `api.coekatsinaala.edu.ng`  
-**Author:** Fruitfulujah Project Technical Team  
+**Architecture:** Golden Stack (Hono + Drizzle ORM + D1 + Cloudflare Workers/Pages + React + TanStack Query + Zustand)
 
 ---
 
-## 1. Prerequisites & Tooling
+## Phase 0: Authentication Prerequisite
 
-Ensure you have the following installed on your engineering terminal:
-* **Node.js:** v20+ or v22+ LTS
-* **npm:** v10+
-* **Cloudflare Wrangler CLI:** v3.90+ (`npm install -g wrangler` or `npx wrangler`)
+Before executing any `wrangler` provisioning commands, you must authenticate your terminal with your Cloudflare account.
 
-Authenticate your Cloudflare account:
-```bash
+### Option A: Interactive Browser Login (Recommended)
+Run this command in your local PowerShell or bash terminal:
+```powershell
 npx wrangler login
 ```
+*This opens your default web browser to authorize the Wrangler CLI with your Cloudflare account.*
+
+### Option B: Cloudflare API Token (Non-Interactive / CI/CD)
+If deploying via automated script, GitHub Actions, or a non-interactive shell:
+1. Go to the [Cloudflare Dashboard $\rightarrow$ API Tokens](https://dash.cloudflare.com/profile/api-tokens).
+2. Create a custom token with permissions for:
+   * **Account:** `D1:Edit`, `Workers KV Storage:Edit`, `Workers R2 Storage:Edit`, `Workers Queue:Edit`
+   * **Zone / User:** `Workers Scripts:Edit`, `Cloudflare Pages:Edit`
+3. Set the environment variable in your terminal:
+   ```powershell
+   # Windows PowerShell
+   $env:CLOUDFLARE_API_TOKEN = "your_cloudflare_api_token_here"
+
+   # macOS / Linux / Bash
+   export CLOUDFLARE_API_TOKEN="your_cloudflare_api_token_here"
+   ```
+
+Verify authentication:
+```powershell
+npx wrangler whoami
+```
 
 ---
 
-## 2. Cloudflare Service Provisioning
+## Phase 1: Infrastructure Provisioning
 
-### 2.1 Provision Cloudflare D1 Database
-Execute on the terminal to create the serverless SQL database:
-```bash
+Run these commands in your terminal from the project root (`coeka-portal`).
+
+### 1. Create the D1 Database
+```powershell
 npx wrangler d1 create coeka-production-db
 ```
-*Note the returned `database_id` and update it inside `wrangler.toml`:*
+*Output will provide your `database_id` (e.g. `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`). Paste it into `wrangler.toml` under `[[d1_databases]]`:*
 ```toml
 [[d1_databases]]
 binding = "DB"
 database_name = "coeka-production-db"
-database_id = "<YOUR_PROVISIONED_DATABASE_ID>"
+database_id = "<PASTE_YOUR_DATABASE_ID_HERE>"
+migrations_dir = "src/database/migrations-drizzle"
 ```
 
-### 2.2 Apply D1 Database Migrations
-Apply the initial schema and seed data to the remote Cloudflare D1 database:
-```bash
-# 1. Apply Schema (10 Subsystems DDL)
-npx wrangler d1 execute coeka-production-db --remote --file=./src/database/migrations/0001_initial_schema.sql
-
-# 2. Apply Seed Baseline Data (Divisions, Faculties, Programmes, Fee Schedules)
-npx wrangler d1 execute coeka-production-db --remote --file=./src/database/migrations/0002_seed_data.sql
-```
-
-### 2.3 Provision Cloudflare KV Namespaces
-Create the stateful session and sliding-window rate limit stores:
-```bash
+### 2. Create the KV Namespaces
+```powershell
+# Create the Session store
 npx wrangler kv:namespace create SESSION_KV
+
+# Create the Rate Limit store
 npx wrangler kv:namespace create RATE_LIMIT_KV
 ```
-Update the returned namespace IDs inside `wrangler.toml`.
+*Copy the returned IDs and paste them into `wrangler.toml` under `[[kv_namespaces]]`:*
+```toml
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "<PASTE_SESSION_KV_ID_HERE>"
 
-### 2.4 Provision Cloudflare R2 Document Lake
-Create the S3-compatible document storage bucket:
-```bash
-npx wrangler r2 bucket create coeka-document-lake
+[[kv_namespaces]]
+binding = "RATE_LIMIT_KV"
+id = "<PASTE_RATE_LIMIT_KV_ID_HERE>"
 ```
 
-### 2.5 Provision Cloudflare Queue
-Create the background task broker for asynchronous notifications and financial reconciliations:
-```bash
+### 3. Create the R2 Document Lake
+```powershell
+npx wrangler r2 bucket create DOCUMENTS_BUCKET
+```
+*Ensure the bucket name in `wrangler.toml` matches:*
+```toml
+[[r2_buckets]]
+binding = "DOCUMENTS_BUCKET"
+bucket_name = "DOCUMENTS_BUCKET"
+```
+
+### 4. Create the Asynchronous Processing Queue
+```powershell
 npx wrangler queues create coeka-async-queue
 ```
 
 ---
 
-## 3. Secret Management & Payment Rails Configuration
+## Phase 2: Database Schema & Seeding
 
-Set production cryptographic secrets using Wrangler secret commands:
+Push your type-safe Drizzle migrations and initial institutional baseline data to the live D1 database.
 
-```bash
-# Core Security Secrets
+### 1. Apply Drizzle Migrations
+```powershell
+# Applies all Drizzle migrations from src/database/migrations-drizzle/ to live D1
+npx wrangler d1 migrations apply coeka-production-db --remote
+```
+*(Press `y` when prompted to execute the migration batches on remote).*
+
+### 2. Upload Seed Data
+Populate institutional divisions (NCE, Degree, Secondary, Primary), faculties, departments, programmes, fee categories, initial fee schedules, hostel rooms, and seed accounts:
+```powershell
+npx wrangler d1 execute coeka-production-db --remote --file=src/database/migrations/0002_seed_data.sql
+```
+
+---
+
+## Phase 3: Backend API Deployment
+
+The API is built with Hono and deployed as a Cloudflare Worker at the edge.
+
+### 1. Set Production Secrets (Optional but Recommended)
+```powershell
 npx wrangler secret put JWT_SECRET
 npx wrangler secret put LEDGER_SIGNING_SECRET
-
-# Payment Gateway Secrets
-npx wrangler secret put PAYSTACK_SECRET_KEY
 npx wrangler secret put VPAY_API_KEY
-npx wrangler secret put VPAY_PUBLIC_KEY
-npx wrangler secret put REMITA_MERCHANT_ID
-npx wrangler secret put REMITA_API_KEY
-npx wrangler secret put REMITA_SERVICE_TYPE_ID
-
-# Communications
-npx wrangler secret put TERMII_API_KEY
-npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put PAYSTACK_SECRET_KEY
 ```
 
----
-
-## 4. Building & Deployment
-
-### 4.1 Build Frontend Assets
-Compile the React 19 Single Page Application into the `./dist` directory:
-```bash
-npm run build
-```
-
-### 4.2 Deploy to Cloudflare Edge
-Deploy both the Hono REST API Worker and the compiled static assets in a single step:
-```bash
+### 2. Deploy the Worker API
+```powershell
 npx wrangler deploy
 ```
+*Copy the returned Worker endpoint URL (e.g. `https://coeka-portal.your-account.workers.dev`).*
 
 ---
 
-## 5. Local Development & Testing
+## Phase 4: Frontend Deployment (Cloudflare Pages)
 
-### 5.1 Run Local Development Server
-To launch Vite with hot-module replacement on port 3000:
-```bash
-npm run dev
+The frontend is a high-performance React SPA.
+
+### 1. Build Production Assets
+```powershell
+npm run build
+```
+*This executes `tsc && vite build`, outputting optimized bundles to `./dist`.*
+
+### 2. Deploy to Cloudflare Pages
+
+#### Option A: Direct Deployment via Wrangler CLI
+```powershell
+npx wrangler pages deploy dist --project-name=coeka-portal
 ```
 
-### 5.2 Run Local Backend API Server
-To run the Hono backend API on Node.js port 8787:
-```bash
-npm run serve:api
-```
+#### Option B: GitHub Repository CI/CD Integration
+1. Push your code to GitHub.
+2. In the [Cloudflare Dashboard](https://dash.cloudflare.com/) $\rightarrow$ **Workers & Pages** $\rightarrow$ **Create Application** $\rightarrow$ **Pages** $\rightarrow$ **Connect to Git**.
+3. Select your repository and configure:
+   * **Framework Preset:** `Vite`
+   * **Build Command:** `npm run build`
+   * **Build Output Directory:** `dist`
 
-### 5.3 Run Vitest Automated Test Suite
-To execute all 16 unit tests:
-```bash
-npm test
-```
+### 3. Set the API URL Environment Variable
+In Cloudflare Pages Dashboard $\rightarrow$ **Your Project** $\rightarrow$ **Settings** $\rightarrow$ **Environment Variables**:
+* Add variable: `VITE_API_URL` = `https://coeka-portal.your-account.workers.dev`
+*(Redeploy or trigger a new build after setting this variable so the client hooks connect to your live API).*
 
 ---
 
-## 6. Verification Checklist Before Go-Live
+## Phase 5: Final Smoke Test Checklist
 
-1. [ ] **Health Endpoint:** Query `https://portal.coekatsinaala.edu.ng/api/health` and verify HTTP 200 `healthy`.
-2. [ ] **D1 Integrity:** Query `SELECT count(*) FROM divisions;` and confirm 4 rows (`NCE`, `DEGREE`, `SECONDARY`, `PRIMARY`).
-3. [ ] **Virtual Accounts:** Test webhook delivery from VPay sandbox to `/api/webhooks/vpay`.
-4. [ ] **Paystack Webhook:** Confirm HMAC-SHA512 verification at `/api/webhooks/paystack`.
-5. [ ] **DNS Cutover:** Ensure CNAME for `portal.coekatsinaala.edu.ng` points to Cloudflare Worker route.
+Once the production deployment finishes, execute this 5-point verification run:
+
+1. **Authentication Flow:**
+   * Navigate to `https://<your-pages-subdomain>.pages.dev/login`.
+   * Log in with Super Admin credentials (`founder_tsegha` / `Password123!`).
+   * Verify automatic redirect lands on `/admin` with the executive greeting.
+2. **Database Connectivity:**
+   * Open the **Academic Management** tab.
+   * Verify that accredited NCE and Degree courses appear from the remote D1 database.
+3. **Financial Integrity & Real-Time Sync:**
+   * Go to **Financial Price Setting** in the Admin panel and update an institutional fee schedule.
+   * Log in with a student account (`std_iorliam` / `Password123!`).
+   * Verify the fee invoice balance updates in real-time.
+4. **Storage (R2):**
+   * Upload a digital document (student ID or academic record).
+   * Verify persistence across page refresh.
+5. **RBAC Guard Enforcement:**
+   * While logged in as a student, manually enter `/admin` in the browser URL bar.
+   * Verify the route guard immediately intercepts access and redirects back to the Student Dashboard (`/sims`).
+
+---
+
+## Troubleshooting Common Live Errors
+
+* **403 Forbidden on API Requests:** Check that `wrangler.toml` bindings (`DB`, `SESSION_KV`, `RATE_LIMIT_KV`, `DOCUMENTS_BUCKET`) match the exact IDs in your Cloudflare dashboard.
+* **CORS Blocked Errors:** In `src/api/index.ts`, CORS middleware dynamically allows origin reflection with credentials (`allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']`).
+* **White Screen on Frontend:** Open browser DevTools Console. If `VITE_API_URL is undefined`, ensure the `VITE_API_URL` environment variable was added in Cloudflare Pages and the frontend was redeployed.
