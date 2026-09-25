@@ -21,6 +21,7 @@ export type ActiveTab =
   | 'results'
   | 'hostels'
   | 'staff'
+  | 'dean'
   | 'parent'
   | 'admin'
   | 'login'
@@ -132,8 +133,9 @@ export function resolveDashboardTab(role?: string): ActiveTab {
     case 'SUPER_ADMIN':
     case 'ADMIN':
       return 'admin';
-    case 'LECTURER':
     case 'DEAN':
+      return 'dean';
+    case 'LECTURER':
     case 'HOD':
     case 'STAFF':
       return 'staff';

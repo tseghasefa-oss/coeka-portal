@@ -468,3 +468,30 @@ export const gradeEntries = sqliteTable('grade_entries', {
   unique().on(t.courseId, t.studentId),
 ]);
 
+// 13. Dean Academic Oversight: Result Approvals & Grade Appeals
+export const resultApprovals = sqliteTable('result_approvals', {
+  id: text('id').primaryKey(),
+  courseId: text('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  sessionId: text('session_id').references(() => academicSessions.id),
+  deanUserId: text('dean_user_id').notNull().references(() => users.id),
+  totalStudentsApproved: integer('total_students_approved').notNull().default(0),
+  approvalStatus: text('approval_status').notNull().default('APPROVED'), // 'APPROVED', 'REJECTED'
+  comments: text('comments'),
+  approvedAt: integer('approved_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const studentAppeals = sqliteTable('student_appeals', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  courseId: text('course_id').notNull().references(() => courses.id, { onDelete: 'cascade' }),
+  gradeEntryId: text('grade_entry_id').references(() => gradeEntries.id, { onDelete: 'set null' }),
+  reason: text('reason').notNull(),
+  desiredCorrection: text('desired_correction'),
+  status: text('status').notNull().default('PENDING'), // 'PENDING', 'APPROVED', 'REJECTED'
+  decisionNotes: text('decision_notes'),
+  resolvedByDeanId: text('resolved_by_dean_id').references(() => users.id),
+  resolvedAt: integer('resolved_at'),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+

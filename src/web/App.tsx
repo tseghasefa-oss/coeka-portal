@@ -47,6 +47,7 @@ import { BursarModule } from './components/bursar/BursarModule';
 import { LecturerModule } from './components/lecturer/LecturerModule';
 import { StudentDashboard } from './components/student/StudentDashboard';
 import { ParentDashboard } from './components/parent/ParentDashboard';
+import { DeanDashboard } from './components/dean/DeanDashboard';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -243,6 +244,7 @@ export default function App() {
                 { id: 'results', label: 'Results', icon: Award },
                 { id: 'hostels', label: 'Hostels', icon: Building },
                 { id: 'staff', label: 'Staff Hub', icon: Users },
+                { id: 'dean', label: 'Dean Oversight', icon: ShieldCheck },
                 { id: 'parent', label: 'Parent Portal', icon: Heart },
                 { id: 'admin', label: 'Master Admin', icon: Layers },
               ].map((tab) => {
@@ -846,7 +848,14 @@ export default function App() {
           </ProtectedRoute>
         )}
 
-        {/* TAB 8: PARENT PORTAL (MULTI-WARD TELEMETRY & PAYMENTS) */}
+        {/* TAB 8: DEAN ACADEMIC OVERSIGHT (APPROVALS, APPEALS, FACULTY MAP) */}
+        {activeTab === 'dean' && (
+          <ProtectedRoute allowedRoles={['DEAN', 'SUPER_ADMIN', 'ADMIN']}>
+            <DeanDashboard />
+          </ProtectedRoute>
+        )}
+
+        {/* TAB 9: PARENT PORTAL (MULTI-WARD TELEMETRY & PAYMENTS) */}
         {activeTab === 'parent' && (
           <ProtectedRoute allowedRoles={['PARENT', 'SUPER_ADMIN', 'ADMIN']}>
             <ParentDashboard />
