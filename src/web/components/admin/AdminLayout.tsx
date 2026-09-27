@@ -19,14 +19,21 @@ import {
   Moon,
   ExternalLink,
   UserCheck,
+  Database,
 } from 'lucide-react';
 import { useAppStore, AdminTab } from '../../stores/useAppStore';
 import { AdminCoursesTab } from './AdminCoursesTab';
 import { AdminFeesTab } from './AdminFeesTab';
-import { AdminUsersTab } from './AdminUsersTab';
-import { AdminSettingsTab } from './AdminSettingsTab';
+import { UserRoleManager } from './UserRoleManager';
 import { AdmissionManager } from './AdmissionManager';
 import { SessionControls } from './SessionControls';
+import { InstitutionalSettings } from './InstitutionalSettings';
+import { CalendarControl } from './CalendarControl';
+import { PortalToggle } from './PortalToggle';
+import { AuditTrailView } from './AuditTrailView';
+import { SystemStatusPanel } from './SystemStatusPanel';
+import { BackupTrigger } from './BackupTrigger';
+import { MigrationLog } from './MigrationLog';
 
 export const AdminLayout: React.FC = () => {
   const {
@@ -42,6 +49,8 @@ export const AdminLayout: React.FC = () => {
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [admissionsSubTab, setAdmissionsSubTab] = useState<'upload' | 'lifecycle'>('upload');
+  const [settingsSubTab, setSettingsSubTab] = useState<'toggles' | 'institutional' | 'calendar'>('toggles');
+  const [databaseSubTab, setDatabaseSubTab] = useState<'snapshots' | 'migrations'>('snapshots');
   const isNavy = uiPreferences.theme === 'navy';
 
   const navItems: { id: AdminTab; label: string; subLabel: string; icon: React.FC<{ className?: string }> }[] = [
@@ -59,8 +68,8 @@ export const AdminLayout: React.FC = () => {
     },
     {
       id: 'users',
-      label: 'User & Staff Directory',
-      subLabel: 'Staff, Students, RBAC Access',
+      label: 'User & Role Lifecycle',
+      subLabel: 'Roles, RBAC, Passwords',
       icon: Users,
     },
     {
@@ -71,9 +80,21 @@ export const AdminLayout: React.FC = () => {
     },
     {
       id: 'settings',
-      label: 'System Settings',
-      subLabel: 'Portal Toggles, Calendar, Configs',
+      label: 'Global Configuration',
+      subLabel: 'Kill-Switch, Brand, Calendar',
       icon: Sliders,
+    },
+    {
+      id: 'audit',
+      label: 'Audit & System Health',
+      subLabel: 'HMAC Logs, Telemetry, Latency',
+      icon: Activity,
+    },
+    {
+      id: 'database',
+      label: 'Database & Migrations',
+      subLabel: 'D1 Snapshots, Migration Log',
+      icon: Database,
     },
   ];
 
@@ -340,7 +361,7 @@ export const AdminLayout: React.FC = () => {
 
           {adminTab === 'courses' && <AdminCoursesTab />}
           {adminTab === 'fees' && <AdminFeesTab />}
-          {adminTab === 'users' && <AdminUsersTab />}
+          {adminTab === 'users' && <UserRoleManager />}
           {adminTab === 'admissions' && (
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl w-fit">
@@ -349,7 +370,7 @@ export const AdminLayout: React.FC = () => {
                   onClick={() => setAdmissionsSubTab('upload')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     admissionsSubTab === 'upload'
-                      ? 'bg-emerald-800 text-white shadow-sm'
+                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
                       : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
                   }`}
                 >
@@ -360,7 +381,7 @@ export const AdminLayout: React.FC = () => {
                   onClick={() => setAdmissionsSubTab('lifecycle')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     admissionsSubTab === 'lifecycle'
-                      ? 'bg-emerald-800 text-white shadow-sm'
+                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
                       : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
                   }`}
                 >
@@ -371,7 +392,86 @@ export const AdminLayout: React.FC = () => {
               {admissionsSubTab === 'upload' ? <AdmissionManager /> : <SessionControls />}
             </div>
           )}
-          {adminTab === 'settings' && <AdminSettingsTab />}
+          {adminTab === 'settings' && (
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('toggles')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    settingsSubTab === 'toggles'
+                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
+                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                  }`}
+                >
+                  Portal Toggles & Kill-Switch
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('institutional')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    settingsSubTab === 'institutional'
+                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
+                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                  }`}
+                >
+                  Institutional Branding & Identity
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsSubTab('calendar')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    settingsSubTab === 'calendar'
+                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
+                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                  }`}
+                >
+                  Academic Calendar Controller
+                </button>
+              </div>
+
+              {settingsSubTab === 'toggles' && <PortalToggle />}
+              {settingsSubTab === 'institutional' && <InstitutionalSettings />}
+              {settingsSubTab === 'calendar' && <CalendarControl />}
+            </div>
+          )}
+          {adminTab === 'audit' && (
+            <div className="space-y-6">
+              <SystemStatusPanel />
+              <AuditTrailView />
+            </div>
+          )}
+          {adminTab === 'database' && (
+            <div className="space-y-6">
+              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl w-fit">
+                <button
+                  type="button"
+                  onClick={() => setDatabaseSubTab('snapshots')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    databaseSubTab === 'snapshots'
+                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
+                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                  }`}
+                >
+                  D1 Automated Snapshots & Backups
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDatabaseSubTab('migrations')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    databaseSubTab === 'migrations'
+                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
+                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                  }`}
+                >
+                  Drizzle Schema Migration Manifest
+                </button>
+              </div>
+
+              {databaseSubTab === 'snapshots' && <BackupTrigger />}
+              {databaseSubTab === 'migrations' && <MigrationLog />}
+            </div>
+          )}
         </main>
       </div>
     </div>

@@ -321,6 +321,29 @@ adminRoutes.patch('/users/:id/promote', async (c) => {
   }
 });
 
+// Change User Role (e.g. promote Lecturer to Dean, HOD, Bursar, Admin, etc.)
+adminRoutes.patch('/users/:id/role', async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const service = new UserAdminService(container.db);
+  const body = await c.req.json();
+
+  if (!body.role) {
+    return c.json({ error: 'Validation Error: role is required' }, 400);
+  }
+
+  try {
+    const updatedUser = await service.changeUserRole(id, body.role, user?.username || 'admin');
+    return c.json({
+      message: `User ${updatedUser.name} role changed to ${updatedUser.role}`,
+      user: updatedUser,
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message }, 400);
+  }
+});
+
 // Suspend / Activate User Account
 adminRoutes.patch('/users/:id/status', async (c) => {
   const id = c.req.param('id');
@@ -344,15 +367,16 @@ adminRoutes.patch('/users/:id/status', async (c) => {
   }
 });
 
-// Reset User Password
+// Reset User Password (Auto-generated or custom temporary credential)
 adminRoutes.post('/users/:id/reset-password', async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
   const container = getContainer(c.env);
   const service = new UserAdminService(container.db);
+  const body = await c.req.json().catch(() => ({}));
 
   try {
-    const result = await service.resetPassword(id, user?.username || 'admin');
+    const result = await service.resetPassword(id, body.customPassword || body.password, user?.username || 'admin');
     return c.json(result);
   } catch (err: any) {
     return c.json({ error: err.message }, 400);
@@ -360,20 +384,25 @@ adminRoutes.post('/users/:id/reset-password', async (c) => {
 });
 
 // =============================================================
-// 4. CRYPTOGRAPHIC AUDIT TRAIL
+// 4. CRYPTOGRAPHIC AUDIT TRAIL & SYSTEM HEALTH
 // =============================================================
 
-// Get Cryptographic Audit Logs
+// Get Cryptographic Audit Logs with Real-Time HMAC Signature Verification
 adminRoutes.get('/audit', async (c) => {
   const container = getContainer(c.env);
   const service = new AuditService(container.db);
   const limit = c.req.query('limit') ? parseInt(c.req.query('limit')!, 10) : 50;
 
-  const logs = await service.getAuditLogs(limit);
-  return c.json({ auditLogs: logs });
+  const logs = await service.getAuditLogsWithVerification(limit);
+  return c.json({
+    success: true,
+    auditLogs: logs,
+    logs,
+    total: logs.length,
+  });
 });
 
-// Verify Cryptographic Signature of an Audit Log
+// Verify Cryptographic Signature of a specific Audit Log
 adminRoutes.post('/audit/verify/:id', async (c) => {
   const id = c.req.param('id');
   const container = getContainer(c.env);
@@ -381,6 +410,62 @@ adminRoutes.post('/audit/verify/:id', async (c) => {
 
   const verification = await service.verifyAuditLog(id);
   return c.json(verification);
+});
+
+// Real-Time System Health Telemetry (Latency, Database Integrity, KV status)
+adminRoutes.get('/system/health', async (c) => {
+  const container = getContainer(c.env);
+  const service = new SystemAdminService(container.db);
+  const health = await service.getSystemHealth(container.cache);
+  return c.json(health);
+});
+
+// =============================================================
+// 5. DATABASE MIGRATIONS & BACKUP SNAPSHOT TOOLS
+// =============================================================
+
+// Get Applied Drizzle Migrations Log
+adminRoutes.get('/database/migrations', async (c) => {
+  const container = getContainer(c.env);
+  const service = new SystemAdminService(container.db);
+  const migrations = await service.getDatabaseMigrations();
+  return c.json({
+    success: true,
+    migrations: migrations.map((m: any) => ({
+      ...m,
+      name: m.migrationFile,
+    })),
+  });
+});
+
+// Get Database Backups & Snapshots
+adminRoutes.get('/database/backups', async (c) => {
+  const container = getContainer(c.env);
+  const service = new SystemAdminService(container.db);
+  const backups = await service.getDatabaseBackups();
+  return c.json({
+    success: true,
+    backups,
+  });
+});
+
+// Trigger D1 Snapshot Backup
+adminRoutes.post('/database/backup', async (c) => {
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const service = new SystemAdminService(container.db);
+  const body = await c.req.json().catch(() => ({}));
+
+  try {
+    const backup = await service.triggerDatabaseBackup(user?.username || 'admin', body.name);
+    return c.json({
+      success: true,
+      message: 'D1 database snapshot triggered and verified successfully',
+      backup,
+    }, 200);
+  } catch (err: any) {
+    return c.json({ error: err.message }, 500);
+  }
 });
 
 // =============================================================
@@ -470,6 +555,53 @@ adminRoutes.patch('/settings', async (c) => {
   return c.json({
     message: 'System settings updated successfully',
     updated: results,
+  });
+});
+
+// Institutional Information (School Name, Logo, Contact Details)
+adminRoutes.get('/settings/institutional', async (c) => {
+  const container = getContainer(c.env);
+  const service = new SystemAdminService(container.db);
+  const info = await service.getInstitutionalSettings();
+  return c.json({
+    success: true,
+    institutionalInfo: info,
+    settings: info,
+  });
+});
+
+adminRoutes.patch('/settings/institutional', async (c) => {
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const service = new SystemAdminService(container.db);
+  const body = await c.req.json();
+
+  const updated = await service.updateInstitutionalSettings(body, user?.username || 'admin');
+  return c.json({
+    success: true,
+    message: 'Institutional settings updated successfully',
+    institutionalInfo: updated,
+    settings: updated,
+  });
+});
+
+// Dedicated Global Maintenance Mode Toggle (The Kill Switch)
+adminRoutes.post('/settings/maintenance', async (c) => {
+  const user = c.get('user');
+  const container = getContainer(c.env);
+  const service = new SystemAdminService(container.db);
+  const body = await c.req.json();
+
+  if (body.enabled === undefined && body.maintenanceMode === undefined) {
+    return c.json({ error: 'Validation Error: enabled or maintenanceMode (boolean) is required' }, 400);
+  }
+
+  const enabled = body.enabled !== undefined ? Boolean(body.enabled) : Boolean(body.maintenanceMode);
+  const result = await service.setMaintenanceMode(enabled, user?.username || 'admin');
+
+  return c.json({
+    message: `System maintenance mode ${result.maintenanceMode ? 'ENABLED (Portal Locked)' : 'DISABLED (Portal Live)'}`,
+    maintenanceMode: result.maintenanceMode,
   });
 });
 

@@ -102,7 +102,8 @@ export class AuditService {
   /**
    * Retrieves recent audit logs ordered from newest to oldest.
    */
-  async getAuditLogs(limit: number = 50): Promise<AuditLogEntry[]> {
+  async getAuditLogs(optionsOrLimit: number | { limit?: number } = 50): Promise<AuditLogEntry[]> {
+    const limit = typeof optionsOrLimit === 'number' ? optionsOrLimit : (optionsOrLimit?.limit ?? 50);
     return await this.db.query<AuditLogEntry>(
       `SELECT 
         id, 
@@ -161,4 +162,43 @@ export class AuditService {
     const isValid = entry.signature.toLowerCase() === expectedSignature.toLowerCase();
     return { isValid, entry };
   }
+
+  /**
+   * Retrieves recent audit logs with automated cryptographic HMAC verification for each entry.
+   * Marks any entries with signature mismatches as tampered (isTampered: true).
+   */
+  async getAuditLogsWithVerification(optionsOrLimit: number | { limit?: number } = 50): Promise<(AuditLogEntry & { isTampered: boolean; isValidSignature: boolean })[]> {
+    const rawLogs = await this.getAuditLogs(optionsOrLimit);
+
+    const verifiedLogs = await Promise.all(
+      rawLogs.map(async (entry) => {
+        try {
+          const expectedSig = await this.signEntry({
+            id: entry.id,
+            actorUserId: entry.actorUserId,
+            action: entry.action,
+            entityName: entry.entityName,
+            entityId: entry.entityId,
+            createdAt: entry.createdAt,
+          });
+
+          const isValid = Boolean(entry.signature) && entry.signature.toLowerCase() === expectedSig.toLowerCase();
+          return {
+            ...entry,
+            isTampered: !isValid,
+            isValidSignature: isValid,
+          };
+        } catch {
+          return {
+            ...entry,
+            isTampered: true,
+            isValidSignature: false,
+          };
+        }
+      })
+    );
+
+    return verifiedLogs;
+  }
 }
+

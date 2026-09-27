@@ -141,6 +141,10 @@ export class MemoryDatabaseAdapter implements IDatabaseProvider {
             if (fs.existsSync(librarianMigrationPath)) {
               this.sqlite.exec(fs.readFileSync(librarianMigrationPath, 'utf8'));
             }
+            const systemControlMigrationPath = path.resolve(process.cwd(), 'src/database/migrations-drizzle/0006_system_control.sql');
+            if (fs.existsSync(systemControlMigrationPath)) {
+              this.sqlite.exec(fs.readFileSync(systemControlMigrationPath, 'utf8'));
+            }
           } catch {
             // Optional fallback
           }

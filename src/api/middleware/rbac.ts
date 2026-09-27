@@ -48,6 +48,20 @@ export async function authenticateSession(c: Context<{ Bindings: Env }>): Promis
   if (sessionCookie) {
     const session = await authService.getSession(sessionCookie);
     if (session) {
+      // Dynamic Real-time Role Synchronization
+      const currentProfile = await authService.getUserProfile(session.userId);
+      if (currentProfile) {
+        if (!currentProfile.isActive) {
+          await authService.deleteSession(sessionCookie);
+          return null;
+        }
+        if (currentProfile.role !== session.role || currentProfile.userType !== session.userType) {
+          session.role = currentProfile.role;
+          session.userType = currentProfile.userType;
+          await authService.updateSession(session);
+        }
+      }
+
       const user: SessionUser = {
         userId: session.userId,
         username: session.username,
@@ -71,6 +85,20 @@ export async function authenticateSession(c: Context<{ Bindings: Env }>): Promis
     if (token.startsWith('coeka_sess_')) {
       const session = await authService.getSession(token);
       if (session) {
+        // Dynamic Real-time Role Synchronization
+        const currentProfile = await authService.getUserProfile(session.userId);
+        if (currentProfile) {
+          if (!currentProfile.isActive) {
+            await authService.deleteSession(token);
+            return null;
+          }
+          if (currentProfile.role !== session.role || currentProfile.userType !== session.userType) {
+            session.role = currentProfile.role;
+            session.userType = currentProfile.userType;
+            await authService.updateSession(session);
+          }
+        }
+
         const user: SessionUser = {
           userId: session.userId,
           username: session.username,

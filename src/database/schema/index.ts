@@ -551,3 +551,28 @@ export const libraryClearances = sqliteTable('library_clearances', {
   updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
 });
 
+// 15. SuperAdmin System Control, Backups & Migration Tracking
+export const systemMigrations = sqliteTable('system_migrations', {
+  id: text('id').primaryKey(),
+  migrationFile: text('migration_file').notNull().unique(),
+  batch: integer('batch').notNull().default(1),
+  appliedAt: integer('applied_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  checksum: text('checksum').notNull(),
+  description: text('description'),
+  status: text('status').notNull().default('APPLIED'), // 'APPLIED', 'ROLLED_BACK'
+});
+
+export const systemBackups = sqliteTable('system_backups', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  tablesCount: integer('tables_count').notNull(),
+  recordsCount: integer('records_count').notNull(),
+  sizeBytes: integer('size_bytes').notNull().default(0),
+  storageLocation: text('storage_location').notNull(),
+  triggeredBy: text('triggered_by').notNull().default('system'),
+  status: text('status').notNull().default('COMPLETED'), // 'COMPLETED', 'IN_PROGRESS', 'FAILED'
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  signature: text('signature').notNull(),
+});
+
+

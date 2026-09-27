@@ -185,15 +185,17 @@ export class UserAdminService {
     );
 
     // Fetch related records to enrich items
-    const [students, staff, parents] = await Promise.all([
+    const [students, staff, parents, userRoleMappings] = await Promise.all([
       this.db.query<any>(`SELECT user_id as userId, first_name || ' ' || last_name as name, matric_number as identifier, division_id as divisionId, programme_id as progId FROM students`),
       this.db.query<any>(`SELECT user_id as userId, first_name || ' ' || last_name as name, staff_id_number as identifier, designation, cadre FROM staff_profiles`),
       this.db.query<any>(`SELECT user_id as userId, full_name as name FROM parents`),
+      this.db.query<any>(`SELECT ur.user_id as userId, r.name as roleName FROM user_roles ur JOIN roles r ON ur.role_id = r.id`),
     ]);
 
     const studentMap = new Map(students.map((s) => [s.userId, s]));
     const staffMap = new Map(staff.map((s) => [s.userId, s]));
     const parentMap = new Map(parents.map((p) => [p.userId, p]));
+    const userRoleMap = new Map(userRoleMappings.map((ur) => [ur.userId, ur.roleName]));
 
     // Known metadata dictionary for standard demo profiles
     const metadataDictionary: Record<string, { name: string; identifier: string; role: string; dept: string; div: string }> = {
@@ -260,10 +262,11 @@ export class UserAdminService {
       const s = studentMap.get(u.id);
       const st = staffMap.get(u.id);
       const p = parentMap.get(u.id);
+      const dynamicRole = userRoleMap.get(u.id);
 
       const name = meta?.name || s?.name || st?.name || p?.name || u.username;
       const identifier = meta?.identifier || s?.identifier || st?.identifier || u.username;
-      const role = meta?.role || (u.userType === 'ADMIN' ? 'SUPER_ADMIN' : u.userType);
+      const role = dynamicRole || meta?.role || (u.userType === 'ADMIN' ? 'SUPER_ADMIN' : u.userType);
       const departmentOrProg = meta?.dept || st?.designation || s?.progId || 'General Institutional';
       const division = meta?.div || (s?.divisionId ? s.divisionId.replace('div-', '').toUpperCase() : 'CENTRAL');
 
@@ -321,27 +324,104 @@ export class UserAdminService {
     newRole: 'ADMIN' | 'SUPER_ADMIN',
     actorUserId: string = 'system-admin'
   ): Promise<UserDirectoryItem> {
-    const user = await this.db.queryFirst<any>(`SELECT * FROM users WHERE id = ?`, [targetUserId]);
-    if (!user) {
-      throw new Error(`User with ID ${targetUserId} not found`);
-    }
-
-    const previousRole = user.user_type;
-
-    // Update users table
-    await this.db.execute(
-      `UPDATE users SET user_type = 'ADMIN', updated_at = (strftime('%s', 'now')) WHERE id = ?`,
-      [targetUserId]
-    );
-
-    // Cryptographic audit log
+    const res = await this.changeUserRole(targetUserId, newRole, actorUserId, 'User promoted to administrator');
     await this.auditService.logAdminAction({
       actorUserId,
       action: 'PROMOTE_USER_TO_ADMIN',
       entityName: 'users',
       entityId: targetUserId,
+      oldValue: { role: res.previousRole },
+      newValue: { role: newRole },
+    });
+    return res;
+  }
+
+  /**
+   * Change a user's role to any valid institutional role (e.g. promote Lecturer to Dean, HOD, Bursar, Admin, etc.)
+   */
+  async changeUserRole(
+    targetUserId: string,
+    newRole: string,
+    actorUserId: string = 'system-admin',
+    reason?: string
+  ): Promise<UserDirectoryItem & { targetUserId: string; previousRole: string; newRole: string }> {
+    const VALID_ROLES = ['SUPER_ADMIN', 'ADMIN', 'DEAN', 'HOD', 'LECTURER', 'BURSAR', 'LIBRARIAN', 'STUDENT', 'PARENT'];
+    const normalizedRole = (newRole || '').toUpperCase().trim();
+
+    if (!VALID_ROLES.includes(normalizedRole)) {
+      throw new Error(`Invalid target role: ${newRole}. Must be one of ${VALID_ROLES.join(', ')}`);
+    }
+
+    const user = await this.db.queryFirst<any>(`SELECT * FROM users WHERE id = ?`, [targetUserId]);
+    if (!user) {
+      throw new Error(`User with ID ${targetUserId} not found`);
+    }
+
+    const previousRoleRecord = await this.db.queryFirst<any>(
+      `SELECT r.name FROM user_roles ur JOIN roles r ON ur.role_id = r.id WHERE ur.user_id = ?`,
+      [targetUserId]
+    );
+    const previousRole = previousRoleRecord?.name || user.user_type;
+
+    // Map role to user_type
+    let userType = 'STAFF';
+    if (normalizedRole === 'SUPER_ADMIN' || normalizedRole === 'ADMIN') {
+      userType = 'ADMIN';
+    } else if (normalizedRole === 'STUDENT') {
+      userType = 'STUDENT';
+    } else if (normalizedRole === 'PARENT') {
+      userType = 'PARENT';
+    }
+
+    // 1. Update user_type on users table
+    await this.db.execute(
+      `UPDATE users SET user_type = ?, updated_at = (strftime('%s', 'now')) WHERE id = ?`,
+      [userType, targetUserId]
+    );
+
+    // 2. Ensure role exists in roles table
+    const roleSlug = `role-${normalizedRole.toLowerCase().replace(/_/g, '-')}`;
+    await this.db.execute(
+      `INSERT OR IGNORE INTO roles (id, name, description) VALUES (?, ?, ?)`,
+      [roleSlug, normalizedRole, `Role for ${normalizedRole}`]
+    );
+    const roleRecord = await this.db.queryFirst<any>(`SELECT id FROM roles WHERE UPPER(name) = ? OR id = ?`, [normalizedRole, roleSlug]);
+    const roleId = roleRecord?.id || roleSlug;
+
+    // 3. Update user_roles mapping
+    await this.db.execute(`DELETE FROM user_roles WHERE user_id = ?`, [targetUserId]);
+    await this.db.execute(
+      `INSERT INTO user_roles (user_id, role_id) VALUES (?, ?)`,
+      [targetUserId, roleId]
+    );
+
+    // 4. Update staff designation if applicable
+    if (userType === 'STAFF') {
+      const designation =
+        normalizedRole === 'DEAN'
+          ? 'Dean of School'
+          : normalizedRole === 'HOD'
+          ? 'Head of Department'
+          : normalizedRole === 'BURSAR'
+          ? 'Bursar & Chief Financial Officer'
+          : normalizedRole === 'LIBRARIAN'
+          ? 'College Chief Librarian'
+          : 'Academic Lecturer';
+
+      await this.db.execute(
+        `UPDATE staff_profiles SET designation = ? WHERE user_id = ?`,
+        [designation, targetUserId]
+      );
+    }
+
+    // 5. Cryptographic audit log
+    await this.auditService.logAdminAction({
+      actorUserId,
+      action: 'CHANGE_USER_ROLE',
+      entityName: 'users',
+      entityId: targetUserId,
       oldValue: { role: previousRole },
-      newValue: { role: newRole, userType: 'ADMIN' },
+      newValue: { role: normalizedRole, userType, reason },
     });
 
     const updatedList = await this.listUsers();
@@ -349,8 +429,13 @@ export class UserAdminService {
     if (!updated) {
       throw new Error('Failed to retrieve updated user');
     }
-    updated.role = newRole;
-    return updated;
+    updated.role = normalizedRole;
+    return {
+      ...updated,
+      targetUserId,
+      previousRole,
+      newRole: normalizedRole,
+    };
   }
 
   /**
@@ -374,7 +459,6 @@ export class UserAdminService {
       [intStatus, targetUserId]
     );
 
-    // Cryptographic audit log
     await this.auditService.logAdminAction({
       actorUserId,
       action: isActive ? 'ACTIVATE_USER' : 'SUSPEND_USER',
@@ -388,20 +472,48 @@ export class UserAdminService {
   }
 
   /**
+   * Alias for setUserStatus with reason support
+   */
+  async toggleUserStatus(
+    targetUserId: string,
+    isActive: boolean,
+    actorUserId: string = 'system-admin',
+    reason?: string
+  ): Promise<{ id: string; isActive: boolean }> {
+    return await this.setUserStatus(targetUserId, isActive, actorUserId);
+  }
+
+  /**
    * Reset user password and return temporary secure credential
    */
   async resetPassword(
-    targetUserId: string,
+    targetUserIdOrOptions: string | { targetUserId: string; customPassword?: string; actorUserId?: string; reason?: string },
+    customPassword?: string,
     actorUserId: string = 'system-admin'
-  ): Promise<{ tempPassword: string; message: string }> {
+  ): Promise<{ success: boolean; tempPassword: string; temporaryPassword: string; message: string }> {
+    let targetUserId: string;
+    let actualCustomPassword = customPassword;
+    let actualActorUserId = actorUserId;
+
+    if (typeof targetUserIdOrOptions === 'object' && targetUserIdOrOptions !== null) {
+      targetUserId = targetUserIdOrOptions.targetUserId;
+      actualCustomPassword = targetUserIdOrOptions.customPassword || customPassword;
+      actualActorUserId = targetUserIdOrOptions.actorUserId || actorUserId;
+    } else {
+      targetUserId = targetUserIdOrOptions;
+    }
+
     const user = await this.db.queryFirst<any>(`SELECT * FROM users WHERE id = ?`, [targetUserId]);
     if (!user) {
       throw new Error(`User with ID ${targetUserId} not found`);
     }
 
-    // Generate random 8-character temporary password
-    const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase() + Math.floor(10 + Math.random() * 90);
-    const tempPassword = `COEKA-${randomSuffix}!`;
+    // Use custom password if provided, or generate random temporary password
+    let tempPassword = actualCustomPassword && actualCustomPassword.trim().length >= 6 ? actualCustomPassword.trim() : '';
+    if (!tempPassword) {
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase() + Math.floor(10 + Math.random() * 90);
+      tempPassword = `COEKA-${randomSuffix}!`;
+    }
 
     // Hash with SHA-256 for storage
     const newHash = await SignatureService.generateVerificationHash(tempPassword);
@@ -413,7 +525,7 @@ export class UserAdminService {
 
     // Cryptographic audit log
     await this.auditService.logAdminAction({
-      actorUserId,
+      actorUserId: actualActorUserId,
       action: 'RESET_USER_PASSWORD',
       entityName: 'users',
       entityId: targetUserId,
@@ -422,7 +534,9 @@ export class UserAdminService {
     });
 
     return {
+      success: true,
       tempPassword,
+      temporaryPassword: tempPassword,
       message: `Password successfully reset for user ${user.username}. Temporary password generated.`,
     };
   }

@@ -5,12 +5,14 @@ import { getContainer } from '../../infrastructure/container';
 import { AuthService } from '../../services/auth/authService';
 import { rateLimiter } from '../middleware/rateLimit';
 
+import { SystemAdminService } from '../../services/admin/systemAdminService';
+
 export const authRoutes = new Hono<{ Bindings: Env }>();
 
 // Rate limit login endpoint to prevent brute-force attacks (10 attempts per minute per IP)
 authRoutes.post('/login', rateLimiter(10, 60, 'login'), async (c) => {
   const body = await c.req.json().catch(() => ({}));
-  const emailOrUsername = body.email || body.username;
+  const emailOrUsername = body.email || body.username || body.identifier;
   const password = body.password;
 
   if (!emailOrUsername || !password) {
@@ -19,12 +21,22 @@ authRoutes.post('/login', rateLimiter(10, 60, 'login'), async (c) => {
 
   const container = getContainer(c.env);
   const authService = new AuthService(container.db, container.cache);
+  const systemAdmin = new SystemAdminService(container.db);
 
   try {
     const userProfile = await authService.verifyCredentials(emailOrUsername, password);
 
     if (!userProfile) {
       return c.json({ error: 'Invalid credentials: Username/email or password is incorrect' }, 401);
+    }
+
+    // Maintenance Mode Check: Block non-administrators
+    const isMaintenanceMode = await systemAdmin.getMaintenanceMode();
+    if (isMaintenanceMode && userProfile.role !== 'SUPER_ADMIN' && userProfile.role !== 'ADMIN') {
+      return c.json({
+        error: 'Maintenance Mode: The portal is currently undergoing scheduled maintenance. Access is restricted to System Administrators.',
+        maintenanceMode: true,
+      }, 503);
     }
 
     // Create session in KV cache with 24-hour TTL
@@ -43,6 +55,7 @@ authRoutes.post('/login', rateLimiter(10, 60, 'login'), async (c) => {
     return c.json({
       message: 'Authentication successful',
       sessionId: session.sessionId,
+      token: session.sessionId,
       user: {
         userId: session.userId,
         username: session.username,

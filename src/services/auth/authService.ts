@@ -19,6 +19,7 @@ export interface UserProfile {
 
 export interface SessionData {
   sessionId: string;
+  token?: string;
   userId: string;
   username: string;
   email: string;
@@ -136,7 +137,10 @@ export class AuthService {
   /**
    * Retrieves enriched user profile by user ID
    */
-  async getUserProfile(userId: string): Promise<UserProfile | null> {
+  async getUserProfile(userIdOrObject: string | { id: string }): Promise<UserProfile | null> {
+    const userId = typeof userIdOrObject === 'string' ? userIdOrObject : userIdOrObject?.id;
+    if (!userId) return null;
+
     const user = await this.db.queryFirst<any>(
       `SELECT * FROM users WHERE id = ?`,
       [userId]
@@ -184,8 +188,7 @@ export class AuthService {
     };
 
     const seedMeta = seedDictionary[user.id];
-
-    let role = seedMeta?.role || userRoleRecord?.roleName;
+    let role = userRoleRecord?.roleName || seedMeta?.role;
     if (!role) {
       role = user.user_type === 'ADMIN' ? 'SUPER_ADMIN' : user.user_type;
     }
@@ -219,7 +222,12 @@ export class AuthService {
    * Creates a secure edge session in KV cache with a 24-hour TTL.
    * Maps session ID to User ID, role, and profile metadata.
    */
-  async createSession(userId: string): Promise<SessionData> {
+  async createSession(userIdOrProfile: string | { id: string }): Promise<SessionData> {
+    const userId = typeof userIdOrProfile === 'string' ? userIdOrProfile : userIdOrProfile?.id;
+    if (!userId) {
+      throw new Error(`Cannot create session: Invalid user identifier`);
+    }
+
     const profile = await this.getUserProfile(userId);
     if (!profile) {
       throw new Error(`Cannot create session: User ID ${userId} does not exist`);
@@ -242,6 +250,7 @@ export class AuthService {
 
     const sessionData: SessionData = {
       sessionId,
+      token: sessionId,
       userId: profile.id,
       username: profile.username,
       email: profile.email,
@@ -289,4 +298,15 @@ export class AuthService {
       await this.cache.delete(`session:${sessionId}`);
     }
   }
+
+  /**
+   * Updates an existing session in KV cache (e.g. when role is upgraded or user profile refreshed).
+   */
+  async updateSession(session: SessionData): Promise<void> {
+    if (!session || !session.sessionId) return;
+    const now = Math.floor(Date.now() / 1000);
+    const remainingTtl = Math.max(60, (session.expiresAt || (now + AuthService.SESSION_TTL_SECONDS)) - now);
+    await this.cache.set(`session:${session.sessionId}`, session, remainingTtl);
+  }
 }
+

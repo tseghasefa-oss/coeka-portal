@@ -5,4 +5,12 @@ export { AdminUsersTab } from './AdminUsersTab';
 export { AdminSettingsTab } from './AdminSettingsTab';
 export { AdmissionManager } from './AdmissionManager';
 export { SessionControls } from './SessionControls';
-
+export { UserRoleManager } from './UserRoleManager';
+export { PasswordResetTool } from './PasswordResetTool';
+export { AuditTrailView } from './AuditTrailView';
+export { SystemStatusPanel } from './SystemStatusPanel';
+export { InstitutionalSettings } from './InstitutionalSettings';
+export { CalendarControl } from './CalendarControl';
+export { PortalToggle } from './PortalToggle';
+export { BackupTrigger } from './BackupTrigger';
+export { MigrationLog } from './MigrationLog';
