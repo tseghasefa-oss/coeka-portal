@@ -575,4 +575,45 @@ export const systemBackups = sqliteTable('system_backups', {
   signature: text('signature').notNull(),
 });
 
+// 16. Examination Officer Broadsheets & Academic Standings
+export const broadsheets = sqliteTable('broadsheets', {
+  id: text('id').primaryKey(),
+  departmentId: text('department_id').notNull().references(() => departments.id, { onDelete: 'cascade' }),
+  level: integer('level').notNull(), // 100, 200, 300, 400
+  sessionId: text('session_id').notNull().references(() => academicSessions.id, { onDelete: 'cascade' }),
+  semesterId: text('semester_id').references(() => semestersTerms.id, { onDelete: 'set null' }),
+  totalStudents: integer('total_students').notNull().default(0),
+  passedCount: integer('passed_count').notNull().default(0),
+  probationCount: integer('probation_count').notNull().default(0),
+  carryOverCount: integer('carry_over_count').notNull().default(0),
+  averageCgpa: real('average_cgpa').notNull().default(0.0),
+  status: text('status').notNull().default('DRAFT'), // 'DRAFT', 'CERTIFIED', 'LOCKED'
+  compiledBy: text('compiled_by').references(() => users.id),
+  compiledAt: integer('compiled_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  certifiedBy: text('certified_by').references(() => users.id),
+  certifiedAt: integer('certified_at'),
+  snapshotJson: text('snapshot_json').notNull(),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const academicStatuses = sqliteTable('academic_statuses', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  sessionId: text('session_id').notNull().references(() => academicSessions.id, { onDelete: 'cascade' }),
+  level: integer('level').notNull(),
+  gpa: real('gpa').notNull().default(0.0),
+  cgpa: real('cgpa').notNull().default(0.0),
+  totalCreditsRegistered: integer('total_credits_registered').notNull().default(0),
+  totalCreditsPassed: integer('total_credits_passed').notNull().default(0),
+  status: text('status').notNull().default('GOOD_STANDING'), // 'GOOD_STANDING', 'PROBATION', 'CARRY_OVER', 'WITHDRAWAL', 'GRADUATED'
+  carryOverCoursesJson: text('carry_over_courses_json'), // serialized array of failed course codes
+  warningSent: integer('warning_sent').notNull().default(0),
+  warningSentAt: integer('warning_sent_at'),
+  remarks: text('remarks'),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+}, (t) => [
+  unique().on(t.studentId, t.sessionId),
+]);
+
+
 

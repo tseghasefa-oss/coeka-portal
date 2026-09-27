@@ -27,6 +27,7 @@ import {
   TrendingUp,
   LogOut,
   LogIn,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { LedgerEngine } from '../services/finance/ledgerEngine';
 import { GradingPolicyEngine } from '../services/academic/gradingPolicyEngine';
@@ -49,6 +50,7 @@ import { StudentDashboard } from './components/student/StudentDashboard';
 import { ParentDashboard } from './components/parent/ParentDashboard';
 import { DeanDashboard } from './components/dean/DeanDashboard';
 import { LibrarianDashboard } from './components/librarian/LibrarianDashboard';
+import { ExamOfficerDashboard } from './components/exam_officer/ExamOfficerDashboard';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -246,6 +248,7 @@ export default function App() {
                 { id: 'hostels', label: 'Hostels', icon: Building },
                 { id: 'staff', label: 'Staff Hub', icon: Users },
                 { id: 'dean', label: 'Dean Oversight', icon: ShieldCheck },
+                { id: 'exam_officer', label: 'Exam Broadsheet', icon: FileSpreadsheet },
                 { id: 'librarian', label: 'Library & Clearance', icon: BookOpen },
                 { id: 'parent', label: 'Parent Portal', icon: Heart },
                 { id: 'admin', label: 'Master Admin', icon: Layers },
@@ -319,6 +322,7 @@ export default function App() {
             { id: 'results', label: 'Results' },
             { id: 'hostels', label: 'Hostels' },
             { id: 'staff', label: 'Staff' },
+            { id: 'exam_officer', label: 'Broadsheet' },
             { id: 'librarian', label: 'Library' },
             { id: 'parent', label: 'Parent' },
             { id: 'admin', label: 'Master Admin' },
@@ -858,14 +862,21 @@ export default function App() {
           </ProtectedRoute>
         )}
 
-        {/* TAB 9: PARENT PORTAL (MULTI-WARD TELEMETRY & PAYMENTS) */}
+        {/* TAB 9: EXAMINATION OFFICER & BROADSHEET HUB (BROADSHEETS, PROBATION, GRADUATION) */}
+        {activeTab === 'exam_officer' && (
+          <ProtectedRoute allowedRoles={['EXAM_OFFICER', 'SUPER_ADMIN', 'ADMIN', 'DEAN']}>
+            <ExamOfficerDashboard />
+          </ProtectedRoute>
+        )}
+
+        {/* TAB 10: PARENT PORTAL (MULTI-WARD TELEMETRY & PAYMENTS) */}
         {activeTab === 'parent' && (
           <ProtectedRoute allowedRoles={['PARENT', 'SUPER_ADMIN', 'ADMIN']}>
             <ParentDashboard />
           </ProtectedRoute>
         )}
 
-        {/* TAB 10: LIBRARIAN ASSET & CLEARANCE HUB (INVENTORY, CIRCULATION & CLEARANCE) */}
+        {/* TAB 11: LIBRARIAN ASSET & CLEARANCE HUB (INVENTORY, CIRCULATION & CLEARANCE) */}
         {activeTab === 'librarian' && (
           <ProtectedRoute allowedRoles={['LIBRARIAN', 'SUPER_ADMIN', 'ADMIN']}>
             <LibrarianDashboard />

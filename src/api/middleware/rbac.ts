@@ -7,6 +7,7 @@ import { AuthService } from '../../services/auth/authService';
 export type UserRole =
   | 'SUPER_ADMIN'
   | 'ADMIN'
+  | 'EXAM_OFFICER'
   | 'LECTURER'
   | 'DEAN'
   | 'HOD'
