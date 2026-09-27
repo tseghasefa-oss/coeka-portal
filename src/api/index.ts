@@ -19,6 +19,7 @@ import { lecturerRoutes } from './routes/lecturer';
 import { deanRoutes } from './routes/dean';
 import { librarianRoutes } from './routes/librarian';
 import { examOfficerRoutes } from './routes/exam_officer';
+import { registrarRoutes } from './routes/registrar';
 
 import { getContainer, ServiceContainer } from '../infrastructure/container';
 
@@ -72,6 +73,7 @@ app.route('/api/lecturer', lecturerRoutes);
 app.route('/api/dean', deanRoutes);
 app.route('/api/librarian', librarianRoutes);
 app.route('/api/exam-officer', examOfficerRoutes);
+app.route('/api/registrar', registrarRoutes);
 
 // 4. Cloudflare Worker Export (Fetch, Queue, Scheduled)
 export default {

@@ -51,6 +51,7 @@ import { ParentDashboard } from './components/parent/ParentDashboard';
 import { DeanDashboard } from './components/dean/DeanDashboard';
 import { LibrarianDashboard } from './components/librarian/LibrarianDashboard';
 import { ExamOfficerDashboard } from './components/exam_officer/ExamOfficerDashboard';
+import { RegistrarDashboard } from './components/registrar/RegistrarDashboard';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -250,6 +251,7 @@ export default function App() {
                 { id: 'dean', label: 'Dean Oversight', icon: ShieldCheck },
                 { id: 'exam_officer', label: 'Exam Broadsheet', icon: FileSpreadsheet },
                 { id: 'librarian', label: 'Library & Clearance', icon: BookOpen },
+                { id: 'registrar', label: 'Registrar Hub', icon: Award },
                 { id: 'parent', label: 'Parent Portal', icon: Heart },
                 { id: 'admin', label: 'Master Admin', icon: Layers },
               ].map((tab) => {
@@ -324,6 +326,7 @@ export default function App() {
             { id: 'staff', label: 'Staff' },
             { id: 'exam_officer', label: 'Broadsheet' },
             { id: 'librarian', label: 'Library' },
+            { id: 'registrar', label: 'Registrar' },
             { id: 'parent', label: 'Parent' },
             { id: 'admin', label: 'Master Admin' },
           ].map((tab) => (
@@ -880,6 +883,13 @@ export default function App() {
         {activeTab === 'librarian' && (
           <ProtectedRoute allowedRoles={['LIBRARIAN', 'SUPER_ADMIN', 'ADMIN']}>
             <LibrarianDashboard />
+          </ProtectedRoute>
+        )}
+
+        {/* TAB 12: REGISTRAR & CERTIFICATE ISSUANCE HUB */}
+        {activeTab === 'registrar' && (
+          <ProtectedRoute allowedRoles={['REGISTRAR', 'SUPER_ADMIN', 'ADMIN']}>
+            <RegistrarDashboard />
           </ProtectedRoute>
         )}
       </main>

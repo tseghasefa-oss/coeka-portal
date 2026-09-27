@@ -206,6 +206,7 @@ export function LoginPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
                 { label: 'Super Admin', user: 'founder_tsegha', role: 'SUPER_ADMIN', desc: 'Prof. S. L. Tsegha' },
+                { label: 'Registrar', user: 'registrar_coeka', role: 'REGISTRAR', desc: 'College Registrar' },
                 { label: 'Student', user: 'std_iorliam', role: 'STUDENT', desc: 'Moses Iorliam' },
                 { label: 'Lecturer', user: 'lecturer1', role: 'LECTURER', desc: 'Dr. Adeyemi' },
                 { label: 'Bursar', user: 'bursar_ikyur', role: 'BURSAR', desc: 'Mr. Ikyur' },

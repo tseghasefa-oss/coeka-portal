@@ -11,6 +11,7 @@ export type UserRole =
   | 'BURSARY'
   | 'LIBRARIAN'
   | 'EXAM_OFFICER'
+  | 'REGISTRAR'
   | 'ADMIN'
   | 'SUPER_ADMIN'
   | 'PARENT';
@@ -26,6 +27,7 @@ export type ActiveTab =
   | 'dean'
   | 'exam_officer'
   | 'librarian'
+  | 'registrar'
   | 'parent'
   | 'admin'
   | 'login'
@@ -141,6 +143,8 @@ export function resolveDashboardTab(role?: string): ActiveTab {
       return 'dean';
     case 'EXAM_OFFICER':
       return 'exam_officer';
+    case 'REGISTRAR':
+      return 'registrar';
     case 'LIBRARIAN':
       return 'librarian';
     case 'LECTURER':

@@ -149,6 +149,10 @@ export class MemoryDatabaseAdapter implements IDatabaseProvider {
             if (fs.existsSync(examOfficerMigrationPath)) {
               this.sqlite.exec(fs.readFileSync(examOfficerMigrationPath, 'utf8'));
             }
+            const registrarMigrationPath = path.resolve(process.cwd(), 'src/database/migrations-drizzle/0008_registrar_certificate_hub.sql');
+            if (fs.existsSync(registrarMigrationPath)) {
+              this.sqlite.exec(fs.readFileSync(registrarMigrationPath, 'utf8'));
+            }
           } catch {
             // Optional fallback
           }

@@ -615,5 +615,61 @@ export const academicStatuses = sqliteTable('academic_statuses', {
   unique().on(t.studentId, t.sessionId),
 ]);
 
+// 17. Registrar Certification, Transcript Requests & Alumni File Archives
+export const certificates = sqliteTable('certificates', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  certificateNumber: text('certificate_number').notNull().unique(),
+  qualificationAwarded: text('qualification_awarded').notNull(),
+  programmeName: text('programme_name').notNull(),
+  division: text('division').notNull(), // 'NCE', 'DEGREE'
+  honorsClassification: text('honors_classification').notNull(),
+  finalCgpa: real('final_cgpa').notNull(),
+  confermentDate: text('conferment_date').notNull(), // 'YYYY-MM-DD'
+  issuedBy: text('issued_by').references(() => users.id),
+  issuedAt: integer('issued_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  qrVerificationHash: text('qr_verification_hash').notNull().unique(),
+  digitalSignature: text('digital_signature').notNull(),
+  status: text('status').notNull().default('VALID'), // 'VALID', 'REVOKED', 'REISSUED'
+  revocationReason: text('revocation_reason'),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const transcriptRequests = sqliteTable('transcript_requests', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => students.id, { onDelete: 'cascade' }),
+  recipientName: text('recipient_name').notNull(),
+  recipientAddress: text('recipient_address').notNull(),
+  recipientEmail: text('recipient_email'),
+  deliveryMethod: text('delivery_method').notNull().default('ELECTRONIC'), // 'ELECTRONIC', 'COURIER', 'IN_PERSON'
+  feeAmountKobo: integer('fee_amount_kobo').notNull().default(500000), // ₦5,000.00
+  paymentReference: text('payment_reference'),
+  status: text('status').notNull().default('PAID'), // 'PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SENT', 'REJECTED'
+  processedBy: text('processed_by').references(() => users.id),
+  trackingNumber: text('tracking_number'),
+  dispatchNotes: text('dispatch_notes'),
+  requestedAt: integer('requested_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  processedAt: integer('processed_at'),
+  dispatchedAt: integer('dispatched_at'),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+export const studentArchives = sqliteTable('student_archives', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().unique().references(() => students.id, { onDelete: 'cascade' }),
+  graduationYear: integer('graduation_year').notNull(),
+  qualificationAwarded: text('qualification_awarded').notNull(),
+  honorsClassification: text('honors_classification').notNull(),
+  finalCgpa: real('final_cgpa').notNull(),
+  certificateNumber: text('certificate_number'),
+  archiveStatus: text('archive_status').notNull().default('ALUMNI'), // 'ALUMNI', 'WITHDRAWN', 'DECEASED'
+  archivedBy: text('archived_by').references(() => users.id),
+  archivedAt: integer('archived_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  dossierSummaryJson: text('dossier_summary_json').notNull(),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
+});
+
+
 
 
