@@ -3,6 +3,8 @@ import { Env } from '../../types/env';
 import { getContainer } from '../../infrastructure/container';
 import { requireAuth, requireRole } from '../middleware/rbac';
 import { ExamOfficerService } from '../../services/academic/examService';
+import * as Sentry from '@sentry/cloudflare';
+import { examOfficerBreadcrumb } from '../../lib/sentryBreadcrumbs';
 
 export const examOfficerRoutes = new Hono<{ Bindings: Env }>();
 
@@ -43,6 +45,8 @@ examOfficerRoutes.get('/broadsheet', async (c) => {
   const session = c.req.query('session');
   const level = parseInt(levelParam, 10) || 100;
 
+  Sentry.addBreadcrumb(examOfficerBreadcrumb('broadsheet_compile_start', { departmentId, level, session }));
+
   try {
     const broadsheet = await service.compileBroadsheet(
       departmentId,
@@ -50,8 +54,10 @@ examOfficerRoutes.get('/broadsheet', async (c) => {
       session,
       user?.userId || 'usr-admin-001'
     );
+    Sentry.addBreadcrumb(examOfficerBreadcrumb('broadsheet_compile_success', { departmentId, level }));
     return c.json(broadsheet, 200);
   } catch (error: any) {
+    Sentry.captureException(error, { tags: { route: 'exam-officer/broadsheet', departmentId, level: String(level) } });
     return c.json({ error: error.message || 'Failed to compile examination broadsheet' }, 400);
   }
 });

@@ -3,6 +3,8 @@ import { Env } from '../../types/env';
 import { getContainer } from '../../infrastructure/container';
 import { requireAuth, requireRole } from '../middleware/rbac';
 import { FinanceAdminService } from '../../services/admin/financeAdminService';
+import * as Sentry from '@sentry/cloudflare';
+import { bursarBreadcrumb } from '../../lib/sentryBreadcrumbs';
 
 export const bursarRoutes = new Hono<{ Bindings: Env }>();
 
@@ -20,10 +22,14 @@ bursarRoutes.get('/revenue', async (c) => {
   const divisionId = c.req.query('divisionId');
   const sessionId = c.req.query('sessionId');
 
+  Sentry.addBreadcrumb(bursarBreadcrumb('revenue_report_start', { divisionId, sessionId }));
+
   try {
     const report = await service.getRevenueReport({ divisionId, sessionId });
+    Sentry.addBreadcrumb(bursarBreadcrumb('revenue_report_success', { divisionId }));
     return c.json({ report });
   } catch (error: any) {
+    Sentry.captureException(error, { tags: { route: 'bursar/revenue', divisionId: divisionId ?? 'all' } });
     return c.json({ error: error.message || 'Failed to aggregate revenue report' }, 500);
   }
 });
@@ -96,6 +102,8 @@ bursarRoutes.post('/reconcile', async (c) => {
     const body = await c.req.json();
     const { transactionId, studentId, amountKobo, invoiceId, notes } = body;
 
+    Sentry.addBreadcrumb(bursarBreadcrumb('reconcile_start', { transactionId, studentId, amountKobo }));
+
     if (!transactionId || !studentId) {
       return c.json({
         error: 'Validation Error: Both transactionId and studentId (ID or matric number) are required for payment reconciliation.',
@@ -112,8 +120,10 @@ bursarRoutes.post('/reconcile', async (c) => {
       notes,
     });
 
+    Sentry.addBreadcrumb(bursarBreadcrumb('reconcile_success', { transactionId, studentId }));
     return c.json(result, 200);
   } catch (error: any) {
+    Sentry.captureException(error, { tags: { route: 'bursar/reconcile' } });
     return c.json({ error: error.message || 'Reconciliation failed' }, 400);
   }
 });

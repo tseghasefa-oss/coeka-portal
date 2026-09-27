@@ -19,4 +19,5 @@ export interface Env {
   TERMII_API_KEY?: string;
   RESEND_API_KEY?: string;
   ENVIRONMENT?: string;
+  SENTRY_DSN?: string;
 }

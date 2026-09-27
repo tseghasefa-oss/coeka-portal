@@ -3,6 +3,8 @@ import { Env } from '../../types/env';
 import { getContainer } from '../../infrastructure/container';
 import { requireAuth, requireRole, authenticateSession } from '../middleware/rbac';
 import { RegistrarService } from '../../services/registrar/registrarService';
+import * as Sentry from '@sentry/cloudflare';
+import { registrarBreadcrumb } from '../../lib/sentryBreadcrumbs';
 
 export const registrarRoutes = new Hono<{ Bindings: Env }>();
 
@@ -110,6 +112,8 @@ registrarRoutes.post('/certificates/issue', async (c) => {
     const body = await c.req.json();
     const { studentId, confermentDate, qualification } = body;
 
+    Sentry.addBreadcrumb(registrarBreadcrumb('certificate_issue_start', { studentId, qualification }));
+
     if (!studentId) {
       return c.json({ error: 'studentId is required' }, 400);
     }
@@ -119,11 +123,14 @@ registrarRoutes.post('/certificates/issue', async (c) => {
       qualification,
     });
 
+    Sentry.addBreadcrumb(registrarBreadcrumb('certificate_issue_success', { studentId, certId: certificate?.id }));
+
     return c.json({
       success: true,
       certificate,
     }, 201);
   } catch (error: any) {
+    Sentry.captureException(error, { tags: { route: 'registrar/certificates/issue' } });
     return c.json({ error: error.message || 'Certificate issuance rejected' }, 400);
   }
 });

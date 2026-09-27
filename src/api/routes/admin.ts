@@ -9,6 +9,7 @@ import { UserAdminService } from '../../services/admin/userAdminService';
 import { AuditService } from '../../services/admin/auditService';
 import { PromotionService } from '../../services/academic/promotionService';
 import { SessionBillingService } from '../../services/finance/sessionBillingService';
+import * as Sentry from '@sentry/cloudflare';
 
 export const adminRoutes = new Hono<{ Bindings: Env }>();
 
@@ -706,3 +707,24 @@ adminRoutes.get('/admissions/stats', async (c) => {
   });
 });
 
+// =============================================================
+// OBSERVABILITY: Deliberate Crash Test — SUPER_ADMIN only
+// GET /api/admin/debug/crash
+// Throws a deliberate error to verify Sentry is correctly
+// capturing and reporting unhandled exceptions from the Worker.
+// Remove this route after verifying Sentry in production.
+// =============================================================
+adminRoutes.get('/debug/crash', requireRole(['SUPER_ADMIN']), async (c) => {
+  const user = c.get('user');
+  Sentry.addBreadcrumb({
+    category: 'coeka.debug',
+    message: `[Debug] Deliberate crash triggered by ${user?.userId ?? 'unknown'}`,
+    level: 'warning',
+    data: { triggeredAt: new Date().toISOString() },
+  });
+
+  // Intentional error — captured by Sentry.withSentry() in index.ts
+  throw new Error(
+    `[COEKA Sentry Test] Deliberate crash triggered by ${user?.userId ?? 'unknown'} at ${new Date().toISOString()}`
+  );
+});
