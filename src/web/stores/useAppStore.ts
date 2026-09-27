@@ -82,8 +82,27 @@ export interface AppState {
   logout: () => void;
 }
 
+function getInitialActiveTab(): ActiveTab {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
+    const search = window.location.search.toLowerCase();
+
+    if (pathname.startsWith('/admin')) return 'admin';
+    if (pathname.startsWith('/login') || search.includes('tab=login')) return 'login';
+    if (pathname.startsWith('/dashboard')) return 'sims';
+    if (pathname.startsWith('/website') || search.includes('tab=website')) return 'website';
+
+    // On .worker.dev / .workers.dev, or portal domains, login is the home page
+    if (hostname.includes('worker.dev') || hostname.includes('workers.dev') || hostname.includes('portal')) {
+      return 'login';
+    }
+  }
+  return 'login';
+}
+
 export const useAppStore = create<AppState>((set) => ({
-  activeTab: 'website',
+  activeTab: getInitialActiveTab(),
   setActiveTab: (activeTab) => set({ activeTab }),
 
   adminTab: 'courses',
@@ -95,14 +114,7 @@ export const useAppStore = create<AppState>((set) => ({
   activeWardId: 'std-001',
   setActiveWardId: (activeWardId) => set({ activeWardId }),
 
-  userSession: {
-    userId: 'usr-std-001',
-    username: 'COEKA/2026/NCE/084',
-    fullName: 'Aondoaver Moses Iorliam',
-    role: 'STUDENT',
-    division: 'NCE',
-    token: 'jwt-coeka-demo-token',
-  },
+  userSession: null,
   setUserSession: (userSession) => set({ userSession }),
 
   authLoading: false,

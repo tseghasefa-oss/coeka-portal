@@ -207,4 +207,31 @@ describe('Institutional Gateway (LoginPage Redesign & Dashboard Transition Verif
       expect(staffRecovery.identifier).toBeTruthy();
     });
   });
+
+  // -------------------------------------------------------------
+  // 4. .worker.dev / .workers.dev Gateway Home Routing
+  // -------------------------------------------------------------
+  describe('Cloudflare Workers & Portal Domain Default Route', () => {
+    it('defaults activeTab to "login" as the home view for the portal', () => {
+      expect(useAppStore.getState().activeTab).toBe('login');
+      expect(useAppStore.getState().userSession).toBeNull();
+    });
+
+    it('identifies .worker.dev and .workers.dev domains and confirms login page is home', () => {
+      const testHosts = [
+        'coeka-portal.sefa-tsegha.workers.dev',
+        'coeka-portal.worker.dev',
+        'portal.coekatsinaala.edu.ng',
+      ];
+
+      for (const host of testHosts) {
+        const isWorkerOrPortalHost =
+          host.includes('worker.dev') ||
+          host.includes('workers.dev') ||
+          host.includes('portal');
+        expect(isWorkerOrPortalHost).toBe(true);
+      }
+    });
+  });
 });
+

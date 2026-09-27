@@ -92,6 +92,14 @@ export default function App() {
 
     const handleLocationChange = () => {
       const pathname = window.location.pathname;
+      const hostname = window.location.hostname.toLowerCase();
+      const search = window.location.search.toLowerCase();
+
+      const isWorkerOrPortalHost =
+        hostname.includes('worker.dev') ||
+        hostname.includes('workers.dev') ||
+        hostname.includes('portal');
+
       if (pathname.startsWith('/dashboard')) {
         if (userSession) {
           setActiveTab(resolveDashboardTab(userSession.role));
@@ -107,8 +115,19 @@ export default function App() {
         } else {
           setActiveTab('login');
         }
-      } else if (pathname.startsWith('/login')) {
+      } else if (pathname.startsWith('/login') || search.includes('tab=login')) {
         setActiveTab('login');
+      } else if (pathname.startsWith('/website') || search.includes('tab=website')) {
+        setActiveTab('website');
+      } else if (pathname === '/' || pathname === '') {
+        // At .worker.dev / .workers.dev (and portal domains), the login page is the primary home
+        if (isWorkerOrPortalHost) {
+          if (!userSession) {
+            setActiveTab('login');
+          } else {
+            setActiveTab(resolveDashboardTab(userSession.role));
+          }
+        }
       }
     };
 
