@@ -153,6 +153,10 @@ export class MemoryDatabaseAdapter implements IDatabaseProvider {
             if (fs.existsSync(registrarMigrationPath)) {
               this.sqlite.exec(fs.readFileSync(registrarMigrationPath, 'utf8'));
             }
+            const hostelMigrationPath = path.resolve(process.cwd(), 'src/database/migrations-drizzle/0009_hostel_allocation_concurrency.sql');
+            if (fs.existsSync(hostelMigrationPath)) {
+              this.sqlite.exec(fs.readFileSync(hostelMigrationPath, 'utf8'));
+            }
           } catch {
             // Optional fallback
           }
@@ -186,8 +190,8 @@ export class MemoryDatabaseAdapter implements IDatabaseProvider {
       const res = stmt.run(...params);
       return {
         success: true,
-        rowsAffected: Number(res.changes || 1),
-        lastInsertRowId: Number(res.lastInsertRowid || 1),
+        rowsAffected: Number(res.changes ?? 0),
+        lastInsertRowId: Number(res.lastInsertRowid ?? 0),
       };
     }
     return { success: true, rowsAffected: 1 };

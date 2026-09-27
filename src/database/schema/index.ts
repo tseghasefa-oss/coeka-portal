@@ -328,6 +328,7 @@ export const hostelRooms = sqliteTable('hostel_rooms', {
   roomNumber: text('room_number').notNull(),
   capacity: integer('capacity').notNull(),
   floorNumber: integer('floor_number').notNull().default(0),
+  priceKobo: integer('price_kobo').notNull().default(2000000),
 }, (t) => [
   unique().on(t.hostelId, t.roomNumber),
 ]);
@@ -347,9 +348,24 @@ export const hostelAllocations = sqliteTable('hostel_allocations', {
   bedspaceId: text('bedspace_id').notNull().references(() => hostelBedspaces.id),
   studentId: text('student_id').notNull().references(() => students.id),
   sessionId: text('session_id').notNull().references(() => academicSessions.id),
-  transactionId: text('transaction_id').notNull().unique().references(() => transactions.id),
+  transactionId: text('transaction_id').references(() => transactions.id),
+  paymentReference: text('payment_reference'),
+  wardenStaffId: text('warden_staff_id'),
+  notes: text('notes'),
   allocatedAt: integer('allocated_at').notNull().default(sql`(strftime('%s', 'now'))`),
   status: text('status').notNull().default('ACTIVE'),
+});
+
+export const allocationLocks = sqliteTable('allocation_locks', {
+  id: text('id').primaryKey(),
+  studentId: text('student_id').notNull().references(() => students.id),
+  bedspaceId: text('bedspace_id').notNull().references(() => hostelBedspaces.id),
+  lockedAt: integer('locked_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  expiresAt: integer('expires_at').notNull(),
+  status: text('status').notNull().default('LOCKED'), // 'LOCKED', 'CONFIRMED', 'EXPIRED', 'RELEASED'
+  paymentReference: text('payment_reference'),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now'))`),
 });
 
 // 8. Staff Management

@@ -52,6 +52,7 @@ import { DeanDashboard } from './components/dean/DeanDashboard';
 import { LibrarianDashboard } from './components/librarian/LibrarianDashboard';
 import { ExamOfficerDashboard } from './components/exam_officer/ExamOfficerDashboard';
 import { RegistrarDashboard } from './components/registrar/RegistrarDashboard';
+import { HostelPortal } from './components/hostels/HostelPortal';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
@@ -768,87 +769,7 @@ export default function App() {
 
         {/* TAB 6: HOSTELS */}
         {activeTab === 'hostels' && (
-          <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="bento-card p-6 space-y-4">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                <div>
-                  <h3 className="text-lg font-bold text-slate-900">Hostel Space Allocation</h3>
-                  <p className="text-xs text-slate-500">Hall A (Queen Amina Hall - Female) • Room 101</p>
-                </div>
-                <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-3 py-1 rounded-full">
-                  ₦20,000.00 / Session
-                </span>
-              </div>
-
-              {hostelReserved && (
-                <div className="p-4 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-amber-600 animate-pulse" />
-                    <span>
-                      15-Minute Reservation Lock Active! Complete fee payment before the timer expires.
-                    </span>
-                  </div>
-                  <strong className="font-mono text-sm text-amber-950 font-bold">
-                    {Math.floor(reservationTimer / 60)}:{(reservationTimer % 60).toString().padStart(2, '0')}
-                  </strong>
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-                {(hostelRooms?.[0]?.bedspaces || [
-                  { id: 'bed-1', name: 'Bed 1 (Lower)', status: hostelReserved ? 'RESERVED' : 'AVAILABLE', isAvailable: !hostelReserved },
-                  { id: 'bed-2', name: 'Bed 2 (Upper)', status: 'AVAILABLE', isAvailable: true },
-                  { id: 'bed-3', name: 'Bed 3 (Lower)', status: 'OCCUPIED', isAvailable: false },
-                  { id: 'bed-4', name: 'Bed 4 (Upper)', status: 'AVAILABLE', isAvailable: true },
-                ]).map((b: any) => {
-                  const isAvailable = b.isAvailable ?? (b.status === 'AVAILABLE');
-                  const isReserved = b.isReserved || b.status === 'RESERVED' || (hostelReserved && b.id === 'bed-1');
-                  const statusLabel = isReserved ? 'RESERVED' : isAvailable ? 'AVAILABLE' : 'OCCUPIED';
-                  return (
-                    <div
-                      key={b.id}
-                      className={`p-4 rounded-xl border text-center flex flex-col justify-between gap-3 ${
-                        isReserved
-                          ? 'bg-amber-50 border-amber-400'
-                          : isAvailable
-                          ? 'bg-white border-slate-200'
-                          : 'bg-slate-100 border-slate-200 opacity-60'
-                      }`}
-                    >
-                      <div>
-                        <strong className="text-xs font-bold text-slate-900 block">{b.name || `Bed ${b.id.slice(-1)}`}</strong>
-                        <span
-                          className={`text-[10px] font-bold uppercase mt-1 inline-block ${
-                            isReserved ? 'text-amber-700' : isAvailable ? 'text-emerald-700' : 'text-slate-500'
-                          }`}
-                        >
-                          {statusLabel}
-                        </span>
-                      </div>
-                      <button
-                        disabled={!isAvailable || reserveBedspaceMutation.isPending}
-                        onClick={() => {
-                          reserveBedspaceMutation.mutate(b.id, {
-                            onSuccess: (res: any) => {
-                              setHostelReserved(true);
-                              setReservationTimer(res.lockDurationSeconds || 900);
-                            },
-                          });
-                        }}
-                        className={`text-xs font-bold py-1.5 rounded-lg transition ${
-                          isAvailable
-                            ? 'bg-emerald-800 text-white hover:bg-emerald-700 shadow'
-                            : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                        }`}
-                      >
-                        {isReserved ? 'Locked (15m)' : isAvailable ? 'Select Bed' : 'Occupied'}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <HostelPortal />
         )}
 
         {/* TAB 7: STAFF HUB (SCORE UPLOAD, ATTENDANCE & ACADEMIC ENGINE) */}
