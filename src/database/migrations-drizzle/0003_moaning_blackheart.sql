@@ -1,4 +1,4 @@
-CREATE TABLE `course_attendance` (
+CREATE TABLE IF NOT EXISTS `course_attendance` (
 	`id` text PRIMARY KEY NOT NULL,
 	`course_id` text NOT NULL,
 	`student_id` text NOT NULL,
@@ -10,8 +10,8 @@ CREATE TABLE `course_attendance` (
 	FOREIGN KEY (`student_id`) REFERENCES `students`(`id`) ON UPDATE no action ON DELETE cascade
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `course_attendance_course_id_student_id_lecture_date_unique` ON `course_attendance` (`course_id`,`student_id`,`lecture_date`);--> statement-breakpoint
-CREATE TABLE `grade_entries` (
+CREATE UNIQUE INDEX IF NOT EXISTS `course_attendance_course_id_student_id_lecture_date_unique` ON `course_attendance` (`course_id`,`student_id`,`lecture_date`);--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS `grade_entries` (
 	`id` text PRIMARY KEY NOT NULL,
 	`course_id` text NOT NULL,
 	`student_id` text NOT NULL,
@@ -32,4 +32,4 @@ CREATE TABLE `grade_entries` (
 	FOREIGN KEY (`session_id`) REFERENCES `academic_sessions`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `grade_entries_course_id_student_id_unique` ON `grade_entries` (`course_id`,`student_id`);
+CREATE UNIQUE INDEX IF NOT EXISTS `grade_entries_course_id_student_id_unique` ON `grade_entries` (`course_id`,`student_id`);

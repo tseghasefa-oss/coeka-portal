@@ -189,8 +189,66 @@ Once the production deployment finishes, execute this 5-point verification run:
 
 ---
 
+## Phase 6: Automated CI/CD Pipeline (GitHub Actions)
+
+A zero-manual-intervention, multi-stage production deployment pipeline is defined in `.github/workflows/pipeline.yml`. It ensures that no code reaches production unless it passes strict static analysis and the comprehensive automated test suite.
+
+### Pipeline Architecture (3 Stages)
+
+```mermaid
+graph LR
+    A[Push / PR] --> B[Stage 1: Lint & Type-Check]
+    B -->|Zero TS Errors| C[Stage 2: Test Suite]
+    C -->|All 322 Tests Pass| D{Branch == main?}
+    D -->|Feature / PR| E[Complete / Green Checkmark]
+    D -->|Push / Merge to main| F[Stage 3: Production Deploy]
+    F --> G[wrangler d1 migrations apply]
+    G --> H[wrangler deploy - API]
+    H --> I[npm run build - Frontend]
+    I --> J[wrangler pages deploy - Pages]
+```
+
+1. **Stage 1: Lint & Type-Check (`npm run typecheck`)**
+   * Validates the entire TypeScript codebase (`tsc --noEmit`).
+   * Blocks downstream jobs immediately on any syntax or type failure.
+2. **Stage 2: Automated Test Suite (`npm test`)**
+   * Executes all 322 automated tests across 27 test files using Vitest.
+   * Tests coverage includes Authentication, Academic Grading, Bursar Financials, Broadsheets, Registrar Certificates, Concurrency Hostel Locks, and RBAC Guards.
+   * If any single test fails, the pipeline aborts immediately.
+3. **Stage 3: Production Deployment & Database Migrations**
+   * **Triggered ONLY on merge/push to `main`** (feature branches and pull requests never trigger production deploy).
+   * **Step 1 — Automated D1 Database Migrations:** Automatically executes `wrangler d1 migrations apply coeka-production-db --remote` before code deployment.
+   * **Step 2 — Secrets Synchronization:** Syncs production secrets to Cloudflare Worker via `wrangler secret put`.
+   * **Step 3 — API Deployment:** Deploys Hono API to Cloudflare Workers (`wrangler deploy`).
+   * **Step 4 — Frontend Build & Deploy:** Compiles optimized React SPA bundle (`npm run build`) and deploys to Cloudflare Pages (`wrangler pages deploy dist --project-name=coeka-portal`).
+
+---
+
+### Required GitHub Repository Secrets
+
+Configure the following secrets in GitHub under **Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:
+
+| Secret Name | Required | Description | Example / Current Configuration |
+| :--- | :---: | :--- | :--- |
+| `CLOUDFLARE_API_TOKEN` | **Yes** | Cloudflare API token with D1, Workers, Pages, KV, R2 permissions | [Create via Cloudflare Dashboard](https://dash.cloudflare.com/profile/api-tokens) |
+| `CLOUDFLARE_ACCOUNT_ID` | **Yes** | Cloudflare Account ID | `2505509c9d45ab58888c430de12d58c8` |
+| `JWT_SECRET` | **Yes** | High-entropy cryptographic key for signing user sessions | Auto-generated 256-bit hex |
+| `LEDGER_SIGNING_SECRET` | **Yes** | Cryptographic key for tamper-proof financial receipts | Auto-generated 256-bit hex |
+| `VITE_API_URL` | **Yes** | Cloudflare Worker endpoint URL consumed during client build | `https://coeka-portal.sefa-tsegha.workers.dev` |
+| `VPAY_API_KEY` | Optional | VPay Banking Gateway API Key | Production / Sandbox Key |
+| `PAYSTACK_SECRET_KEY` | Optional | Paystack Gateway Secret Key | Production / Sandbox Secret |
+| `VITE_SENTRY_DSN` | Optional | Sentry Frontend Error Monitoring DSN | Client Sentry DSN |
+
+To verify configured secrets via the GitHub CLI:
+```powershell
+gh secret list
+```
+
+---
+
 ## Troubleshooting Common Live Errors
 
 * **403 Forbidden on API Requests:** Check that `wrangler.toml` bindings (`DB`, `SESSION_KV`, `RATE_LIMIT_KV`, `DOCUMENTS_BUCKET`) match the exact IDs in your Cloudflare dashboard.
 * **CORS Blocked Errors:** In `src/api/index.ts`, CORS middleware dynamically allows origin reflection with credentials (`allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']`).
 * **White Screen on Frontend:** Open browser DevTools Console. If `VITE_API_URL is undefined`, ensure the `VITE_API_URL` environment variable was added in Cloudflare Pages and the frontend was redeployed.
+

@@ -303,6 +303,7 @@ CREATE TABLE IF NOT EXISTS hostel_rooms (
     room_number TEXT NOT NULL,
     capacity INTEGER NOT NULL CHECK(capacity > 0),
     floor_number INTEGER NOT NULL DEFAULT 0,
+    price_kobo INTEGER NOT NULL DEFAULT 2000000,
     FOREIGN KEY (hostel_id) REFERENCES hostels(id) ON DELETE CASCADE,
     UNIQUE(hostel_id, room_number)
 );
