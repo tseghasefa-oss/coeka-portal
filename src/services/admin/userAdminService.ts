@@ -30,7 +30,7 @@ export class UserAdminService {
    */
   async ensureSeedUsers(): Promise<void> {
     const existing = await this.db.queryFirst<{ count: number }>(`SELECT COUNT(*) as count FROM users`);
-    if (existing && existing.count >= 6) {
+    if (existing && existing.count >= 10) {
       return;
     }
 
@@ -147,6 +147,34 @@ export class UserAdminService {
         isActive: 1,
         twoFactor: 0,
       },
+      {
+        id: 'usr-reg-001',
+        username: 'registrar_coeka',
+        name: 'Mrs. Celia Adzande',
+        identifier: 'COEKA/REG/007',
+        email: 'registrar@coeka.edu.ng',
+        phoneNumber: '08099990012',
+        role: 'REGISTRAR',
+        userType: 'STAFF',
+        dept: 'Registry & Academic Records',
+        div: 'CENTRAL',
+        isActive: 1,
+        twoFactor: 1,
+      },
+      {
+        id: 'usr-exam-001',
+        username: 'exam_officer1',
+        name: 'Mr. Andrew Iorzua',
+        identifier: 'COEKA/EXAM/003',
+        email: 'exam.officer@coeka.edu.ng',
+        phoneNumber: '08011223344',
+        role: 'EXAM_OFFICER',
+        userType: 'STAFF',
+        dept: 'Examinations & Records Unit',
+        div: 'CENTRAL',
+        isActive: 1,
+        twoFactor: 1,
+      },
     ];
 
     for (const u of initialUsers) {
@@ -254,6 +282,20 @@ export class UserAdminService {
         role: 'PARENT',
         dept: 'Parent / Guardian Association',
         div: 'NCE',
+      },
+      'usr-reg-001': {
+        name: 'Mrs. Celia Adzande',
+        identifier: 'COEKA/REG/007',
+        role: 'REGISTRAR',
+        dept: 'Registry & Academic Records',
+        div: 'CENTRAL',
+      },
+      'usr-exam-001': {
+        name: 'Mr. Andrew Iorzua',
+        identifier: 'COEKA/EXAM/003',
+        role: 'EXAM_OFFICER',
+        dept: 'Examinations & Records Unit',
+        div: 'CENTRAL',
       },
     };
 
