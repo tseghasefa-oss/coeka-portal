@@ -57,6 +57,7 @@ import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { InstitutionalMaintenanceScreen } from './components/common/InstitutionalMaintenanceScreen';
 
 export default function App() {
   // Global Client State via Zustand
@@ -124,8 +125,9 @@ export default function App() {
   const { data: studentResult } = useStudentResult(activeDivision);
   const { data: parentData } = useParentWards();
   const admissionsMutation = useAdmissionsScreening();
-  const { settingsData } = useSystemSettings();
+  const { settingsData, refetch: refetchSettings } = useSystemSettings();
   const isMaintenanceMode = Boolean(settingsData?.maintenanceMode);
+  const isSuperAdmin = userSession?.role === 'SUPER_ADMIN';
 
   const [copiedAccount, setCopiedAccount] = useState(false);
   const [selectedGateway, setSelectedGateway] = useState<'VPAY' | 'PAYSTACK' | 'REMITA_BSCPP'>('VPAY');
@@ -189,6 +191,11 @@ export default function App() {
     return <LoginPage />;
   }
 
+  // Full-Page Maintenance Screen: Intercept all non-SuperAdmin users when Maintenance Mode is engaged
+  if (isMaintenanceMode && !isSuperAdmin) {
+    return <InstitutionalMaintenanceScreen onCheckAgain={() => refetchSettings()} />;
+  }
+
   // Render guarded full Master Admin shell if activeTab === 'admin'
   if (activeTab === 'admin') {
     return (
@@ -200,20 +207,36 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* Maintenance Mode Read-Only Banner */}
+      {/* Maintenance Mode SuperAdmin Control Banner */}
       {isMaintenanceMode && (
         <div className="bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2.5 shadow-md border-b border-amber-600 sticky top-0 z-[60]">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 shrink-0 text-slate-950 animate-pulse" />
               <span>
-                <strong>CAMPUS PORTAL MAINTENANCE MODE ACTIVE:</strong> The portal is currently in Read-Only mode for students and general public while administrative updates are applied.
+                <strong>CAMPUS PORTAL MAINTENANCE MODE ACTIVE:</strong> The portal is currently locked for students and general public.
               </span>
             </div>
-            {userSession?.role === 'SUPER_ADMIN' && (
-              <span className="px-2 py-0.5 rounded bg-slate-900 text-amber-300 font-mono text-[10px] shrink-0">
-                Super Admin Bypass Active
-              </span>
+            {isSuperAdmin && (
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="px-2 py-0.5 rounded bg-slate-900 text-amber-300 font-mono text-[10px]">
+                  Super Admin Bypass Active
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await fetch('/api/admin/governance/maintenance', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ enabled: false }),
+                    });
+                    refetchSettings();
+                  }}
+                  className="px-2.5 py-1 rounded bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase transition-all cursor-pointer shadow-sm"
+                >
+                  Disable Kill-Switch
+                </button>
+              </div>
             )}
           </div>
         </div>

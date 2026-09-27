@@ -33,7 +33,7 @@ export type ActiveTab =
   | 'login'
   | 'unauthorized';
 
-export type AdminTab = 'courses' | 'fees' | 'users' | 'admissions' | 'settings' | 'audit' | 'database';
+export type AdminTab = 'godmode' | 'courses' | 'fees' | 'users' | 'admissions' | 'settings' | 'audit' | 'database';
 
 export interface UserSession {
   userId?: string;

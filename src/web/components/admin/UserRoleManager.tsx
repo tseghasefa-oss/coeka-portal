@@ -26,13 +26,15 @@ import { PasswordResetTool } from './PasswordResetTool';
 const ROLES_LIST = [
   { value: 'SUPER_ADMIN', label: 'Super Administrator', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' },
   { value: 'ADMIN', label: 'Administrator', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' },
+  { value: 'REGISTRAR', label: 'Registrar', color: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' },
+  { value: 'EXAM_OFFICER', label: 'Examination Officer', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' },
   { value: 'DEAN', label: 'Dean of School', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300' },
   { value: 'HOD', label: 'Head of Department', color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300' },
   { value: 'LECTURER', label: 'Academic Lecturer', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' },
-  { value: 'BURSAR', label: 'Bursary Officer', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' },
+  { value: 'BURSAR', label: 'Bursary Officer', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' },
   { value: 'LIBRARIAN', label: 'Library Officer', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300' },
   { value: 'STUDENT', label: 'Student / Scholar', color: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300' },
-  { value: 'PARENT', label: 'Parent / Guardian', color: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' },
+  { value: 'PARENT', label: 'Parent / Guardian', color: 'bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300' },
 ];
 
 export const UserRoleManager: React.FC = () => {
@@ -102,6 +104,40 @@ export const UserRoleManager: React.FC = () => {
     isOpen: false,
     user: null,
   });
+
+  // Bulk Level Promotion state
+  const [bulkPromoteModal, setBulkPromoteModal] = useState({
+    isOpen: false,
+    fromLevel: 100,
+    toLevel: 200,
+    isSubmitting: false,
+  });
+
+  const handleExecuteBulkPromote = async () => {
+    setBulkPromoteModal((prev) => ({ ...prev, isSubmitting: true }));
+    try {
+      const res = await fetch('/api/admin/governance/bulk-promote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fromLevel: bulkPromoteModal.fromLevel,
+          toLevel: bulkPromoteModal.toLevel,
+        }),
+      });
+      const data: any = await res.json();
+      if (data.success) {
+        showToast(data.message || `Successfully promoted students to Level ${bulkPromoteModal.toLevel}.`);
+        setBulkPromoteModal({ isOpen: false, fromLevel: 100, toLevel: 200, isSubmitting: false });
+        refetch();
+      } else {
+        showToast(data.error || 'Failed to execute bulk promotion', 'error');
+        setBulkPromoteModal((prev) => ({ ...prev, isSubmitting: false }));
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Error executing bulk promotion', 'error');
+      setBulkPromoteModal((prev) => ({ ...prev, isSubmitting: false }));
+    }
+  };
 
   // Handlers
   const handleOpenRoleModal = (user: { id: string; name: string; role: string }) => {
@@ -278,6 +314,81 @@ export const UserRoleManager: React.FC = () => {
         </div>
       )}
 
+      {/* Bulk Level Promotion Modal */}
+      {bulkPromoteModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            className={`w-full max-w-md rounded-2xl border shadow-2xl p-6 transition-all ${
+              isNavy
+                ? 'bg-slate-900 border-slate-700 text-white'
+                : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-200/50 dark:border-slate-800">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 flex items-center justify-center">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold">Bulk Academic Level Promotion</h3>
+                <p className="text-xs text-slate-400">Advance student cohorts across levels</p>
+              </div>
+            </div>
+
+            <div className="py-4 space-y-4">
+              <div className="text-xs text-slate-600 dark:text-slate-400">
+                This executive action advances all active students currently at the source level to the target level simultaneously.
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">From Level</label>
+                  <select
+                    value={bulkPromoteModal.fromLevel}
+                    onChange={(e) => setBulkPromoteModal((prev) => ({ ...prev, fromLevel: Number(e.target.value) }))}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-slate-100 dark:bg-slate-800 font-bold"
+                  >
+                    <option value={100}>100 Level</option>
+                    <option value={200}>200 Level</option>
+                    <option value={300}>300 Level</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">To Target Level</label>
+                  <select
+                    value={bulkPromoteModal.toLevel}
+                    onChange={(e) => setBulkPromoteModal((prev) => ({ ...prev, toLevel: Number(e.target.value) }))}
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-slate-100 dark:bg-slate-800 font-bold"
+                  >
+                    <option value={200}>200 Level</option>
+                    <option value={300}>300 Level</option>
+                    <option value={400}>400 Level</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setBulkPromoteModal((prev) => ({ ...prev, isOpen: false }))}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={bulkPromoteModal.isSubmitting || bulkPromoteModal.fromLevel >= bulkPromoteModal.toLevel}
+                  onClick={handleExecuteBulkPromote}
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-md disabled:opacity-50 cursor-pointer"
+                >
+                  {bulkPromoteModal.isSubmitting ? 'Promoting...' : `Promote All to ${bulkPromoteModal.toLevel}L`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Top Banner Card */}
       <div
         className={`bento-card p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border shadow-sm ${
@@ -297,14 +408,24 @@ export const UserRoleManager: React.FC = () => {
             Real-time role promotions, access suspension, and cryptographic password overrides across all institutional tiers.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => refetch()}
-          className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all flex items-center gap-2 w-fit cursor-pointer"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh Directory
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setBulkPromoteModal({ isOpen: true, fromLevel: 100, toLevel: 200, isSubmitting: false })}
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Bulk Level Promotion
+          </button>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all flex items-center gap-2 w-fit cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh Directory
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter Toolbar */}
@@ -330,6 +451,8 @@ export const UserRoleManager: React.FC = () => {
               <option value="ALL">All Roles</option>
               <option value="SUPER_ADMIN">Super Admins</option>
               <option value="ADMIN">Admins</option>
+              <option value="REGISTRAR">Registrars</option>
+              <option value="EXAM_OFFICER">Exam Officers</option>
               <option value="DEAN">Deans</option>
               <option value="HOD">HODs</option>
               <option value="LECTURER">Lecturers</option>

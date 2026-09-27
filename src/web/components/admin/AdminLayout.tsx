@@ -20,8 +20,10 @@ import {
   ExternalLink,
   UserCheck,
   Database,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAppStore, AdminTab } from '../../stores/useAppStore';
+import { SuperAdminDashboard } from './SuperAdminDashboard';
 import { AdminCoursesTab } from './AdminCoursesTab';
 import { AdminFeesTab } from './AdminFeesTab';
 import { UserRoleManager } from './UserRoleManager';
@@ -52,8 +54,25 @@ export const AdminLayout: React.FC = () => {
   const [settingsSubTab, setSettingsSubTab] = useState<'toggles' | 'institutional' | 'calendar'>('toggles');
   const [databaseSubTab, setDatabaseSubTab] = useState<'snapshots' | 'migrations'>('snapshots');
   const isNavy = uiPreferences.theme === 'navy';
+  const isSuperAdmin = userSession?.role === 'SUPER_ADMIN';
+
+  React.useEffect(() => {
+    if (isSuperAdmin && adminTab === 'courses') {
+      setAdminTab('godmode');
+    }
+  }, [isSuperAdmin]);
 
   const navItems: { id: AdminTab; label: string; subLabel: string; icon: React.FC<{ className?: string }> }[] = [
+    ...(isSuperAdmin
+      ? [
+          {
+            id: 'godmode' as AdminTab,
+            label: 'God Mode Governor',
+            subLabel: 'Central Command & Overrides',
+            icon: ShieldAlert,
+          },
+        ]
+      : []),
     {
       id: 'courses',
       label: 'Academic Management',
@@ -359,6 +378,7 @@ export const AdminLayout: React.FC = () => {
             </div>
           </div>
 
+          {adminTab === 'godmode' && <SuperAdminDashboard />}
           {adminTab === 'courses' && <AdminCoursesTab />}
           {adminTab === 'fees' && <AdminFeesTab />}
           {adminTab === 'users' && <UserRoleManager />}
