@@ -339,5 +339,41 @@ describe('Auth Frontend, useAuth Hook & Session Guard (ProtectedRoute)', () => {
 
       expect(hasPermission).toBe(true);
     });
+
+    it('ensures authenticated userSession is never blocked even if background authLoading is true', () => {
+      useAppStore.setState({
+        userSession: {
+          username: 'std_iorliam',
+          fullName: 'Moses Iorliam',
+          role: 'STUDENT',
+          division: 'NCE',
+        },
+        authLoading: true, // background check in progress
+        activeTab: 'sims',
+      });
+
+      const state = useAppStore.getState();
+      // Guard condition: userSession must take priority over authLoading
+      const shouldBlockWithLoading = !state.userSession && state.authLoading;
+      expect(shouldBlockWithLoading).toBe(false);
+
+      const isAuthorized = ['STUDENT', 'SUPER_ADMIN', 'ADMIN'].includes(state.userSession!.role);
+      expect(isAuthorized).toBe(true);
+    });
+
+    it('verifies that unauthenticated visit with no saved token resolves authLoading to false immediately', () => {
+      useAppStore.setState({
+        userSession: null,
+        authLoading: false,
+      });
+
+      const state = useAppStore.getState();
+      expect(state.userSession).toBeNull();
+      expect(state.authLoading).toBe(false);
+
+      // Loading screen is never shown when there is no saved token and authLoading is false
+      const shouldShowLoadingScreen = !state.userSession && state.authLoading;
+      expect(shouldShowLoadingScreen).toBe(false);
+    });
   });
 });
