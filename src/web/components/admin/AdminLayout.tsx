@@ -21,7 +21,9 @@ import {
   UserCheck,
   Database,
   ShieldAlert,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
 import { useAppStore, AdminTab } from '../../stores/useAppStore';
 import { SuperAdminDashboard } from './SuperAdminDashboard';
 import { AdminCoursesTab } from './AdminCoursesTab';
@@ -48,6 +50,7 @@ export const AdminLayout: React.FC = () => {
     activeDivision,
     setActiveDivision,
   } = useAppStore();
+  const { logout } = useAuth();
 
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [admissionsSubTab, setAdmissionsSubTab] = useState<'upload' | 'lifecycle'>('upload');
@@ -230,6 +233,18 @@ export const AdminLayout: React.FC = () => {
                   SA
                 </div>
               </div>
+
+              {/* Dedicated Admin Logout Button */}
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer ml-1"
+                title="Sign Out of Master Admin"
+                aria-label="Sign Out of Master Admin"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             </div>
           </div>
         </div>

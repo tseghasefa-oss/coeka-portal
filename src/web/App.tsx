@@ -266,56 +266,87 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Institution Brand */}
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('website')}>
+            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => !userSession && setActiveTab('website')}>
               <div className="w-12 h-12 bg-amber-400 rounded-xl flex items-center justify-center text-emerald-950 font-black text-xl shadow-inner border border-amber-300">
                 <GraduationCap className="w-7 h-7 text-emerald-900" />
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
                   COEKA PORTAL
-                  <span className="text-xs bg-emerald-700/80 text-amber-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-600">
-                    Enterprise
-                  </span>
+                  {userSession ? (
+                    <span className="text-xs bg-emerald-800 text-amber-300 font-bold px-2.5 py-0.5 rounded-full border border-emerald-700 shadow-sm flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>
+                        {userSession.role === 'STUDENT'
+                          ? 'Student Workspace (SIMS)'
+                          : userSession.role === 'BURSAR' || userSession.role === 'BURSARY'
+                          ? 'Bursary Hub'
+                          : userSession.role === 'REGISTRAR'
+                          ? 'Registrar Certification Portal'
+                          : userSession.role === 'EXAM_OFFICER'
+                          ? 'Exam Broadsheet Hub'
+                          : userSession.role === 'DEAN'
+                          ? 'Dean Oversight'
+                          : userSession.role === 'LIBRARIAN'
+                          ? 'Library Clearance'
+                          : userSession.role === 'PARENT'
+                          ? 'Parent Portal'
+                          : userSession.role === 'SUPER_ADMIN' || userSession.role === 'ADMIN'
+                          ? 'System Governor'
+                          : `${userSession.role} Workspace`}
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="text-xs bg-emerald-700/80 text-amber-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-600">
+                      Enterprise
+                    </span>
+                  )}
                 </h1>
-                <p className="text-xs text-emerald-200">College of Education, Katsina-Ala • Benue State, Nigeria</p>
+                <p className="text-xs text-emerald-200">
+                  {userSession
+                    ? `Active Session: 2026/2027 • Division: ${userSession.division || 'NCE'}`
+                    : 'College of Education, Katsina-Ala • Benue State, Nigeria'}
+                </p>
               </div>
             </div>
 
-            {/* Navigation Switcher */}
-            <nav className="hidden lg:flex space-x-1">
-              {[
-                { id: 'website', label: 'College Home', icon: Home },
-                { id: 'admissions', label: 'Admissions', icon: FileText },
-                { id: 'sims', label: 'Student SIMS', icon: User },
-                { id: 'finance', label: 'Bursary', icon: CreditCard },
-                { id: 'results', label: 'Results', icon: Award },
-                { id: 'hostels', label: 'Hostels', icon: Building },
-                { id: 'staff', label: 'Staff Hub', icon: Users },
-                { id: 'dean', label: 'Dean Oversight', icon: ShieldCheck },
-                { id: 'exam_officer', label: 'Exam Broadsheet', icon: FileSpreadsheet },
-                { id: 'librarian', label: 'Library & Clearance', icon: BookOpen },
-                { id: 'registrar', label: 'Registrar Hub', icon: Award },
-                { id: 'parent', label: 'Parent Portal', icon: Heart },
-                { id: 'admin', label: 'Master Admin', icon: Layers },
-              ].map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as ActiveTab)}
-                    className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700'
-                        : 'text-emerald-100 hover:bg-emerald-800/60 hover:text-white'
-                    }`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
-            </nav>
+            {/* Navigation Switcher: ONLY shown when unauthenticated (public website visitor) */}
+            {!userSession && (
+              <nav className="hidden lg:flex space-x-1">
+                {[
+                  { id: 'website', label: 'College Home', icon: Home },
+                  { id: 'admissions', label: 'Admissions', icon: FileText },
+                  { id: 'sims', label: 'Student SIMS', icon: User },
+                  { id: 'finance', label: 'Bursary', icon: CreditCard },
+                  { id: 'results', label: 'Results', icon: Award },
+                  { id: 'hostels', label: 'Hostels', icon: Building },
+                  { id: 'staff', label: 'Staff Hub', icon: Users },
+                  { id: 'dean', label: 'Dean Oversight', icon: ShieldCheck },
+                  { id: 'exam_officer', label: 'Exam Broadsheet', icon: FileSpreadsheet },
+                  { id: 'librarian', label: 'Library & Clearance', icon: BookOpen },
+                  { id: 'registrar', label: 'Registrar Hub', icon: Award },
+                  { id: 'parent', label: 'Parent Portal', icon: Heart },
+                  { id: 'admin', label: 'Master Admin', icon: Layers },
+                ].map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as ActiveTab)}
+                      className={`flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-emerald-800 text-amber-300 shadow-sm border border-emerald-700'
+                          : 'text-emerald-100 hover:bg-emerald-800/60 hover:text-white'
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+            )}
 
             {/* Authenticated User Session Badge & Logout Button */}
             <div className="flex items-center space-x-3">
@@ -335,13 +366,15 @@ export default function App() {
                   <div className="w-9 h-9 rounded-full bg-emerald-700 border border-emerald-600 flex items-center justify-center text-amber-300 font-bold text-xs shadow-inner">
                     {userSession.fullName ? userSession.fullName.split(' ').map(n => n[0]).join('').slice(0, 2) : 'MI'}
                   </div>
+                  {/* Dedicated Prominent Logout Button */}
                   <button
                     onClick={() => logout()}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-950/70 hover:bg-rose-900 text-rose-200 border border-rose-800/60 shadow-sm transition-all cursor-pointer"
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-md hover:shadow-lg transition-all cursor-pointer hover:-translate-y-0.5 active:translate-y-0"
                     title="Sign Out of COEKA Portal"
+                    aria-label="Sign Out of COEKA Portal"
                   >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span className="hidden md:inline">Logout</span>
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
                   </button>
                 </>
               ) : (
@@ -357,33 +390,35 @@ export default function App() {
           </div>
         </div>
 
-        {/* Mobile Horizontal Navigation */}
-        <div className="lg:hidden flex overflow-x-auto px-4 py-2 border-t border-emerald-800 space-x-2 text-xs">
-          {[
-            { id: 'website', label: 'Home' },
-            { id: 'admissions', label: 'Admissions' },
-            { id: 'sims', label: 'SIMS' },
-            { id: 'finance', label: 'Bursary' },
-            { id: 'results', label: 'Results' },
-            { id: 'hostels', label: 'Hostels' },
-            { id: 'staff', label: 'Staff' },
-            { id: 'exam_officer', label: 'Broadsheet' },
-            { id: 'librarian', label: 'Library' },
-            { id: 'registrar', label: 'Registrar' },
-            { id: 'parent', label: 'Parent' },
-            { id: 'admin', label: 'Master Admin' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as ActiveTab)}
-              className={`px-3 py-1.5 rounded whitespace-nowrap font-medium ${
-                activeTab === tab.id ? 'bg-amber-400 text-emerald-950 font-bold' : 'text-emerald-100'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+        {/* Mobile Horizontal Navigation: ONLY shown when unauthenticated */}
+        {!userSession && (
+          <div className="lg:hidden flex overflow-x-auto px-4 py-2 border-t border-emerald-800 space-x-2 text-xs">
+            {[
+              { id: 'website', label: 'Home' },
+              { id: 'admissions', label: 'Admissions' },
+              { id: 'sims', label: 'SIMS' },
+              { id: 'finance', label: 'Bursary' },
+              { id: 'results', label: 'Results' },
+              { id: 'hostels', label: 'Hostels' },
+              { id: 'staff', label: 'Staff' },
+              { id: 'exam_officer', label: 'Broadsheet' },
+              { id: 'librarian', label: 'Library' },
+              { id: 'registrar', label: 'Registrar' },
+              { id: 'parent', label: 'Parent' },
+              { id: 'admin', label: 'Master Admin' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as ActiveTab)}
+                className={`px-3 py-1.5 rounded whitespace-nowrap font-medium ${
+                  activeTab === tab.id ? 'bg-amber-400 text-emerald-950 font-bold' : 'text-emerald-100'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
       {/* Main Body Content */}
