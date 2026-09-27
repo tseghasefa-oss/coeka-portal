@@ -1,4 +1,4 @@
-CREATE TABLE `result_approvals` (
+CREATE TABLE IF NOT EXISTS `result_approvals` (
 	`id` text PRIMARY KEY NOT NULL,
 	`course_id` text NOT NULL,
 	`session_id` text,
@@ -12,7 +12,7 @@ CREATE TABLE `result_approvals` (
 	FOREIGN KEY (`dean_user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE TABLE `student_appeals` (
+CREATE TABLE IF NOT EXISTS `student_appeals` (
 	`id` text PRIMARY KEY NOT NULL,
 	`student_id` text NOT NULL,
 	`course_id` text NOT NULL,

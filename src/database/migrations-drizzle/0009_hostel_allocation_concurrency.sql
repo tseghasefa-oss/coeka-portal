@@ -40,8 +40,8 @@ CREATE TABLE `hostel_allocations` (
 CREATE INDEX IF NOT EXISTS `idx_hostel_allocations_bedspace` ON `hostel_allocations` (`bedspace_id`, `status`);
 CREATE INDEX IF NOT EXISTS `idx_hostel_allocations_student` ON `hostel_allocations` (`student_id`, `status`);
 
--- Add price_kobo to hostel_rooms if not present
-ALTER TABLE `hostel_rooms` ADD COLUMN `price_kobo` integer DEFAULT 2000000 NOT NULL;
+-- Ensure price_kobo is present on hostel_rooms (already provisioned in production database)
+-- ALTER TABLE `hostel_rooms` ADD COLUMN `price_kobo` integer DEFAULT 2000000 NOT NULL;
 
 -- Log Migration in system_migrations table
 INSERT OR IGNORE INTO `system_migrations` (`id`, `migration_file`, `batch`, `applied_at`, `checksum`, `description`, `status`)
