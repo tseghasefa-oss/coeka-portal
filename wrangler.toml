@@ -2,6 +2,8 @@ name = "coeka-portal"
 main = "src/api/index.ts"
 compatibility_date = "2026-09-01"
 compatibility_flags = ["nodejs_compat"]
+account_id = "2505509c9d45ab58888c430de12d58c8"
+pages_build_output_dir = "./dist"
 
 # Static Assets (React SPA output)
 assets = { directory = "./dist", not_found_handling = "single-page-application" }

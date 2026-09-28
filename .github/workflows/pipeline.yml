@@ -5,7 +5,9 @@ on:
     branches:
       - main
       - 'feature/**'
+      - 'feature-*'
       - 'fix/**'
+      - 'fix-*'
   pull_request:
     branches:
       - main
@@ -76,13 +78,14 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || '2505509c9d45ab58888c430de12d58c8' }}
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
       LEDGER_SIGNING_SECRET: ${{ secrets.LEDGER_SIGNING_SECRET }}
       VPAY_API_KEY: ${{ secrets.VPAY_API_KEY }}
       PAYSTACK_SECRET_KEY: ${{ secrets.PAYSTACK_SECRET_KEY }}
       VITE_API_URL: ${{ secrets.VITE_API_URL }}
       VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+      SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -116,16 +119,19 @@ jobs:
           if [ -n "$PAYSTACK_SECRET_KEY" ]; then
             echo "$PAYSTACK_SECRET_KEY" | npx wrangler secret put PAYSTACK_SECRET_KEY
           fi
-
-      - name: Deploy API to Cloudflare Workers
-        run: |
-          echo "Deploying Worker API to Cloudflare..."
-          npx wrangler deploy
+          if [ -n "$SENTRY_DSN" ]; then
+            echo "$SENTRY_DSN" | npx wrangler secret put SENTRY_DSN
+          fi
 
       - name: Build Frontend SPA
         run: |
           echo "Building production frontend assets..."
           npm run build
+
+      - name: Deploy API to Cloudflare Workers
+        run: |
+          echo "Deploying Worker API to Cloudflare..."
+          npx wrangler deploy
 
       - name: Deploy Frontend to Cloudflare Pages
         run: |
