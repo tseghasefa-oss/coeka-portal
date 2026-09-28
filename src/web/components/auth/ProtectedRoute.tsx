@@ -80,8 +80,8 @@ export function ProtectedRoute({ allowedRoles, children }: ProtectedRouteProps) 
   if (authLoading) {
     return (
       <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center p-6 text-white">
-        <div className="w-16 h-16 bg-amber-400 rounded-2xl flex items-center justify-center text-emerald-950 font-black mb-4 shadow-xl shadow-amber-500/20 border-2 border-amber-300 animate-pulse">
-          <GraduationCap className="w-10 h-10 text-emerald-950" />
+        <div className="w-16 h-20 flex items-center justify-center mb-4 animate-pulse shrink-0">
+          <img src="/coeka-logo.png" alt="COEKA Logo" className="w-full h-full object-contain" />
         </div>
         <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-base font-bold tracking-tight">Verifying COEKA Session...</p>

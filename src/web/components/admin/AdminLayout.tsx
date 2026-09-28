@@ -148,14 +148,8 @@ export const AdminLayout: React.FC = () => {
                 onClick={() => setActiveTab('website')}
                 title="Return to Main Portal"
               >
-                <div
-                  className={`w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-inner border ${
-                    isNavy
-                      ? 'bg-blue-600 text-white border-blue-400'
-                      : 'bg-amber-400 text-emerald-950 border-amber-300'
-                  }`}
-                >
-                  <GraduationCap className="w-6 h-6" />
+                <div className="w-10 h-11 flex items-center justify-center shrink-0">
+                  <img src="/coeka-logo.png" alt="COEKA Crest" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">

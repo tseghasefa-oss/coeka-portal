@@ -22,8 +22,8 @@ export const InstitutionalSettings: React.FC = () => {
 
   const [formData, setFormData] = useState<InstitutionalInfo>({
     name: 'College of Education, Katsina-Ala',
-    motto: 'Knowledge, Character and Excellence',
-    logoUrl: '/images/coeka-logo.png',
+    motto: 'Discipline and Dedication',
+    logoUrl: '/coeka-logo.png',
     email: 'registrar@coeka.edu.ng',
     phone: '+234 803 123 4567',
     address: 'P.M.B. 1008, Katsina-Ala, Benue State, Nigeria',
@@ -210,8 +210,8 @@ export const InstitutionalSettings: React.FC = () => {
             </span>
 
             <div className="flex flex-col items-center text-center p-6 rounded-2xl bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900 border border-slate-200 dark:border-slate-800">
-              <div className="w-20 h-20 rounded-2xl bg-emerald-950 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-md mb-3 overflow-hidden">
-                <GraduationCap className="w-10 h-10" />
+              <div className="w-20 h-24 rounded-2xl bg-white border-2 border-amber-400 flex items-center justify-center shadow-md mb-3 overflow-hidden p-1.5">
+                <img src={formData.logoUrl || '/coeka-logo.png'} alt="COEKA Logo" className="w-full h-full object-contain" />
               </div>
               <h4 className="font-extrabold text-sm text-slate-900 dark:text-white max-w-xs">
                 {formData.name}

@@ -168,8 +168,8 @@ The Provost commends the Governing Council, academic staff, and management for m
             
             {/* Institutional Brand Identity */}
             <a href="#hero" className="flex items-center gap-3.5 group">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0B192C] to-slate-900 border-2 border-amber-400 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
-                <GraduationCap className="w-7 h-7 text-amber-400" />
+              <div className="w-12 h-14 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <img src="/coeka-logo.png" alt="COEKA Official Crest" className="w-full h-full object-contain" />
               </div>
               <div className="flex flex-col">
                 <span className="text-lg font-black tracking-tight text-[#0B192C] leading-none group-hover:text-blue-700 transition-colors">
@@ -179,7 +179,7 @@ The Provost commends the Governing Council, academic staff, and management for m
                   Katsina-Ala, Benue State
                 </span>
                 <span className="text-[10px] text-slate-500 hidden sm:block">
-                  Established 1976 • Excellence in Teacher Education
+                  Established 1976 • Discipline and Dedication
                 </span>
               </div>
             </a>
@@ -1507,8 +1507,8 @@ The Provost commends the Governing Council, academic staff, and management for m
             {/* Col 1 & 2: Institutional Identity & Motto */}
             <div className="lg:col-span-2 space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-slate-900 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-md">
-                  <GraduationCap className="w-7 h-7" />
+                <div className="w-12 h-14 flex items-center justify-center shrink-0">
+                  <img src="/coeka-logo.png" alt="COEKA Crest" className="w-full h-full object-contain" />
                 </div>
                 <div>
                   <span className="text-base font-black text-white tracking-tight block">
@@ -1527,7 +1527,7 @@ The Provost commends the Governing Council, academic staff, and management for m
 
               <div className="text-xs text-slate-400 space-y-1">
                 <p className="font-semibold text-slate-300">Institutional Motto:</p>
-                <p className="italic text-amber-400">"Excellence in Teacher Education"</p>
+                <p className="italic text-amber-400">"Discipline and Dedication"</p>
               </div>
 
               <div className="pt-2">

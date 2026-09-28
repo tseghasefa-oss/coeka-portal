@@ -273,15 +273,15 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               className="flex items-center gap-3 cursor-pointer group"
               onClick={() => setActiveTab('dashboard_home')}
             >
-              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-[#0B192C] to-slate-900 border-2 border-amber-400 flex items-center justify-center text-amber-400 shadow-md group-hover:scale-105 transition-transform">
-                <GraduationCap className="w-6 h-6" />
+              <div className="w-10 h-11 sm:w-11 sm:h-12 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+                <img src="/coeka-logo.png" alt="COEKA Crest" className="w-full h-full object-contain" />
               </div>
               <div className="hidden sm:flex flex-col">
                 <span className="text-sm font-black text-[#0B192C] tracking-tight leading-none group-hover:text-blue-700 transition-colors">
-                  COEKA ENTERPRISE
+                  COLLEGE OF EDUCATION
                 </span>
                 <span className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-0.5">
-                  Digital Campus Portal
+                  Katsina-Ala • Enterprise Portal
                 </span>
               </div>
             </div>
@@ -471,13 +471,18 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         >
           {/* Sidebar Header: Role Badge + Toggle Collapse Button */}
           <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800/80">
-            {!isCollapsed && (
-              <div className="flex flex-col overflow-hidden">
-                <span className="text-xs font-black uppercase tracking-wider text-amber-400 truncate">
-                  {role} PORTAL
-                </span>
-                <span className="text-[10px] text-slate-400 truncate">Sovereign Edge Hub</span>
+            {!isCollapsed ? (
+              <div className="flex items-center gap-2.5 overflow-hidden">
+                <img src="/coeka-logo.png" alt="COEKA" className="w-8 h-9 object-contain shrink-0" />
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-400 truncate">
+                    {role} PORTAL
+                  </span>
+                  <span className="text-[10px] text-slate-400 truncate">Sovereign Edge Hub</span>
+                </div>
               </div>
+            ) : (
+              <img src="/coeka-logo.png" alt="COEKA" className="w-8 h-9 object-contain mx-auto" />
             )}
             
             <button
@@ -574,8 +579,8 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 {/* Drawer Top */}
                 <div className="h-20 flex items-center justify-between px-6 border-b border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 border-2 border-amber-400 flex items-center justify-center text-amber-400 font-black shadow">
-                      CK
+                    <div className="w-10 h-11 flex items-center justify-center shrink-0">
+                      <img src="/coeka-logo.png" alt="COEKA Crest" className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <span className="text-sm font-black text-white block">COEKA PORTAL</span>

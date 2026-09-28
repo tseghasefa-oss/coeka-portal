@@ -23,8 +23,8 @@ export const InstitutionalMaintenanceScreen: React.FC<Props> = ({ onCheckAgain, 
       {/* Top Header */}
       <div className="w-full max-w-4xl flex items-center justify-between py-4 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center font-black shadow-inner">
-            <GraduationCap className="w-6 h-6 text-emerald-900" />
+          <div className="w-10 h-11 flex items-center justify-center shrink-0">
+            <img src="/coeka-logo.png" alt="COEKA Crest" className="w-full h-full object-contain" />
           </div>
           <div>
             <h1 className="text-sm font-bold tracking-tight text-white">COEKA ENTERPRISE DIGITAL CAMPUS</h1>

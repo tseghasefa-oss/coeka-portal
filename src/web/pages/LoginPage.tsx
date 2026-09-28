@@ -115,8 +115,8 @@ export function LoginPage() {
         {/* Top Header: Institutional Identity & Return to Website */}
         <div className="relative z-10 flex items-center justify-between">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 p-0.5 shadow-lg shadow-amber-500/20 border border-amber-300/60 flex items-center justify-center">
-              <GraduationCap className="w-7 h-7 text-slate-950" />
+            <div className="w-12 h-14 flex items-center justify-center shrink-0">
+              <img src="/coeka-logo.png" alt="COEKA Official Crest" className="w-full h-full object-contain" />
             </div>
             <div>
               <span className="block text-xs font-black tracking-widest text-amber-400 uppercase">
@@ -233,8 +233,8 @@ export function LoginPage() {
         {/* Mobile Header (Visible on screens < lg) */}
         <div className="lg:hidden w-full max-w-md mb-6 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 p-0.5 shadow-md flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-slate-950" />
+            <div className="w-9 h-10 flex items-center justify-center shrink-0">
+              <img src="/coeka-logo.png" alt="COEKA Logo" className="w-full h-full object-contain" />
             </div>
             <div>
               <span className="block text-xs font-black text-slate-900">COEKA PORTAL</span>
