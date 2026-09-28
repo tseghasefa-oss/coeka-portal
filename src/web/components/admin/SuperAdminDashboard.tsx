@@ -33,6 +33,8 @@ import {
   ExternalLink,
   ChevronRight,
   X,
+  Clock,
+  HardDrive,
 } from 'lucide-react';
 import { useAppStore, AdminTab } from '../../stores/useAppStore';
 import { SystemPipelineView } from './SystemPipelineView';
@@ -60,13 +62,42 @@ export type ManagementSuite =
   | 'admissions'
   | 'pipeline';
 
+// Lightweight, pure React SVG Sparkline component for KPI trendlines
+const Sparkline: React.FC<{ data: number[]; color?: string }> = ({ data, color = '#2563EB' }) => {
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const width = 84;
+  const height = 26;
+  const points = data
+    .map((val, idx) => {
+      const x = (idx / (data.length - 1)) * width;
+      const y = height - ((val - min) / range) * (height - 8) - 4;
+      return `${x},${y}`;
+    })
+    .join(' ');
+
+  return (
+    <svg width={width} height={height} className="overflow-visible shrink-0">
+      <polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+      />
+    </svg>
+  );
+};
+
 export const SuperAdminDashboard: React.FC = () => {
   const { userSession, uiPreferences, setAdminTab } = useAppStore();
   const isNavy = uiPreferences.theme === 'navy';
 
-  // Suite Navigation State (Hub-and-Spoke)
+  // Suite Navigation State (Hub-and-Spoke Bento Hub)
   const [activeSuite, setActiveSuite] = useState<ManagementSuite>('hub');
-  
+
   // Sub-tab states for suites
   const [governanceSubTab, setGovernanceSubTab] = useState<'users'>('users');
   const [institutionalSubTab, setInstitutionalSubTab] = useState<'fees' | 'courses' | 'calendar'>('fees');
@@ -74,9 +105,31 @@ export const SuperAdminDashboard: React.FC = () => {
   const [infraSubTab, setInfraSubTab] = useState<'maintenance' | 'backups' | 'migrations' | 'identity'>('maintenance');
   const [admissionsSubTab, setAdmissionsSubTab] = useState<'upload' | 'progression'>('upload');
 
+  // Interactive Bento Cell States
+  const [maintenanceModeActive, setMaintenanceModeActive] = useState(false);
+  const [apiGatewayActive, setApiGatewayActive] = useState(true);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [lastBackupTime, setLastBackupTime] = useState('4h ago');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   // Command Palette State (Cmd+K)
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [commandSearch, setCommandSearch] = useState('');
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3500);
+  };
+
+  const handleRunBackup = () => {
+    if (isBackingUp) return;
+    setIsBackingUp(true);
+    setTimeout(() => {
+      setIsBackingUp(false);
+      setLastBackupTime('Just now');
+      triggerToast('AES-256 encrypted D1 snapshot completed successfully.');
+    }, 1200);
+  };
 
   // Keyboard shortcut listener for Cmd+K / Ctrl+K
   useEffect(() => {
@@ -125,19 +178,34 @@ export const SuperAdminDashboard: React.FC = () => {
     setCommandSearch('');
   };
 
+  // Recent 5 verified audit logs for Audit Snapshot Bento Card
+  const recentAuditLogs = [
+    { id: '1', action: 'USER_ROLE_UPDATED', actor: 'tyodoo.yue', desc: 'Promoted Dr. J. Orkuma to HOD Computing', time: '2m ago' },
+    { id: '2', action: 'RESULT_APPROVE', actor: 'dean.science', desc: 'Dean Approved Degree 300L CSC Exam Results', time: '14m ago' },
+    { id: '3', action: 'CLEARANCE_GRANTED', actor: 'lib.officer', desc: 'Library Clearance issued to Candidate #084', time: '38m ago' },
+    { id: '4', action: 'FEE_SCHEDULE_SET', actor: 'bursar.central', desc: 'Updated NCE 100L Science Tuition to ₦48,000', time: '1h ago' },
+    { id: '5', action: 'BULK_LEVEL_PROMOTED', actor: 'registrar.exams', desc: 'Advanced 480 NCE 100L students to 200L', time: '2h ago' },
+  ];
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12 animate-fade-in font-sans">
-      
+    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-fade-in font-sans">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-semibold bg-[#0B192C] text-white border border-slate-700 animate-in slide-in-from-bottom duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* ========================================================================= */}
-      {/* 1. BREADCRUMB NAVIGATION & COMMAND PALETTE TRIGGER                        */}
+      {/* 1. TOP BREADCRUMB BAR & COMMAND PALETTE TRIGGER                           */}
       {/* ========================================================================= */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-200/80">
-        {/* Breadcrumb Trail */}
         <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
           <button
             type="button"
             onClick={() => setActiveSuite('hub')}
-            className={`flex items-center gap-1.5 transition-colors ${
+            className={`flex items-center gap-1.5 transition-colors cursor-pointer ${
               activeSuite === 'hub' ? 'text-[#0B192C] font-bold' : 'hover:text-blue-700'
             }`}
           >
@@ -148,28 +216,27 @@ export const SuperAdminDashboard: React.FC = () => {
           {activeSuite !== 'hub' && (
             <>
               <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span className="text-[#0B192C] font-bold uppercase tracking-wider">
+              <span className="font-extrabold text-[#0B192C] uppercase tracking-wider">
                 {activeSuite === 'governance' && 'Governance Suite'}
                 {activeSuite === 'institutional' && 'Institutional Suite'}
                 {activeSuite === 'forensics' && 'Forensic Suite'}
                 {activeSuite === 'infrastructure' && 'Infrastructure Suite'}
                 {activeSuite === 'admissions' && 'Admissions Suite'}
-                {activeSuite === 'pipeline' && 'System Pipeline Suite'}
+                {activeSuite === 'pipeline' && 'System Pipeline'}
               </span>
             </>
           )}
         </div>
 
-        {/* Right Utility: Quick Return & Search-First Command Palette Trigger */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {activeSuite !== 'hub' && (
             <button
               type="button"
               onClick={() => setActiveSuite('hub')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#0B192C] bg-white border border-slate-300 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 transition-colors shadow-sm cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Hub</span>
+              <span>Back to Bento Hub</span>
             </button>
           )}
 
@@ -189,461 +256,600 @@ export const SuperAdminDashboard: React.FC = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* 2. COMMAND CENTER LANDING VIEW (THE MODULAR HUB)                          */}
+      {/* 2. BENTO GRID SYSTEM: COMMAND CENTER LANDING VIEW                         */}
       {/* ========================================================================= */}
       {activeSuite === 'hub' && (
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-6 animate-fade-in">
           
-          {/* Executive Header Banner (Anchored in Navy Blue, Clean & Authoritative) */}
-          <div className="p-6 sm:p-8 rounded-3xl bg-[#0B192C] text-white shadow-sm border border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="space-y-2 relative z-10">
-              <div className="flex items-center gap-2.5">
-                <span className="text-[11px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+          {/* Institutional Header Cell */}
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950 dark:text-blue-300">
                   Institutional Master Console
                 </span>
-                <span className="text-xs text-slate-400 font-medium">
-                  College of Education, Katsina-Ala
-                </span>
+                <span className="text-xs text-slate-400">College of Education, Katsina-Ala</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
+              <h1 className="text-2xl font-black text-[#0B192C] dark:text-white tracking-tight flex items-center gap-2">
                 Executive Command Center
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Centralized supervisory hub for governance, financial oversight, cryptographic forensics,
-                and edge infrastructure. Navigate specialized suites with zero clutter.
+              <p className="text-xs text-slate-500 max-w-xl">
+                Bento Grid architecture for governance, financial matrix, cryptographic audit vault, and edge infrastructure.
               </p>
             </div>
 
-            {/* Governor Profile Pill & Operational Heartbeat */}
-            <div className="flex flex-col sm:flex-row md:flex-col items-start md:items-end gap-2 shrink-0 relative z-10">
-              <div className="flex items-center gap-2.5 bg-slate-900/80 px-4 py-2 rounded-2xl border border-slate-700/80">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-mono font-bold text-slate-200">
-                  Cloudflare D1: Operational
-                </span>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-mono font-bold text-slate-700 dark:text-slate-300">Cloudflare D1: Operational</span>
               </div>
               <span className="text-[11px] text-slate-400 font-medium">
-                Signed in as: <strong className="text-white">{userSession?.fullName || 'SuperAdmin'}</strong>
+                Signed in: <strong className="text-slate-800 dark:text-white">{userSession?.fullName || 'SuperAdmin'}</strong>
               </span>
             </div>
           </div>
 
-          {/* CLUSTER 1: INSTITUTIONAL PULSE (4 Clean KPI Cards, Big Numbers, Sparklines) */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[#0B192C]">
-                Institutional Pulse & Vital Metrics
-              </h2>
-              <span className="text-xs text-slate-500">Live 2026/2027 Session Sync</span>
-            </div>
+          {/* THE BENTO GRID (12-Column Symmetrical Layout) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6">
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {/* Card 1: Students */}
-              <div
-                onClick={() => setActiveSuite('admissions')}
-                className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center justify-between text-slate-500 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Enrolled Students</span>
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Users className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black text-[#0B192C] tracking-tight">4,820</div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold mt-2">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  <span>+12.4% vs last session</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-1">NCE: 2,940 • Degree: 1,420 • Basic: 460</div>
-              </div>
-
-              {/* Card 2: Revenue */}
-              <div
-                onClick={() => { setActiveSuite('institutional'); setInstitutionalSubTab('fees'); }}
-                className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center justify-between text-slate-500 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Revenue Inflow</span>
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <DollarSign className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black text-[#0B192C] tracking-tight">₦184.5M</div>
-                <div className="flex items-center gap-1.5 text-xs text-blue-600 font-semibold mt-2">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>88.0% Collection Rate</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-1">Tuition: ₦142M • Acceptance: ₦24M</div>
-              </div>
-
-              {/* Card 3: Staff */}
-              <div
-                onClick={() => setActiveSuite('governance')}
-                className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center justify-between text-slate-500 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Academic & Staff</span>
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black text-[#0B192C] tracking-tight">342</div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold mt-2">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>100% RBAC Verified</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-1">18 Deans/HODs • 214 Lecturers • 110 Staff</div>
-              </div>
-
-              {/* Card 4: Health */}
-              <div
-                onClick={() => setActiveSuite('infrastructure')}
-                className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center justify-between text-slate-500 mb-2">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Edge Uptime</span>
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-105 transition-transform">
-                    <Activity className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="text-3xl font-black text-[#0B192C] tracking-tight">99.98%</div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold mt-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                  <span>D1 Latency: 12ms</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-1">TLS 1.3 Strict • Cloudflare Shield Active</div>
-              </div>
-            </div>
-          </div>
-
-          {/* CLUSTER 2: THE LIFECYCLE PIPELINE (Horizontal Visual Flow) */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* ----------------------------------------------------------------- */}
+            {/* HERO CELL 1: THE INSTITUTIONAL PULSE (Large - lg:col-span-6)      */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-6 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group">
               <div>
-                <h3 className="text-base font-extrabold text-[#0B192C] tracking-tight">
-                  Academic Lifecycle Pipeline
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Real-time progression tracking across admission, tuition settlement, SIMS enrollment, and senate clearance.
-                </p>
+                {/* Cell Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                      <Activity className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-extrabold text-[#0B192C] dark:text-white tracking-tight">
+                        Institutional Pulse
+                      </h2>
+                      <p className="text-xs text-slate-500">Live 2026/2027 session vitals & inflow analytics</p>
+                    </div>
+                  </div>
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    Live Sync
+                  </span>
+                </div>
+
+                {/* 4 KPIs in 2x2 Grid with Mini-Trendlines */}
+                <div className="grid grid-cols-2 gap-4 my-5">
+                  {/* KPI 1: Revenue Inflow */}
+                  <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Total Revenue Inflow</span>
+                      <Sparkline data={[42, 58, 65, 80, 95, 120, 142, 184]} color="#2563EB" />
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-2xl font-black text-[#0B192C] dark:text-white tracking-tight">₦184.5M</div>
+                      <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold mt-0.5">
+                        <TrendingUp className="w-3 h-3" />
+                        <span>+12.4% vs last term</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* KPI 2: Enrolled Students */}
+                  <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Enrolled Students</span>
+                      <Sparkline data={[12200, 12800, 13400, 13900, 14200, 14820]} color="#2563EB" />
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-2xl font-black text-[#0B192C] dark:text-white tracking-tight">14,820</div>
+                      <div className="flex items-center gap-1 text-[11px] text-blue-600 font-semibold mt-0.5">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>+4.8% cohort intake</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* KPI 3: Academic & Staff */}
+                  <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Academic & Staff</span>
+                      <Sparkline data={[440, 450, 460, 470, 478, 482]} color="#0B192C" />
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-2xl font-black text-[#0B192C] dark:text-white tracking-tight">482</div>
+                      <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold mt-0.5">
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>98.4% RBAC verified</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* KPI 4: Edge System Health */}
+                  <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 flex flex-col justify-between">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Edge Uptime</span>
+                      <Sparkline data={[99.9, 100, 99.8, 100, 100, 99.98]} color="#10B981" />
+                    </div>
+                    <div className="mt-2">
+                      <div className="text-2xl font-black text-[#0B192C] dark:text-white tracking-tight">99.98%</div>
+                      <div className="flex items-center gap-1 text-[11px] text-emerald-600 font-semibold mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        <span>12ms D1 edge latency</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Cell Action Button */}
               <button
                 type="button"
-                onClick={() => setActiveSuite('pipeline')}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                onClick={() => { setActiveSuite('institutional'); setInstitutionalSubTab('fees'); }}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0B192C] hover:bg-slate-900 text-white font-bold text-xs transition-colors flex items-center justify-between shadow-sm cursor-pointer mt-1"
               >
-                <span>Inspect Concurrency Engine</span>
+                <span>Inspect Institutional Financial Matrix</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Stepper Progress Bar */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
-              {/* Stage 1 */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-bold uppercase tracking-wider text-slate-500">1. Admitted</span>
-                    <span className="font-black text-[#0B192C]">100%</span>
+            {/* ----------------------------------------------------------------- */}
+            {/* HERO CELL 2: THE LIFECYCLE PIPELINE (Large - lg:col-span-6)       */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-6 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group">
+              <div>
+                {/* Cell Header */}
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+                      <Layers className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-extrabold text-[#0B192C] dark:text-white tracking-tight">
+                        Lifecycle Pipeline
+                      </h2>
+                      <p className="text-xs text-slate-500">Student journey progression across institutional milestones</p>
+                    </div>
                   </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full rounded-full" style={{ width: '100%' }} />
-                  </div>
-                </div>
-                <div className="text-lg font-black text-[#0B192C] mt-3">4,820 <span className="text-xs font-normal text-slate-500">Candidates</span></div>
-              </div>
-
-              {/* Stage 2 */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-bold uppercase tracking-wider text-slate-500">2. Paid Fees</span>
-                    <span className="font-black text-[#0B192C]">88.0%</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full rounded-full" style={{ width: '88%' }} />
-                  </div>
-                </div>
-                <div className="text-lg font-black text-[#0B192C] mt-3">4,241 <span className="text-xs font-normal text-slate-500">Settled</span></div>
-              </div>
-
-              {/* Stage 3 */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-bold uppercase tracking-wider text-slate-500">3. Enrolled</span>
-                    <span className="font-black text-[#0B192C]">82.0%</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full rounded-full" style={{ width: '82%' }} />
-                  </div>
-                </div>
-                <div className="text-lg font-black text-[#0B192C] mt-3">3,952 <span className="text-xs font-normal text-slate-500">In Courses</span></div>
-              </div>
-
-              {/* Stage 4 */}
-              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/60 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-bold uppercase tracking-wider text-slate-500">4. Certified</span>
-                    <span className="font-black text-[#0B192C]">94.0%</span>
-                  </div>
-                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div className="bg-blue-600 h-full rounded-full" style={{ width: '94%' }} />
-                  </div>
-                </div>
-                <div className="text-lg font-black text-[#0B192C] mt-3">4,530 <span className="text-xs font-normal text-slate-500">Cleared</span></div>
-              </div>
-            </div>
-          </div>
-
-          {/* TWO-COLUMN COMMAND CENTER LAYOUT: URGENT QUEUE + QUICK-ACTION GRID */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            {/* CLUSTER 3: URGENT ATTENTION QUEUE (Left Column - lg:col-span-5) */}
-            <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-sm flex flex-col justify-between space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
-                    <h3 className="text-base font-extrabold text-[#0B192C]">
-                      Urgent Attention Queue
-                    </h3>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[10px] font-bold">
-                    3 Action Items
+                  <span className="bg-blue-50 text-blue-800 border border-blue-200 text-[10px] font-bold px-2.5 py-0.5 rounded-full">
+                    88.0% Conversion
                   </span>
                 </div>
 
-                {/* Alert Item 1 */}
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 hover:border-slate-300 transition-all flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
-                    !
+                {/* Progress Stepper Journey */}
+                <div className="my-5 space-y-4">
+                  {/* Stepped Progress Track */}
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                      style={{ width: '88%' }}
+                    />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-slate-900 truncate">Pending Fee Overrides</span>
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full shrink-0">
-                        High Priority
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                      3 student fee waiver exceptions awaiting Bursary ledger reconciliation.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => { setActiveSuite('institutional'); setInstitutionalSubTab('fees'); }}
-                      className="text-xs font-bold text-blue-700 hover:text-blue-900 mt-2 inline-flex items-center gap-1"
-                    >
-                      <span>Resolve in Fee Suite</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
 
-                {/* Alert Item 2 */}
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 hover:border-slate-300 transition-all flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-slate-900 truncate">Edge Shield WAF Telemetry</span>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full shrink-0">
-                        Shielded
-                      </span>
+                  {/* 4 Pipeline Stages */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                    {/* Stage 1 */}
+                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                        <span>1. Admitted</span>
+                        <span className="text-[#0B192C] dark:text-white font-black">100%</span>
+                      </div>
+                      <div className="text-lg font-black text-[#0B192C] dark:text-white mt-1">4,820</div>
+                      <span className="text-[10px] text-slate-400">Screened Cohort</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                      14 malicious SQL injection payloads intercepted & dropped in last 24h.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => { setActiveSuite('forensics'); setForensicSubTab('vault'); }}
-                      className="text-xs font-bold text-blue-700 hover:text-blue-900 mt-2 inline-flex items-center gap-1"
-                    >
-                      <span>Inspect Forensic Vault</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
-                  </div>
-                </div>
 
-                {/* Alert Item 3 */}
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 hover:border-slate-300 transition-all flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center shrink-0 mt-0.5">
-                    <Database className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-slate-900 truncate">D1 Automated Snapshot</span>
-                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100/80 px-2 py-0.5 rounded-full shrink-0">
-                        Verified
-                      </span>
+                    {/* Stage 2 */}
+                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                        <span>2. Paid Fees</span>
+                        <span className="text-blue-600 font-black">88.0%</span>
+                      </div>
+                      <div className="text-lg font-black text-[#0B192C] dark:text-white mt-1">4,241</div>
+                      <span className="text-[10px] text-slate-400">Bursary Settled</span>
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
-                      Full AES-256 encrypted database snapshot verified at 04:00 UTC.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => { setActiveSuite('infrastructure'); setInfraSubTab('backups'); }}
-                      className="text-xs font-bold text-blue-700 hover:text-blue-900 mt-2 inline-flex items-center gap-1"
-                    >
-                      <span>Review Backup Log</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
+
+                    {/* Stage 3 */}
+                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                        <span>3. Enrolled</span>
+                        <span className="text-blue-600 font-black">82.0%</span>
+                      </div>
+                      <div className="text-lg font-black text-[#0B192C] dark:text-white mt-1">3,952</div>
+                      <span className="text-[10px] text-slate-400">Active in SIMS</span>
+                    </div>
+
+                    {/* Stage 4 */}
+                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
+                        <span>4. Certified</span>
+                        <span className="text-emerald-600 font-black">94.0%</span>
+                      </div>
+                      <div className="text-lg font-black text-[#0B192C] dark:text-white mt-1">4,530</div>
+                      <span className="text-[10px] text-slate-400">Senate Cleared</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/50 text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      Zero bottleneck alerts detected in current admission cycle.
+                    </span>
+                    <span className="font-semibold text-slate-700 dark:text-slate-300">2026/2027 Session</span>
                   </div>
                 </div>
               </div>
 
-              {/* Critical CTA Button (Strict Yellow Palette Rule) */}
+              {/* Cell Action Button */}
+              <button
+                type="button"
+                onClick={() => setActiveSuite('pipeline')}
+                className="w-full py-2.5 px-4 rounded-xl bg-[#0B192C] hover:bg-slate-900 text-white font-bold text-xs transition-colors flex items-center justify-between shadow-sm cursor-pointer mt-1"
+              >
+                <span>Launch Autonomous Concurrency Engine</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* ----------------------------------------------------------------- */}
+            {/* OPERATIONAL CELL 1: QUICK ACTION HUB (Medium - lg:col-span-4)     */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-blue-600" />
+                    <h3 className="text-sm font-extrabold text-[#0B192C] dark:text-white">Quick Action Hub</h3>
+                  </div>
+                  <span className="text-[11px] text-slate-400 font-medium">6 Tools</span>
+                </div>
+
+                {/* 6 Minimalist Icon Buttons */}
+                <div className="grid grid-cols-3 gap-2.5 my-4">
+                  {/* 1. Edit Fees */}
+                  <button
+                    type="button"
+                    onClick={() => { setActiveSuite('institutional'); setInstitutionalSubTab('fees'); }}
+                    className="p-3 rounded-2xl bg-slate-50 hover:bg-[#0B192C] text-slate-700 hover:text-white border border-slate-200/70 transition-all flex flex-col items-center justify-center text-center group cursor-pointer shadow-xs"
+                  >
+                    <DollarSign className="w-5 h-5 mb-1.5 text-blue-600 group-hover:text-amber-400 transition-colors" />
+                    <span className="text-[11px] font-bold leading-tight">Edit Fees</span>
+                  </button>
+
+                  {/* 2. Manage Roles */}
+                  <button
+                    type="button"
+                    onClick={() => { setActiveSuite('governance'); setGovernanceSubTab('users'); }}
+                    className="p-3 rounded-2xl bg-slate-50 hover:bg-[#0B192C] text-slate-700 hover:text-white border border-slate-200/70 transition-all flex flex-col items-center justify-center text-center group cursor-pointer shadow-xs"
+                  >
+                    <Users className="w-5 h-5 mb-1.5 text-blue-600 group-hover:text-amber-400 transition-colors" />
+                    <span className="text-[11px] font-bold leading-tight">Manage Roles</span>
+                  </button>
+
+                  {/* 3. Forensic Vault */}
+                  <button
+                    type="button"
+                    onClick={() => { setActiveSuite('forensics'); setForensicSubTab('vault'); }}
+                    className="p-3 rounded-2xl bg-slate-50 hover:bg-[#0B192C] text-slate-700 hover:text-white border border-slate-200/70 transition-all flex flex-col items-center justify-center text-center group cursor-pointer shadow-xs"
+                  >
+                    <Terminal className="w-5 h-5 mb-1.5 text-blue-600 group-hover:text-amber-400 transition-colors" />
+                    <span className="text-[11px] font-bold leading-tight">Audit Vault</span>
+                  </button>
+
+                  {/* 4. Course Catalog */}
+                  <button
+                    type="button"
+                    onClick={() => { setActiveSuite('institutional'); setInstitutionalSubTab('courses'); }}
+                    className="p-3 rounded-2xl bg-slate-50 hover:bg-[#0B192C] text-slate-700 hover:text-white border border-slate-200/70 transition-all flex flex-col items-center justify-center text-center group cursor-pointer shadow-xs"
+                  >
+                    <BookOpen className="w-5 h-5 mb-1.5 text-blue-600 group-hover:text-amber-400 transition-colors" />
+                    <span className="text-[11px] font-bold leading-tight">Courses</span>
+                  </button>
+
+                  {/* 5. Admissions */}
+                  <button
+                    type="button"
+                    onClick={() => { setActiveSuite('admissions'); setAdmissionsSubTab('upload'); }}
+                    className="p-3 rounded-2xl bg-slate-50 hover:bg-[#0B192C] text-slate-700 hover:text-white border border-slate-200/70 transition-all flex flex-col items-center justify-center text-center group cursor-pointer shadow-xs"
+                  >
+                    <UserCheck className="w-5 h-5 mb-1.5 text-blue-600 group-hover:text-amber-400 transition-colors" />
+                    <span className="text-[11px] font-bold leading-tight">Admissions</span>
+                  </button>
+
+                  {/* 6. System Pipeline */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveSuite('pipeline')}
+                    className="p-3 rounded-2xl bg-slate-50 hover:bg-[#0B192C] text-slate-700 hover:text-white border border-slate-200/70 transition-all flex flex-col items-center justify-center text-center group cursor-pointer shadow-xs"
+                  >
+                    <TrendingUp className="w-5 h-5 mb-1.5 text-blue-600 group-hover:text-amber-400 transition-colors" />
+                    <span className="text-[11px] font-bold leading-tight">Pipeline</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Trigger Command Palette */}
+              <button
+                type="button"
+                onClick={() => setCommandPaletteOpen(true)}
+                className="w-full py-2 px-3 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span className="flex items-center gap-1.5">
+                  <Search className="w-3.5 h-3.5 text-slate-400" />
+                  <span>Open Command Palette</span>
+                </span>
+                <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-slate-100 rounded text-slate-500 border border-slate-200">
+                  Ctrl+K
+                </kbd>
+              </button>
+            </div>
+
+            {/* ----------------------------------------------------------------- */}
+            {/* OPERATIONAL CELL 2: AUDIT SNAPSHOT (Medium - lg:col-span-4)       */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-blue-600" />
+                    <h3 className="text-sm font-extrabold text-[#0B192C] dark:text-white">Audit Snapshot</h3>
+                  </div>
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    0 Tampered
+                  </span>
+                </div>
+
+                {/* Exactly 5 Verified Audit Rows */}
+                <div className="my-3 space-y-2">
+                  {recentAuditLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-800 dark:text-slate-200 truncate leading-tight">
+                            {log.desc}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono truncate">
+                            {log.actor} • {log.time}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-mono font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 shrink-0">
+                        VERIFIED
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* View All Action */}
+              <button
+                type="button"
+                onClick={() => { setActiveSuite('forensics'); setForensicSubTab('vault'); }}
+                className="w-full py-2 px-3 rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors flex items-center justify-between cursor-pointer"
+              >
+                <span>View Full Forensic Vault (All Logs)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* ----------------------------------------------------------------- */}
+            {/* OPERATIONAL CELL 3: INFRASTRUCTURE STATUS (Medium - lg:col-span-4) */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-4 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-4 h-4 text-blue-600" />
+                    <h3 className="text-sm font-extrabold text-[#0B192C] dark:text-white">Infrastructure Status</h3>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-600 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Active Edge
+                  </div>
+                </div>
+
+                {/* Interactive Toggles & Live Indicators */}
+                <div className="my-3 space-y-2.5">
+                  {/* Toggle 1: Maintenance Mode */}
+                  <div className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">Maintenance Mode</div>
+                      <div className="text-[10px] text-slate-500">
+                        {maintenanceModeActive ? 'Campus traffic redirected to hold' : 'Normal live student & staff traffic'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMaintenanceModeActive(!maintenanceModeActive);
+                        triggerToast(`Maintenance Mode toggled ${!maintenanceModeActive ? 'ON' : 'OFF'}.`);
+                      }}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        maintenanceModeActive ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          maintenanceModeActive ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Toggle 2: API Gateway */}
+                  <div className="p-3 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">API Edge Gateway</div>
+                      <div className="text-[10px] text-slate-500">
+                        {apiGatewayActive ? 'Strict WAF & Rate Limiting (Active)' : 'Gateway Bypassed (Dev mode)'}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setApiGatewayActive(!apiGatewayActive);
+                        triggerToast(`API Edge Gateway ${!apiGatewayActive ? 'Enabled' : 'Bypassed'}.`);
+                      }}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        apiGatewayActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          apiGatewayActive ? 'translate-x-4' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Edge Telemetry Strip */}
+                  <div className="p-2.5 rounded-xl bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200/50 flex items-center justify-between text-[11px] text-slate-600 dark:text-slate-400">
+                    <span className="font-mono">D1 Latency: <strong className="text-emerald-600">12ms</strong></span>
+                    <span className="font-mono">Cache: <strong className="text-blue-600">98.4% HIT</strong></span>
+                    <span className="font-mono">Nodes: <strong>LOS / LHR</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Emergency Console Button (Strict Yellow/Amber Palette) */}
               <button
                 type="button"
                 onClick={() => { setActiveSuite('infrastructure'); setInfraSubTab('maintenance'); }}
-                className="w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0B192C] font-black text-xs uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0B192C] font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm cursor-pointer"
               >
-                <Power className="w-4 h-4" />
+                <Power className="w-3.5 h-3.5" />
                 <span>Emergency Maintenance Console</span>
               </button>
             </div>
 
-            {/* CLUSTER 4: QUICK-ACTION GRID (Right Column - lg:col-span-7: 6 Portals) */}
-            <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 className="text-base font-extrabold text-[#0B192C]">
-                  Specialized Management Suites
-                </h3>
-                <span className="text-xs text-slate-500">6 Modular Subsystems</span>
+            {/* ----------------------------------------------------------------- */}
+            {/* UTILITY CELL 1: USER COUNT (Small - lg:col-span-3)                */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">User Count</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                    <Users className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-3xl font-black text-[#0B192C] dark:text-white tracking-tight">14,820</div>
+                <p className="text-xs text-slate-500 mt-1">14,338 Students • 482 Staff</p>
+                <div className="text-[10px] text-slate-400 mt-1">Across NCE, Degree, Basic & Secondary</div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                {/* Portal 1: Governance Suite */}
-                <div
-                  onClick={() => { setActiveSuite('governance'); setGovernanceSubTab('users'); }}
-                  className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/70 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:bg-[#0B192C] group-hover:text-white transition-colors">
-                      <Users className="w-5 h-5" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#0B192C] group-hover:text-blue-700 transition-colors">
-                      Governance Suite
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1 leading-snug">
-                      User accounts, role assignment, RBAC policy enforcement, and password resets.
-                    </p>
-                  </div>
-                </div>
+              <button
+                type="button"
+                onClick={() => { setActiveSuite('governance'); setGovernanceSubTab('users'); }}
+                className="mt-4 text-xs font-bold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span>Manage User Directory</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
 
-                {/* Portal 2: Institutional Suite */}
-                <div
-                  onClick={() => { setActiveSuite('institutional'); setInstitutionalSubTab('fees'); }}
-                  className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/70 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:bg-[#0B192C] group-hover:text-white transition-colors">
-                      <DollarSign className="w-5 h-5" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#0B192C] group-hover:text-blue-700 transition-colors">
-                      Institutional Suite
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1 leading-snug">
-                      Master fee matrix, academic courses, curriculum mapping, and session calendar.
-                    </p>
+            {/* ----------------------------------------------------------------- */}
+            {/* UTILITY CELL 2: DEBT ALERT (Small - lg:col-span-3)                 */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Debt & Arrears Alert</span>
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center">
+                    <CreditCard className="w-4 h-4" />
                   </div>
                 </div>
+                {/* Total outstanding amount in Navy Blue text per prompt */}
+                <div className="text-3xl font-black text-[#0B192C] dark:text-blue-300 tracking-tight">₦18.4M</div>
+                <p className="text-xs text-slate-500 mt-1">Outstanding term balance</p>
+                <div className="text-[10px] text-amber-700 dark:text-amber-400 font-semibold mt-1">
+                  12.0% pending tuition ledger settlement
+                </div>
+              </div>
 
-                {/* Portal 3: Forensic Suite */}
-                <div
-                  onClick={() => { setActiveSuite('forensics'); setForensicSubTab('vault'); }}
-                  className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/70 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:bg-[#0B192C] group-hover:text-white transition-colors">
-                      <Terminal className="w-5 h-5" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#0B192C] group-hover:text-blue-700 transition-colors">
-                      Forensic Suite
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1 leading-snug">
-                      HMAC-SHA256 tamper verification, cryptographic audit vault, and security logs.
-                    </p>
-                  </div>
-                </div>
+              <button
+                type="button"
+                onClick={() => { setActiveSuite('institutional'); setInstitutionalSubTab('fees'); }}
+                className="mt-4 text-xs font-bold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span>Reconcile Fee Ledgers</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
 
-                {/* Portal 4: Infrastructure Suite */}
-                <div
-                  onClick={() => { setActiveSuite('infrastructure'); setInfraSubTab('maintenance'); }}
-                  className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/70 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:bg-[#0B192C] group-hover:text-white transition-colors">
-                      <Server className="w-5 h-5" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#0B192C] group-hover:text-blue-700 transition-colors">
-                      Infrastructure Suite
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1 leading-snug">
-                      Kill-switch, D1 automated backups, Drizzle schema migrations, and branding.
-                    </p>
+            {/* ----------------------------------------------------------------- */}
+            {/* UTILITY CELL 3: BACKUP STATUS (Small - lg:col-span-3)             */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Backup Status</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                    <Database className="w-4 h-4" />
                   </div>
                 </div>
+                <div className="text-xl font-black text-[#0B192C] dark:text-white tracking-tight flex items-center gap-2">
+                  <span>Last: {lastBackupTime}</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">AES-256 D1 Encrypted Snapshot</p>
+                <div className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-1">
+                  <CheckCircle2 className="w-3 h-3" />
+                  <span>Automated backup verified</span>
+                </div>
+              </div>
 
-                {/* Portal 5: Admissions Lifecycle */}
-                <div
-                  onClick={() => { setActiveSuite('admissions'); setAdmissionsSubTab('upload'); }}
-                  className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/70 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+              <div className="flex items-center gap-2 mt-4">
+                <button
+                  type="button"
+                  onClick={handleRunBackup}
+                  disabled={isBackingUp}
+                  className="px-3.5 py-1.5 rounded-xl bg-[#0B192C] hover:bg-slate-900 text-white font-bold text-xs transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:bg-[#0B192C] group-hover:text-white transition-colors">
-                      <UserCheck className="w-5 h-5" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#0B192C] group-hover:text-blue-700 transition-colors">
-                      Admissions Suite
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1 leading-snug">
-                      Bulk CSV candidate onboarding, automatic credential generation, and session resets.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Portal 6: System Pipeline */}
-                <div
-                  onClick={() => setActiveSuite('pipeline')}
-                  className="p-5 rounded-2xl bg-slate-50/80 border border-slate-200/70 hover:bg-white hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group flex flex-col justify-between"
+                  <RefreshCw className={`w-3 h-3 ${isBackingUp ? 'animate-spin' : ''}`} />
+                  <span>{isBackingUp ? 'Backing up...' : 'Run Now'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setActiveSuite('infrastructure'); setInfraSubTab('backups'); }}
+                  className="text-xs font-bold text-slate-500 hover:text-slate-800"
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center group-hover:bg-[#0B192C] group-hover:text-white transition-colors">
-                      <TrendingUp className="w-5 h-5" />
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-[#0B192C] group-hover:text-blue-700 transition-colors">
-                      System Pipeline
-                    </h4>
-                    <p className="text-xs text-slate-500 mt-1 leading-snug">
-                      Real-time concurrency engine, bed reservation locks, and executive overrides.
-                    </p>
-                  </div>
-                </div>
+                  Logs
+                </button>
               </div>
             </div>
+
+            {/* ----------------------------------------------------------------- */}
+            {/* UTILITY CELL 4: SYSTEM VERSION (Small - lg:col-span-3)            */}
+            {/* ----------------------------------------------------------------- */}
+            <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">System Version</span>
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                    <FileCheck2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-xl font-black text-[#0B192C] dark:text-white tracking-tight">v2.4.0 Edge</div>
+                <p className="text-xs text-slate-500 mt-1">D1 Cloudflare Sync</p>
+                <div className="mt-1">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                    Schema v14 Applied
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => { setActiveSuite('infrastructure'); setInfraSubTab('migrations'); }}
+                className="mt-4 text-xs font-bold text-blue-700 hover:text-blue-900 inline-flex items-center gap-1 cursor-pointer"
+              >
+                <span>View Migration Logs</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
+
           </div>
         </div>
       )}
@@ -655,7 +861,7 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* SUITE 1: GOVERNANCE SUITE */}
       {activeSuite === 'governance' && (
         <div className="space-y-6 animate-fade-in">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-black text-[#0B192C]">Governance & Role Management Suite</h2>
               <p className="text-xs text-slate-500">
@@ -665,10 +871,10 @@ export const SuperAdminDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSuite('hub')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Command Center</span>
+              <span>Return to Bento Hub</span>
             </button>
           </div>
 
@@ -679,6 +885,23 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* SUITE 2: INSTITUTIONAL SUITE (FEES, COURSES, CALENDAR) */}
       {activeSuite === 'institutional' && (
         <div className="space-y-6 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-[#0B192C]">Institutional Operations Suite</h2>
+              <p className="text-xs text-slate-500">
+                Master fee schedule matrix, courses & curriculum, and academic calendar.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveSuite('hub')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Bento Hub</span>
+            </button>
+          </div>
+
           {/* Suite Sub-Navigation Tabs */}
           <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white border border-slate-200/80 rounded-2xl w-fit shadow-sm">
             <button
@@ -725,6 +948,23 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* SUITE 3: FORENSIC SUITE */}
       {activeSuite === 'forensics' && (
         <div className="space-y-6 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-[#0B192C]">Cryptographic Forensic Suite</h2>
+              <p className="text-xs text-slate-500">
+                HMAC-SHA256 row-level signature verification and system telemetry.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveSuite('hub')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Bento Hub</span>
+            </button>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white border border-slate-200/80 rounded-2xl w-fit shadow-sm">
             <button
               type="button"
@@ -763,6 +1003,23 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* SUITE 4: INFRASTRUCTURE SUITE */}
       {activeSuite === 'infrastructure' && (
         <div className="space-y-6 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-[#0B192C]">Infrastructure & Edge Nodes Suite</h2>
+              <p className="text-xs text-slate-500">
+                Kill-switch, D1 automated backups, schema migrations, and institutional identity.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveSuite('hub')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Bento Hub</span>
+            </button>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white border border-slate-200/80 rounded-2xl w-fit shadow-sm">
             <button
               type="button"
@@ -825,6 +1082,23 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* SUITE 5: ADMISSIONS SUITE */}
       {activeSuite === 'admissions' && (
         <div className="space-y-6 animate-fade-in">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-[#0B192C]">Admissions Lifecycle Suite</h2>
+              <p className="text-xs text-slate-500">
+                Bulk candidate onboarding, credential generation, and session resets.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveSuite('hub')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Return to Bento Hub</span>
+            </button>
+          </div>
+
           <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white border border-slate-200/80 rounded-2xl w-fit shadow-sm">
             <button
               type="button"
@@ -857,7 +1131,7 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* SUITE 6: SYSTEM PIPELINE */}
       {activeSuite === 'pipeline' && (
         <div className="space-y-6 animate-fade-in">
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-black text-[#0B192C]">Autonomous Concurrency Engine</h2>
               <p className="text-xs text-slate-500">
@@ -867,10 +1141,10 @@ export const SuperAdminDashboard: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveSuite('hub')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors cursor-pointer"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Return to Command Center</span>
+              <span>Return to Bento Hub</span>
             </button>
           </div>
 
@@ -883,9 +1157,9 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* ========================================================================= */}
       {commandPaletteOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 px-4 bg-slate-950/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-xl w-full overflow-hidden">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl max-w-xl w-full overflow-hidden">
             {/* Search Input Bar */}
-            <div className="p-4 border-b border-slate-200 flex items-center gap-3">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center gap-3">
               <Search className="w-5 h-5 text-slate-400 shrink-0" />
               <input
                 type="text"
@@ -893,12 +1167,12 @@ export const SuperAdminDashboard: React.FC = () => {
                 value={commandSearch}
                 onChange={(e) => setCommandSearch(e.target.value)}
                 placeholder="Type a command or jump to suite (e.g. fees, users, audit, backup)..."
-                className="w-full text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                className="w-full text-sm font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none bg-transparent"
               />
               <button
                 type="button"
                 onClick={() => setCommandPaletteOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -914,14 +1188,14 @@ export const SuperAdminDashboard: React.FC = () => {
                       key={idx}
                       type="button"
                       onClick={() => navigateToCommand(cmd.suite, cmd.subTab)}
-                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-100 text-left transition-colors group cursor-pointer"
+                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-left transition-colors group cursor-pointer"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center shrink-0 group-hover:bg-[#0B192C] group-hover:text-white transition-colors">
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0 group-hover:bg-[#0B192C] group-hover:text-white transition-colors">
                           <Icon className="w-4 h-4" />
                         </div>
                         <div className="min-w-0">
-                          <span className="text-xs font-bold text-slate-900 block truncate group-hover:text-blue-700">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white block truncate group-hover:text-blue-700">
                             {cmd.label}
                           </span>
                           <span className="text-[10px] text-slate-400 block truncate">
@@ -940,9 +1214,9 @@ export const SuperAdminDashboard: React.FC = () => {
               )}
             </div>
 
-            <div className="p-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-              <span>Use <kbd className="px-1 py-0.5 bg-white border rounded">↑</kbd> <kbd className="px-1 py-0.5 bg-white border rounded">↓</kbd> to navigate</span>
-              <span><kbd className="px-1 py-0.5 bg-white border rounded">ESC</kbd> to close</span>
+            <div className="p-3 bg-slate-50 dark:bg-slate-800 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-400">
+              <span>Use <kbd className="px-1 py-0.5 bg-white dark:bg-slate-700 border dark:border-slate-600 rounded">↑</kbd> <kbd className="px-1 py-0.5 bg-white dark:bg-slate-700 border dark:border-slate-600 rounded">↓</kbd> to navigate</span>
+              <span><kbd className="px-1 py-0.5 bg-white dark:bg-slate-700 border dark:border-slate-600 rounded">ESC</kbd> to close</span>
             </div>
           </div>
         </div>
