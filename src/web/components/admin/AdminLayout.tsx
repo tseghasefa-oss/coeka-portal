@@ -70,63 +70,63 @@ export const AdminLayout: React.FC = () => {
       ? [
           {
             id: 'godmode' as AdminTab,
-            label: 'God Mode Governor',
-            subLabel: 'Central Command & Overrides',
-            icon: ShieldAlert,
+            label: 'Command Center',
+            subLabel: 'Executive Institutional Hub',
+            icon: ShieldCheck,
           },
         ]
       : []),
     {
-      id: 'courses',
-      label: 'Academic Management',
-      subLabel: 'Courses, Departments, Faculty',
-      icon: BookOpen,
+      id: 'users',
+      label: 'Governance Suite',
+      subLabel: 'User Accounts, Roles, RBAC',
+      icon: Users,
     },
     {
       id: 'fees',
-      label: 'Financial Price Setting',
+      label: 'Institutional Suite (Fees)',
       subLabel: 'Tuition, Acceptance, Levies',
       icon: DollarSign,
     },
     {
-      id: 'users',
-      label: 'User & Role Lifecycle',
-      subLabel: 'Roles, RBAC, Passwords',
-      icon: Users,
+      id: 'courses',
+      label: 'Academic Curriculum',
+      subLabel: 'Courses, Departments, Faculty',
+      icon: BookOpen,
     },
     {
       id: 'admissions',
-      label: 'Admissions & Lifecycle',
+      label: 'Admissions Lifecycle',
       subLabel: 'Bulk CSV, Promotion, Billing',
       icon: UserCheck,
     },
     {
       id: 'settings',
-      label: 'Global Configuration',
+      label: 'Infrastructure Suite',
       subLabel: 'Kill-Switch, Brand, Calendar',
       icon: Sliders,
     },
     {
       id: 'audit',
-      label: 'Audit & System Health',
+      label: 'Forensic Audit Vault',
       subLabel: 'HMAC Logs, Telemetry, Latency',
       icon: Activity,
     },
     {
       id: 'database',
-      label: 'Database & Migrations',
-      subLabel: 'D1 Snapshots, Migration Log',
+      label: 'Database & Snapshots',
+      subLabel: 'D1 Backups, Schema Migrations',
       icon: Database,
     },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col antialiased">
+    <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
       {/* 1. MASTER ADMIN TOP HEADER */}
       <header
-        className={`sticky top-0 z-40 border-b shadow-md transition-colors ${
+        className={`sticky top-0 z-40 border-b shadow-sm transition-colors ${
           isNavy
-            ? 'bg-slate-950 border-slate-800 text-white'
+            ? 'bg-[#0B192C] border-slate-800 text-white'
             : 'bg-emerald-950 border-emerald-900 text-white'
         }`}
       >
@@ -292,18 +292,16 @@ export const AdminLayout: React.FC = () => {
                     }}
                     className={`w-full flex items-center space-x-3 px-3.5 py-3 rounded-2xl text-left transition-all ${
                       isActive
-                        ? isNavy
-                          ? 'bg-blue-600 text-white font-bold shadow-md shadow-blue-500/20'
-                          : 'bg-emerald-800 text-amber-300 font-bold shadow-md shadow-emerald-800/20'
+                        ? 'bg-[#0B192C] text-white font-bold shadow-sm'
                         : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-semibold'
                     }`}
                   >
-                    <Icon className={`w-5 h-5 shrink-0 ${isActive ? (isNavy ? 'text-white' : 'text-amber-300') : 'text-slate-400'}`} />
+                    <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                     <div className="flex-1 min-w-0">
                       <div className="text-xs truncate">{item.label}</div>
                       <div
                         className={`text-[10px] truncate ${
-                          isActive ? (isNavy ? 'text-blue-100' : 'text-emerald-200') : 'text-slate-400 font-normal'
+                          isActive ? 'text-slate-300' : 'text-slate-400 font-normal'
                         }`}
                       >
                         {item.subLabel}
@@ -326,11 +324,9 @@ export const AdminLayout: React.FC = () => {
                   <button
                     key={div}
                     onClick={() => setActiveDivision(div)}
-                    className={`py-1.5 px-2 rounded-xl text-center text-[11px] transition-all ${
+                    className={`py-1.5 px-2 rounded-xl text-center text-[11px] transition-all cursor-pointer ${
                       activeDivision === div
-                        ? isNavy
-                          ? 'bg-blue-600 text-white shadow-sm'
-                          : 'bg-emerald-800 text-amber-300 shadow-sm'
+                        ? 'bg-[#0B192C] text-white shadow-sm'
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/60'
                     }`}
                   >
@@ -355,37 +351,31 @@ export const AdminLayout: React.FC = () => {
 
         {/* MAIN CONTENT AREA */}
         <main className="flex-1 min-w-0 space-y-6">
-          <div
-            className={`bento-card p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border shadow-md ${
-              isNavy
-                ? 'bg-gradient-to-r from-slate-950 via-slate-900 to-blue-950 border-slate-800'
-                : 'bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 border-emerald-800'
-            }`}
-          >
-            <div>
-              <span
-                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
-                  isNavy
-                    ? 'bg-blue-900/80 text-blue-300 border-blue-700'
-                    : 'bg-emerald-800/80 text-amber-300 border-emerald-700'
-                }`}
-              >
-                Institutional Executive Management
-              </span>
-              <h2 className="text-xl font-extrabold text-white mt-1">
-                Welcome, {userSession?.fullName || 'Administrator'}, {userSession?.role || 'SUPER_ADMIN'}
-              </h2>
-              <p className="text-xs text-slate-300">
-                Master Administration Area • Full Read/Write Governance Access
-              </p>
+          {/* Breadcrumb Bar when viewing specific management suites */}
+          {adminTab !== 'godmode' && (
+            <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setAdminTab('godmode')}
+                  className="inline-flex items-center gap-1.5 font-bold text-blue-700 hover:text-blue-900 transition-colors cursor-pointer"
+                >
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <span>Command Center</span>
+                </button>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <span className="font-extrabold text-[#0B192C] uppercase tracking-wider">
+                  {navItems.find((n) => n.id === adminTab)?.label || 'Suite Management'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-500 font-medium">Active Scope:</span>
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-50 text-blue-800 border border-blue-200">
+                  {activeDivision} Division
+                </span>
+              </div>
             </div>
-            <div className="text-left sm:text-right text-xs">
-              <span className="text-slate-400 block text-[10px] uppercase">Active Scope</span>
-              <span className="font-mono text-amber-300 font-bold">
-                {activeDivision} Division
-              </span>
-            </div>
-          </div>
+          )}
 
           {adminTab === 'godmode' && <SuperAdminDashboard />}
           {adminTab === 'courses' && <AdminCoursesTab />}
@@ -393,14 +383,14 @@ export const AdminLayout: React.FC = () => {
           {adminTab === 'users' && <UserRoleManager />}
           {adminTab === 'admissions' && (
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl w-fit">
+              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white border border-slate-200/80 rounded-2xl w-fit shadow-sm">
                 <button
                   type="button"
                   onClick={() => setAdmissionsSubTab('upload')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     admissionsSubTab === 'upload'
-                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
-                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                      ? 'bg-[#0B192C] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   Bulk Admissions & Onboarding
@@ -410,8 +400,8 @@ export const AdminLayout: React.FC = () => {
                   onClick={() => setAdmissionsSubTab('lifecycle')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     admissionsSubTab === 'lifecycle'
-                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
-                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                      ? 'bg-[#0B192C] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   Session Progression & Financial Reset
@@ -423,14 +413,14 @@ export const AdminLayout: React.FC = () => {
           )}
           {adminTab === 'settings' && (
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl w-fit">
+              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white border border-slate-200/80 rounded-2xl w-fit shadow-sm">
                 <button
                   type="button"
                   onClick={() => setSettingsSubTab('toggles')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     settingsSubTab === 'toggles'
-                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
-                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                      ? 'bg-[#0B192C] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   Portal Toggles & Kill-Switch
@@ -440,8 +430,8 @@ export const AdminLayout: React.FC = () => {
                   onClick={() => setSettingsSubTab('institutional')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     settingsSubTab === 'institutional'
-                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
-                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                      ? 'bg-[#0B192C] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   Institutional Branding & Identity
@@ -451,8 +441,8 @@ export const AdminLayout: React.FC = () => {
                   onClick={() => setSettingsSubTab('calendar')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     settingsSubTab === 'calendar'
-                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
-                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                      ? 'bg-[#0B192C] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   Academic Calendar Controller
@@ -472,14 +462,14 @@ export const AdminLayout: React.FC = () => {
           )}
           {adminTab === 'database' && (
             <div className="space-y-6">
-              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-200/80 rounded-2xl w-fit">
+              <div className="flex flex-wrap items-center gap-2 p-1.5 bg-white border border-slate-200/80 rounded-2xl w-fit shadow-sm">
                 <button
                   type="button"
                   onClick={() => setDatabaseSubTab('snapshots')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     databaseSubTab === 'snapshots'
-                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
-                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                      ? 'bg-[#0B192C] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   D1 Automated Snapshots & Backups
@@ -489,8 +479,8 @@ export const AdminLayout: React.FC = () => {
                   onClick={() => setDatabaseSubTab('migrations')}
                   className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     databaseSubTab === 'migrations'
-                      ? isNavy ? 'bg-blue-600 text-white shadow-sm' : 'bg-emerald-800 text-white shadow-sm'
-                      : 'bg-transparent text-slate-700 hover:bg-slate-300/60'
+                      ? 'bg-[#0B192C] text-white shadow-sm'
+                      : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
                   Drizzle Schema Migration Manifest
