@@ -168,7 +168,7 @@ The Provost commends the Governing Council, academic staff, and management for m
             
             {/* Institutional Brand Identity */}
             <a href="#hero" className="flex items-center gap-3.5 group">
-              <div className="w-12 h-14 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-14 h-16 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0 drop-shadow-sm">
                 <img src="/coeka-logo.png" alt="COEKA Official Crest" className="w-full h-full object-contain" />
               </div>
               <div className="flex flex-col">
@@ -1506,8 +1506,8 @@ The Provost commends the Governing Council, academic staff, and management for m
             
             {/* Col 1 & 2: Institutional Identity & Motto */}
             <div className="lg:col-span-2 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-14 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-18 sm:w-20 sm:h-20 flex items-center justify-center shrink-0 drop-shadow-md">
                   <img src="/coeka-logo.png" alt="COEKA Crest" className="w-full h-full object-contain" />
                 </div>
                 <div>

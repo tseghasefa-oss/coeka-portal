@@ -114,18 +114,18 @@ export function LoginPage() {
 
         {/* Top Header: Institutional Identity & Return to Website */}
         <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-14 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-18 sm:w-20 sm:h-22 flex items-center justify-center shrink-0 drop-shadow-xl">
               <img src="/coeka-logo.png" alt="COEKA Official Crest" className="w-full h-full object-contain" />
             </div>
             <div>
               <span className="block text-xs font-black tracking-widest text-amber-400 uppercase">
                 COEKA
               </span>
-              <h1 className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight">
+              <h1 className="text-base sm:text-xl font-bold text-white tracking-tight leading-tight">
                 College of Education, Katsina-Ala
               </h1>
-              <span className="text-[11px] text-slate-400 block">
+              <span className="text-xs text-slate-300 block mt-0.5">
                 Benue State, Nigeria • Established 1976
               </span>
             </div>
@@ -232,8 +232,8 @@ export function LoginPage() {
       <div className="lg:w-[42%] xl:w-[40%] flex flex-col justify-center items-center p-4 sm:p-8 lg:p-10 xl:p-12 bg-slate-50 min-h-screen lg:min-h-0 relative">
         {/* Mobile Header (Visible on screens < lg) */}
         <div className="lg:hidden w-full max-w-md mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-10 flex items-center justify-center shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-13 flex items-center justify-center shrink-0 drop-shadow-sm">
               <img src="/coeka-logo.png" alt="COEKA Logo" className="w-full h-full object-contain" />
             </div>
             <div>

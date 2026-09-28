@@ -544,8 +544,8 @@ export const UserProfilePage: React.FC = () => {
               <div className="absolute top-0 right-0 w-36 h-36 bg-amber-400/10 rounded-full blur-xl pointer-events-none" />
               
               {/* ID Header */}
-              <div className="flex items-center gap-2.5 pb-2 border-b border-slate-700/80">
-                <div className="w-8 h-9 shrink-0 flex items-center justify-center">
+              <div className="flex items-center gap-3 pb-2 border-b border-slate-700/80">
+                <div className="w-10 h-11 shrink-0 flex items-center justify-center drop-shadow-sm">
                   <img src="/coeka-logo.png" alt="COEKA Logo" className="w-full h-full object-contain" />
                 </div>
                 <div>
