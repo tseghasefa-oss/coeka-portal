@@ -60,6 +60,7 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { ConsentModal } from './components/compliance/ConsentModal';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { InstitutionalMaintenanceScreen } from './components/common/InstitutionalMaintenanceScreen';
+import { InstitutionalWebsite } from './components/website/InstitutionalWebsite';
 
 export default function App() {
   // Global Client State via Zustand
@@ -138,13 +139,12 @@ export default function App() {
       } else if (pathname.startsWith('/website') || search.includes('tab=website')) {
         setActiveTab('website');
       } else if (pathname === '/' || pathname === '') {
-        // At .worker.dev / .workers.dev (and portal domains), the login page is the primary home
-        if (isWorkerOrPortalHost) {
-          if (!userSession) {
-            setActiveTab('login');
-          } else {
-            setActiveTab(resolveDashboardTab(userSession.role));
-          }
+        if (userSession) {
+          setActiveTab(resolveDashboardTab(userSession.role));
+        } else if (search.includes('tab=login')) {
+          setActiveTab('login');
+        } else {
+          setActiveTab('website');
         }
       }
     };
@@ -226,6 +226,11 @@ export default function App() {
   // If activeTab is 'privacy', render PrivacyPolicy page
   if (activeTab === 'privacy') {
     return <PrivacyPolicy />;
+  }
+
+  // If activeTab is 'website', render high-fidelity sovereign InstitutionalWebsite
+  if (activeTab === 'website') {
+    return <InstitutionalWebsite />;
   }
 
   // If activeTab is 'login', render high-fidelity LoginPage
@@ -463,93 +468,7 @@ export default function App() {
 
       {/* Main Body Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* TAB 1: COLLEGE HOMEPAGE */}
-        {activeTab === 'website' && (
-          <div className="space-y-8">
-            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-emerald-950 via-emerald-900 to-slate-900 text-white p-8 sm:p-12 shadow-xl border border-emerald-800">
-              <div className="max-w-3xl space-y-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                  <Sparkles className="w-3.5 h-3.5" /> 2026/2027 Academic Session Live
-                </span>
-                <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-                  Welcome to College of Education, Katsina-Ala
-                </h2>
-                <p className="text-emerald-100 text-base sm:text-lg leading-relaxed">
-                  Pioneering teacher education, degree programmes, and secondary learning in Benue State. Bringing all admissions, student records, fee collections, and academic transcripts onto a unified digital campus portal.
-                </p>
-                <div className="flex flex-wrap gap-3 pt-2">
-                  <button
-                    onClick={() => setActiveTab('admissions')}
-                    className="bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold px-6 py-3 rounded-xl shadow-md transition-all flex items-center gap-2"
-                  >
-                    <span>Apply for Admissions</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('finance')}
-                    className="bg-emerald-800/80 hover:bg-emerald-800 text-white font-semibold px-6 py-3 rounded-xl border border-emerald-700 transition-all flex items-center gap-2"
-                  >
-                    <span>Pay School Fees</span>
-                    <CreditCard className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">Institutional Operating Divisions</h3>
-                  <p className="text-sm text-slate-500">Academic units administered on the unified COEKA platform</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[
-                  {
-                    title: 'NCE Programmes',
-                    desc: 'National Commission for Colleges of Education (NCCE) 3-year teacher certification.',
-                    stat: '24 Accredited Courses',
-                    tag: 'NCCE 5-Point Scale',
-                  },
-                  {
-                    title: 'Degree Programmes',
-                    desc: 'Full-time Bachelor of Education (B.Ed / B.Sc Ed) affiliated university degrees.',
-                    stat: 'NUC Approved',
-                    tag: 'Senate Ratification',
-                  },
-                  {
-                    title: 'Demonstration Secondary',
-                    desc: 'Junior and Senior Secondary education (JSS1 - SSS3) with WAEC & NECO curricula.',
-                    stat: 'WAEC / BECE Center',
-                    tag: 'Terminal Reports',
-                  },
-                  {
-                    title: 'Staff Primary School',
-                    desc: 'Basic primary and nursery foundational education with termly continuous assessment.',
-                    stat: 'Basic 1 - 6 Classes',
-                    tag: 'Continuous Assessment',
-                  },
-                ].map((div, i) => (
-                  <div key={i} className="bento-card p-6 flex flex-col justify-between">
-                    <div>
-                      <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 text-slate-600 mb-2 inline-block">
-                        {div.tag}
-                      </span>
-                      <h4 className="text-lg font-bold text-slate-900 mb-1">{div.title}</h4>
-                      <p className="text-sm text-slate-600 mb-4">{div.desc}</p>
-                    </div>
-                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-emerald-700">
-                      <span>{div.stat}</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: ADMISSIONS PORTAL */}
+        {/* TAB 1: ADMISSIONS PORTAL */}
         {activeTab === 'admissions' && (
           <div className="max-w-4xl mx-auto space-y-6">
             <div className="bento-card p-8">

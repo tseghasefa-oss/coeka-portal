@@ -264,9 +264,18 @@ export function LoginPage() {
         <div className="w-full max-w-md bg-white rounded-2xl shadow-xl shadow-slate-200/70 border border-slate-200/90 p-6 sm:p-8 animate-fade-in">
           {/* Card Header */}
           <div className="mb-6">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-semibold mb-2">
-              <Shield className="w-3 h-3 text-emerald-600" />
-              <span>Institutional Sign-In</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[11px] font-semibold">
+                <Shield className="w-3 h-3 text-emerald-600" />
+                <span>Institutional Sign-In</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('website')}
+                className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline flex items-center gap-1"
+              >
+                <span>← Public Website</span>
+              </button>
             </div>
             <h3 className="text-2xl font-black text-slate-900 tracking-tight">
               Sign In to Your Account

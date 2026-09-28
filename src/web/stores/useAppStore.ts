@@ -93,14 +93,13 @@ function getInitialActiveTab(): ActiveTab {
     if (pathname.startsWith('/admin')) return 'admin';
     if (pathname.startsWith('/login') || search.includes('tab=login')) return 'login';
     if (pathname.startsWith('/dashboard')) return 'sims';
+    if (pathname.startsWith('/privacy') || search.includes('tab=privacy')) return 'privacy';
     if (pathname.startsWith('/website') || search.includes('tab=website')) return 'website';
 
-    // On .worker.dev / .workers.dev, or portal domains, login is the home page
-    if (hostname.includes('worker.dev') || hostname.includes('workers.dev') || hostname.includes('portal')) {
-      return 'login';
-    }
+    // Showroom Institutional Website is the primary public landing page
+    return 'website';
   }
-  return 'login';
+  return 'website';
 }
 
 export const useAppStore = create<AppState>((set) => ({
