@@ -19,6 +19,8 @@ export type UserRole =
 
 export type ActiveTab =
   | 'website'
+  | 'dashboard_home'
+  | 'profile'
   | 'admissions'
   | 'sims'
   | 'finance'
@@ -175,4 +177,11 @@ export function resolveDashboardTab(role?: string): ActiveTab {
     default:
       return 'sims';
   }
+}
+
+/**
+ * Resolves the primary Command Center landing view.
+ */
+export function resolveCommandCenterTab(): ActiveTab {
+  return 'dashboard_home';
 }
