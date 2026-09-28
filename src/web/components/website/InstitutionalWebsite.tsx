@@ -565,7 +565,7 @@ The Provost commends the Governing Council, academic staff, and management for m
                 <div className="relative space-y-5">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 rounded-2xl bg-amber-400/20 border-2 border-amber-400 flex items-center justify-center text-amber-400 font-black text-2xl shadow-inner">
-                      PR
+                      TY
                     </div>
                     <div>
                       <h3 className="text-lg font-black text-white">Office of the Provost</h3>
@@ -582,7 +582,7 @@ The Provost commends the Governing Council, academic staff, and management for m
 
                   <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
                     <div>
-                      <p className="font-bold text-white">Prof. Scholastica Tyav</p>
+                      <p className="font-bold text-white">Dr. Tyodoo Yue</p>
                       <p className="text-[11px] text-slate-400">Provost & Chief Academic Executive</p>
                     </div>
                     <button
@@ -1663,7 +1663,7 @@ The Provost commends the Governing Council, academic staff, and management for m
             <div className="flex items-center gap-4 text-[11px] text-slate-400">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Powered by COEKA Sovereign Edge Cloud (Cloudflare D1 & Pages)</span>
+                <span>Powered by Fruitfulujah Project</span>
               </span>
               <span>•</span>
               <button onClick={() => setActiveTab('privacy')} className="hover:text-amber-400 transition-colors">
