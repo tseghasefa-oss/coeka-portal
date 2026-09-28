@@ -1,841 +1,399 @@
-# COEKA ENTERPRISE DIGITAL CAMPUS PORTAL
-## COMPREHENSIVE TECHNICAL DOCUMENTATION & SYSTEM SPECIFICATION (`SYSTEM_DOCS.md`)
+# COEKA Enterprise Digital Campus Portal
+## Comprehensive System Specification Document & Technical Architecture Manifesto
 
-```
-========================================================================================
-Institution:      College of Education, Katsina-Ala (COEKA), Benue State, Nigeria
-Domain:           portal.coekatsinaala.edu.ng | api.coekatsinaala.edu.ng
-Architecture:     Cloudflare-Native Edge-First "Golden Stack"
-Frameworks:       Hono v4, Cloudflare Workers, D1 SQL, KV, R2, Queues, React 19, Drizzle ORM
-Document Version: 1.0.0 (Production Release Candidate)
-Author:           Senior Enterprise Solutions Architect & Core Engineering Team
-Classification:   Official Institutional Technical Documentation & Production Runbook
-========================================================================================
-```
-
----
-
-## TABLE OF CONTENTS
-1. [Executive Summary](#1-executive-summary)
-   - 1.1 Purpose of the Enterprise Portal
-   - 1.2 Target User Personas
-   - 1.3 Institutional Scope & Multi-Divisional Mandate
-   - 1.4 Core Problem Statements & High-Level Resolution
-2. [Architectural Blueprint](#2-architectural-blueprint)
-   - 2.1 The "Golden Stack" Specifications
-   - 2.2 The Dependency Inversion & Adapter Pattern
-   - 2.3 Edge Topology & Global Infrastructure Distribution
-   - 2.4 Asynchronous Brokerage & Scheduled Cron Routines
-3. [The Functional Module Map](#3-the-functional-module-map)
-   - 3.1 SuperAdmin Dashboard: Central Command & God Mode Governor
-   - 3.2 Dean Dashboard: Academic Oversight & Result Ratification
-   - 3.3 Registrar Dashboard: Certification, Verification & Alumni Archives
-   - 3.4 Examination Officer Dashboard: Broadsheets & Academic Standings
-   - 3.5 Bursar Dashboard: Double-Entry Ledger & Kobo Fee Reconciliation
-   - 3.6 Lecturer Dashboard: Grade Entry, Attendance & Result Gate
-   - 3.7 Librarian Dashboard: Circulation, Fines & Digital Clearance
-   - 3.8 Student Dashboard (SIMS): Tertiary & Basic Educational Portals
-   - 3.9 Parent & Guardian Dashboard: Multi-Ward Telemetry & Unified Payments
-4. [Data & Security Model](#4-data--security-model)
-   - 4.1 Schema Overview (53 Relational Tables in Drizzle ORM)
-   - 4.2 Identity Management, KV Edge Sessions & Dynamic RBAC Synchronization
-   - 4.3 Cryptographic Integrity Layer: HMAC-SHA256 Tamper Detection
-   - 4.4 Data Security & Access Boundary Matrix
-5. [Critical Workflows](#5-critical-workflows)
-   - 5.1 End-to-End Institutional Student Lifecycle Pipeline
-   - 5.2 High-Concurrency Compare-And-Swap (CAS) Hostel Allocation Lock
-6. [Deployment & DevOps Runbook](#6-deployment--devops-runbook)
-   - 6.1 Provisioning Cloudflare Infrastructure (D1, KV, R2, Queues)
-   - 6.2 Drizzle ORM Migrations & Baseline Institutional Seeding
-   - 6.3 Edge Worker API & Cloudflare Pages Frontend Deployment
-   - 6.4 Verification Smoke Test & Health Check Audit
-7. [Part 2: Roadmap to Absolute Production-Readiness](#7-part-2-roadmap-to-absolute-production-readiness)
-   - 7.1 Observability, Error Tracking & Edge Telemetry
-   - 7.2 Backup Strategy & Disaster Recovery Runbook
-   - 7.3 Security Hardening & OWASP Top 10 Audit Framework
-   - 7.4 Automated GitHub Actions CI/CD Pipeline
-   - 7.5 Compliance, Privacy & Legal Directives (NDPA / NDPR / GDPR)
-   - 7.6 Scaling Strategy & High-Concurrency Peak Load Management
-8. [Codebase Traceability & Verification Matrix](#8-codebase-traceability--verification-matrix)
+*Document Revision: 2.0.0 (Production Release)*  
+*Institution: College of Education, Katsina-Ala (COEKA), Benue State, Nigeria*  
+*Project Sponsor & System Architect: Fruitfulujah Project*  
+*Classification: Institutional Technical Documentation & Regulatory Audit Dossier*
 
 ---
 
 ## 1. Executive Summary
 
-### 1.1 Purpose of the Enterprise Portal
-The **COEKA Enterprise Digital Campus Portal** is an all-in-one, cloud-native educational management and financial ecosystem engineered specifically for the **College of Education, Katsina-Ala (COEKA)** in Benue State, Nigeria. 
+### 1.1 Purpose of the System
+The **COEKA Enterprise Digital Campus Portal** is a mission-critical, full-lifecycle Higher Education Management System (HEMS) engineered for the College of Education, Katsina-Ala. Prior to this platform, institutional operations relied on paper dossiers, fragmented desktop spreadsheets, manual bank deposit reconciliation, and physically distributed academic clearance. 
 
-The primary purpose of the portal is to eradicate paper-dependent bureaucracy, fragmented spreadsheets, manual reconciliation delays, and academic record falsification. By unifying all academic administration, institutional fee collections, student identity lifecycles, examination records, library asset circulation, and physical residential accommodation onto a single tamper-evident platform, the portal positions COEKA as a premier technological beacon in Nigerian higher and basic education.
+The portal consolidates all administrative, financial, registry, academic, residency, and accreditation workflows onto a unified, high-security edge computing infrastructure. It serves as the single source of truth for all records spanning the institution's multi-tiered academic offerings:
+- **NCE (Nigeria Certificate in Education):** 3-year teacher training accredited by the National Commission for Colleges of Education (NCCE).
+- **Affiliated Degree Programmes:** B.Ed and B.Sc(Ed) qualifications moderated in partnership with affiliated universities.
+- **Demonstration Secondary School:** Junior and Senior Secondary education (JSS1–SSS3) preparing students for WAEC and NECO examinations.
+- **Staff Primary School:** Foundational basic education (Basic 1–6) serving faculty children and the local community.
 
 ### 1.2 Target User Personas
-The system serves eleven distinct institutional and public personas with strictly segregated permissions:
+The system provides tailored, role-segregated operational consoles for nine distinct institutional personas:
+1. **Super Administrator:** Executive governance, emergency kill-switches, maintenance mode bypass, database schema inspector, user provisioning, and financial pipeline telemetry.
+2. **Academic Dean:** Faculty-level oversight, semester results moderation, grade appeal adjudication, lecturer grading audits, and official publishing authority.
+3. **Academic Registrar:** Custodian of institutional memory, matriculation registry, admissions authorization, electronic transcript dispatch, and cryptographic certificate issuance.
+4. **Examination Officer:** Senate examination broadsheet compilation, cumulative grade point calculations, academic probation detection, and graduation eligibility audits.
+5. **Bursar:** Financial controller managing integer-Kobo ledger reconciliation, automated Wema Bank/VPay dynamic NUBAN collection rails, fee category scheduling, and revenue analytics.
+6. **Lecturer:** Course roster management, continuous assessment (CA) and examination score entry, biometric attendance tracking, and syllabus distribution.
+7. **Librarian:** Library physical asset cataloging, circulation loans, overdue fine tracking, and digital clearance sign-offs.
+8. **Student:** Self-service registration, dynamic fee invoices, real-time results, hostel bedspace reservations, digital clearance tracking, and NDPA personal data export.
+9. **Parent / Guardian:** Multi-ward academic telemetry, terminal report cards, attendance monitoring, and direct fee sponsorship.
 
-| Persona | Primary Operational Role | Access Route |
-| :--- | :--- | :--- |
-| **SuperAdmin** | Full institutional governance, emergency overrides, fee matrix price setting, global kill-switch, audit vault inspection. | `/admin` (Tab: `godmode`) |
-| **Dean** | Faculty-level broadsheet review, result ratification (DRAFT $\rightarrow$ PUBLISHED), grade appeals arbitration, departmental performance maps. | `/dean` (Tab: `dean`) |
-| **Registrar** | Graduation eligibility audits, secure certificate issuance with QR verification, transcript processing queue, alumni dossier archiving. | `/registrar` (Tab: `registrar`) |
-| **Exam Officer** | Master broadsheet compilation, probation tracking (CGPA < 1.50), carry-over analysis, graduation eligibility, final CGPA calculations. | `/exam_officer` (Tab: `exam_officer`) |
-| **Bursar** | Kobo-integer fee reconciliation, debtor tracking, student virtual account issuance, multi-gateway settlement, official cryptographic receipt issuance. | `/finance` (Tab: `finance`) |
-| **Lecturer / HOD** | Course enrollment rosters, continuous assessment (CA1, CA2) and examination score entry, draft grade submission, lecture attendance tracking. | `/staff` (Tab: `staff`) |
-| **Librarian** | Asset cataloging, physical book circulation, overdue loan enforcement, automated fine assessment, digital graduation clearance sign-off. | `/librarian` (Tab: `librarian`) |
-| **Student** | Academic profile, digital ID card, fee balance gated course registration, invoice settlement, verified results, official transcripts, clearance checklist. | `/sims` (Tab: `sims`) |
-| **Parent / Guardian** | Multi-ward telemetry across tertiary, secondary, and primary schools, academic performance tracking, consolidated multi-child tuition checkout. | `/parent` (Tab: `parent`) |
-| **Applicant** | Online admissions application, automated UTME/O-Level screening, instant provisional admission letters, digital acceptance fee payment. | `/admissions` (Tab: `admissions`) |
-| **Public / Verifiers** | Unauthenticated, tamper-proof QR code verification of certificates, transcripts, and official student fee receipts. | `/verify/*` |
-
-### 1.3 Institutional Scope & Multi-Divisional Mandate
-Unlike conventional university portals that support only a single academic track, the COEKA Portal unifies four distinct educational tiers within a single multi-tenant database:
-1. **Nigeria Certificate in Education (NCE) Programmes:** 3-year teacher training accredited under the National Commission for Colleges of Education (NCCE) operating on a 5-point letter grading scale (`A=5`, `B=4`, `C=3`, `D=2`, `E=1`, `F=0`).
-2. **Degree Programmes:** 4-year and 3-year Direct Entry Bachelor of Education (`B.Ed`, `B.Sc Ed`) degrees run in affiliation with accredited Nigerian Universities under National Universities Commission (NUC) standards.
-3. **Demonstration Secondary School:** Junior and Senior Secondary education (JSS1 through SSS3) preparing students for BECE, WAEC, and NECO examinations, featuring terminal report cards with cognitive, psychomotor, and affective evaluations.
-4. **Staff Primary School:** Foundational nursery and elementary primary education (Basic 1 through 6) with continuous assessment score capture and terminal reports.
-
-### 1.4 Core Problem Statements & High-Level Resolution
-* **Revenue Leakage:** Historical fee payment via physical bank teller slips led to forgery and unverified revenue. *Resolution:* Real-time, serverless automated reconciliation utilizing dedicated VPay/Wema Bank dynamic virtual NUBAN accounts and webhook signature verification (HMAC-SHA256) where payments reflect instantly in under 3 seconds with zero human intervention.
-* **Transcript & Certificate Forgery:** Alteration of paper statement of results and fake certificates. *Resolution:* Every certificate, transcript, and payment receipt generates a Web Crypto SHA-256 digest and QR verification hash embedded directly in public URLs (`/api/registrar/verify/:identifier`), allowing global employers to verify credentials instantly.
-* **Protracted Result Compilation:** Manual paper scoresheets delayed graduation Senate approval for months. *Resolution:* Step-by-step electronic pipeline: Lecturer score submission (DRAFT) $\rightarrow$ Broadsheet compilation $\rightarrow$ Dean review $\rightarrow$ Senate approval (PUBLISHED).
-* **Hostel Overbooking & Stampedes:** Severe race conditions on bedspace allocation during resumption. *Resolution:* High-concurrency atomic Compare-And-Swap (CAS) reservation locking in D1 SQL with dual-layer Cloudflare KV synchronization and a 15-minute countdown payment window.
+### 1.3 High-Level Institutional Goals
+- **Zero-Manual-Reconciliation Banking:** Eliminate fraudulent bank tellers and teller-queue bottlenecks through automated dynamic Virtual Accounts (NUBANs) tied directly to the bursary ledger.
+- **Cryptographic Trust & Anti-Tamper Records:** Prevent grade tampering and fake certificate counterfeiting using HMAC-SHA256 ledger chaining and QR-verifiable digital credentials.
+- **Sub-100ms Edge Latency:** Deliver instantaneous page loads across Nigeria and rural Benue State via Cloudflare Edge Workers and distributed D1 SQLite nodes.
+- **Regulatory Compliance:** Full adherence to the **Nigeria Data Protection Act (NDPA 2023)** and NCCE academic grading regulations.
 
 ---
 
 ## 2. Architectural Blueprint
 
-### 2.1 The "Golden Stack" Specifications
-The portal implements the modern **"Golden Stack"**, engineered for extreme performance, edge compute, low latency, and zero server maintenance overhead:
-
-```mermaid
-graph TD
-    subgraph ClientBrowser [Client Browser Layer]
-        ReactApp[React 19 Single Page Application]
-        ZustandStore[Zustand 5 State Management]
-        TanStackQuery[TanStack React Query v5 Data Fetching]
-    end
-
-    subgraph CloudflareEdge [Cloudflare Edge Network - 330+ Global PoPs]
-        WAF[Cloudflare WAF / SSL / DDoS Shield]
-        PagesHost[Cloudflare Pages - Static Asset Global CDN]
-        HonoWorker[Hono v4 Gateway Worker]
-        
-        subgraph StorageLayer [Serverless State & Storage Engines]
-            KV_Store[(Cloudflare KV: Session & Rate Limits)]
-            D1_SQL[(Cloudflare D1: Distributed SQLite DB)]
-            R2_Lake[(Cloudflare R2: S3-Compatible Document Lake)]
-            AsyncQueue[Cloudflare Queue: Async Job Broker]
-        end
-
-        subgraph WorkerTasks [Scheduled & Event Consumers]
-            QueueConsumer[Cloudflare Queue Consumer Worker]
-            CronRunner[Scheduled Cron Triggers: 15-Min & Daily]
-        end
-    end
-
-    subgraph ExternalGateways [External Upstream Rails]
-        VPayVirtual[VPay / Payvessel Virtual Accounts]
-        PaystackGateway[Paystack Payment Rail]
-        RemitaBSCPP[Remita / Benue State BSCPP Rail]
-        SMSService[Termii / BulkSMS Gateway]
-        EmailService[Resend / Postmark SMTP]
-    end
-
-    ReactApp -->|HTTPS / TLS 1.3| WAF
-    WAF --> PagesHost
-    WAF -->|REST API /api/*| HonoWorker
-
-    HonoWorker -->|Session Auth & Rate Limiting| KV_Store
-    HonoWorker -->|Drizzle ORM Queries & Transactions| D1_SQL
-    HonoWorker -->|Presigned Passports & Documents| R2_Lake
-    HonoWorker -->|Enqueue Background Tasks| AsyncQueue
-
-    AsyncQueue --> QueueConsumer
-    QueueConsumer --> SMSService
-    QueueConsumer --> EmailService
-    QueueConsumer --> PaystackGateway
-
-    HonoWorker -->|Virtual Account Creation| VPayVirtual
-    CronRunner -->|Expired Hostel Locks & Reconcile| D1_SQL
-```
-
-* **Hono v4 (`hono`):** Ultra-lightweight, high-performance web framework designed specifically for Cloudflare Workers. Consumes minimal memory with near-zero cold start overhead (<5ms).
-* **Cloudflare Workers:** Serverless V8 isolate compute running at the edge across 330+ cities worldwide, including Lagos and Abuja points-of-presence.
-* **Cloudflare D1 SQL (`@cloudflare/d1`):** Distributed serverless relational database built on SQLite with immediate read-after-write consistency, zero connection pool starvation, and native transactional support.
-* **Cloudflare KV (`@cloudflare/kv`):** High-read, low-latency distributed key-value storage used for 24-hour edge user sessions, token verification, and IP-based rate limiting counters.
-* **Cloudflare R2 Object Storage:** S3-compatible object storage lake hosting student passport photos, verification QR codes, and scanned credentials with zero data egress charges.
-* **Cloudflare Queues:** Native serverless asynchronous message queue managing bursty background workflows (SMS notifications, email receipts, broadsheet snapshots) without HTTP timeout bottlenecks.
-* **React 19 & Vite 6:** Modern frontend rendering engine providing component modularity, instant hydration, and lightning-fast developer compilation.
-* **TanStack React Query v5:** Declarative server-state synchronization library handling automatic cache invalidation, background refetching, and optimistic UI mutations.
-* **Zustand v5:** Lightweight reactive store governing client-side navigation tabs, user authentication sessions, active academic division context, and UI theme preferences.
-* **Drizzle ORM (`drizzle-orm`):** Type-safe, zero-overhead TypeScript ORM that translates TypeScript schemas directly into optimized SQL queries and D1 migrations.
-
-### 2.2 The Dependency Inversion & Adapter Pattern
-To avoid rigid vendor lock-in to Cloudflare, the COEKA Portal rigorously enforces the **Adapter Pattern (Clean Architecture)**. Business logic, routes, and services never import Cloudflare Workers SDKs directly. Instead, they interact exclusively with abstract TypeScript interfaces located in `src/infrastructure/interfaces/`:
+### 2.1 The "Golden Stack"
+The platform is built on an enterprise edge-native technology stack chosen for sub-millisecond cold starts, zero-infrastructure serverless maintenance, and high concurrency resilience:
 
 ```
-src/infrastructure/
-├── interfaces/
-│   ├── IDatabaseProvider.ts    # SQL execution, queryFirst, transactions, batch
-│   ├── ICacheProvider.ts      # get, set, delete, increment (KV semantics)
-│   ├── IStorageProvider.ts    # upload, download, delete, getPublicUrl
-│   └── IQueueProvider.ts      # send, sendBatch
-├── adapters/
-│   ├── cloudflare/            # Production Cloudflare D1, KV, R2, Queue adapters
-│   │   ├── CloudflareDatabaseAdapter.ts
-│   │   ├── CloudflareCacheAdapter.ts
-│   │   ├── CloudflareStorageAdapter.ts
-│   │   └── CloudflareQueueAdapter.ts
-│   └── memory/                # In-memory mock adapters for unit testing & local execution
-│       └── index.ts
-└── container.ts               # Inversion of Control (IoC) Service Container factory
+┌────────────────────────────────────────────────────────────────────────┐
+│                        Cloudflare Edge Global PoP                      │
+├────────────────────────────────┬───────────────────────────────────────┤
+│    Cloudflare Pages (Frontend)  │       Cloudflare Workers (Backend)    │
+│    React 18 / React 19 Compat  │       Hono v4.6 Enterprise Web Micro  │
+│    Vite 6 Bundler              │       Zod Request Body Validation     │
+│    Tailwind CSS & Bento UI     │       Sentry Cloudflare SDK           │
+│    TanStack Query v5 & Zustand │       Cloudflare Edge Cache API (SWR) │
+├────────────────────────────────┴───────────────────────────────────────┤
+│                      Infrastructure Layer (Cloudflare)                 │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────────┐  │
+│  │ D1 SQL Database  │  │ KV Session Store │  │ R2 Object Storage    │  │
+│  │ (Drizzle ORM)    │  │ (Auth & Limits)  │  │ (Credentials/Docs)   │  │
+│  └──────────────────┘  └──────────────────┘  └──────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────────────────┐  │
+│  │ Cloudflare Queues (Asynchronous Ledger / Webhooks / Notifications)│  │
+│  └──────────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-#### IoC Container Implementation (`src/infrastructure/container.ts`):
-```typescript
-export interface ServiceContainer {
-  db: IDatabaseProvider;
-  cache: ICacheProvider;
-  storage: IStorageProvider;
-  queue: IQueueProvider;
-}
+- **Hono (v4.6.14):** Lightweight, ultra-fast TypeScript web framework designed natively for Cloudflare Workers. Handles global routing, CORS, rate limiting, Sentry wrapping, and RBAC.
+- **Cloudflare Workers:** Serverless V8 execution runtime with zero cold-start delay deployed across Cloudflare's 300+ global edge locations.
+- **Cloudflare D1:** Distributed SQL relational database based on SQLite. Features pre-compiled prepared statements, read-replication, and automated disaster recovery dumps.
+- **Cloudflare Workers KV:** Distributed key-value store utilized for cryptographic session caching, 15-minute hostel reservation mutex locks, and edge rate-limit counters.
+- **Cloudflare R2 Object Storage:** S3-compatible, zero-egress fee blob storage for student passports, certificates, broadsheets, and encrypted database backup dumps.
+- **Cloudflare Queues:** Asynchronous message queue powering non-blocking SMS alerts, bank payment webhooks, and ledger synchronization.
+- **Drizzle ORM (v0.45.3):** Type-safe SQL ORM generating zero-overhead queries with full TypeScript inference and declarative schema definitions.
+- **React (v18.3.1) & Vite (v6.0.5):** Single-page application frontend featuring TanStack Query for background cache revalidation, Zustand for global UI state, and Tailwind CSS with custom Bento UI layouts.
 
-export function getContainer(env?: Env): ServiceContainer {
-  if (env && env.DB) {
-    return createCloudflareContainer(env);
-  }
-  if (!defaultMemoryContainer) {
-    defaultMemoryContainer = createMemoryContainer();
-  }
-  return defaultMemoryContainer;
-}
-```
-**Advantage:** When running in Vitest, tests execute using `MemoryDatabaseAdapter` and `MemoryCacheAdapter` with zero network overhead, executing 322 tests in seconds. In production, the container automatically injects live Cloudflare bindings (`env.DB`, `env.SESSION_KV`, `env.DOCUMENTS_BUCKET`, `env.ASYNC_QUEUE`). If COEKA ever transitions to AWS or on-premise PostgreSQL, only the adapters need to be rewritten; zero lines of service code will change.
+### 2.2 The Enterprise Adapter Pattern
+To avoid hard vendor lock-in to Cloudflare and enable 100% offline unit/integration testing, the codebase implements the **Ports and Adapters (Hexagonal) Architecture**. Business logic never touches the Cloudflare global runtime directly; instead, it depends on abstract interface contracts located in `src/infrastructure/interfaces/`:
 
-### 2.3 Edge Topology & Global Infrastructure Distribution
-```
-                       [ Incoming Global Traffic ]
-                                   │
-                                   ▼
-                   [ Cloudflare Anycast Network Layer ]
-                                   │
-                ┌──────────────────┴──────────────────┐
-                ▼                                     ▼
-     [ Cloudflare Pages CDN ]               [ Cloudflare Worker API ]
-      - React 19 Frontend SPA               - Hono v4 Application Router
-      - Global Edge Caching                 - Dynamic Role Resolver (RBAC)
-      - Sub-20ms Static Delivery            - Rate Limiter Middleware
-                │                                     │
-                │                                     ▼
-                │                          [ Cloudflare Edge State ]
-                │                           - D1 SQL (Database)
-                │                           - KV (Sessions & Throttles)
-                │                           - R2 (Passports & Media)
-                │                           - Queues (Async Broker)
-                ▼                                     │
-        [ User Display ] ◄────────────────────────────┘
-```
+1. [`IDatabaseProvider`](file:///C:/Users/sefat/.gemini/antigravity/scratch/coeka-portal/src/infrastructure/interfaces/IDatabaseProvider.ts): Declares `query<T>()`, `queryFirst<T>()`, `execute()`, and `transaction()`.
+2. [`ICacheProvider`](file:///C:/Users/sefat/.gemini/antigravity/scratch/coeka-portal/src/infrastructure/interfaces/ICacheProvider.ts): Declares `get<T>()`, `set()`, `delete()`, and atomic `increment()`.
+3. [`IStorageProvider`](file:///C:/Users/sefat/.gemini/antigravity/scratch/coeka-portal/src/infrastructure/interfaces/IStorageProvider.ts): Declares `upload()`, `download()`, `delete()`, `restore()`, and `syncMirror()`.
+4. [`IQueueProvider`](file:///C:/Users/sefat/.gemini/antigravity/scratch/coeka-portal/src/infrastructure/interfaces/IQueueProvider.ts): Declares `push()` and `pushBatch()`.
 
-1. **Anycast Ingestion:** Requests from Makurdi, Gboko, Katsina-Ala, Abuja, or London resolve to the geographically closest Cloudflare edge point-of-presence (PoP).
-2. **Layer 7 Security & DDoS:** Cloudflare WAF terminates TLS 1.3, inspects HTTP headers, blocks malicious bot traffic, and mitigates DDoS attempts before compute execution.
-3. **Sub-30ms Response in Nigeria:** With edge caches deployed in Lagos and Abuja, static assets and dynamic cached responses return to Nigerian mobile subscribers within 15–35 milliseconds.
-4. **Resilient Serverless Compute:** No master server or single point of failure. If regional infrastructure suffers outages, traffic routes automatically to the nearest healthy edge node.
+At runtime, the Service Container (`src/infrastructure/container.ts`) injects concrete adapters based on the environment:
+- **Production (Cloudflare Edge):** `CloudflareDatabaseAdapter`, `CloudflareCacheAdapter`, `CloudflareStorageAdapter`, and `CloudflareQueueAdapter`.
+- **Local / Automated Testing:** `MemoryDatabaseAdapter` (in-memory SQLite via `node:sqlite`), `MemoryCacheAdapter`, `MemoryStorageAdapter`, and `MemoryQueueAdapter`.
 
-### 2.4 Asynchronous Brokerage & Scheduled Cron Routines
-To prevent long-running tasks from violating Cloudflare Workers' 30-second execution limit:
-* **Cloudflare Queue (`coeka-async-queue`):** In `src/api/index.ts`, background tasks are enqueued via `container.queue.send({ type, payload })`. The Worker exports a native `queue` consumer:
-  ```typescript
-  async queue(batch: MessageBatch<any>, env: Env): Promise<void> {
-    for (const msg of batch.messages) {
-      console.log(`[COEKA Queue] Consuming message ID: ${msg.id}, Type: ${msg.body?.type}`);
-      // Process asynchronous email receipts, SMS alerts, and financial ledgers
-      msg.ack();
-    }
-  }
-  ```
-* **Scheduled Cron Triggers (`wrangler.toml`):** Configured with two automated triggers:
-  1. `*/15 * * * *` (Every 15 minutes): Executes `HostelService.releaseExpiredLocks()` to return unpaid bedspaces to the public inventory.
-  2. `0 1 * * *` (Nightly at 01:00 UTC): Executes ledger reconciliation sweeps and flag overdue library loans.
+This architecture is the primary reason why all **339 automated tests** run locally in seconds without requiring active cloud connections or paid mock services.
+
+### 2.3 Edge Topology & Caching Architecture
+- **Stale-While-Revalidate Edge Caching (`src/api/middleware/edgeCache.ts`):** Read-heavy institutional endpoints (`/api/courses`, `/api/admissions/cycles`) leverage Cloudflare's native `caches.default` Edge Cache API. Requests receive `Cache-Control: public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400`. Repeated requests are served directly from the nearest Cloudflare Edge PoP in **< 10ms** (`CF-Cache-Status: HIT`), with background asynchronous origin revalidation.
+- **Geo-Fencing & Threat Mitigation:** Cloudflare edge headers (`CF-IPCountry`, `CF-Connecting-IP`, `CF-Ray`) are analyzed on every request. High-volume traffic originating outside Nigeria is flagged with telemetry warnings and captured as Sentry breadcrumbs.
 
 ---
 
 ## 3. The Functional Module Map
 
-### 3.1 SuperAdmin Dashboard: Central Command & God Mode Governor
-*Location: `src/web/components/admin/` | API: `src/api/routes/admin.ts` & `src/api/routes/governance.ts`*
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 COEKA MODULE TOPOLOGY                                  │
+├───────────────────┬───────────────────┬───────────────────┬────────────────────────────┤
+│  Super Admin Hub  │    Bursar Core    │  Academic Senate  │    Registry & Security     │
+│  - Governance API │  - Integer Kobo   │  - Broadsheet Hub │  - QR Certificate Authority│
+│  - Schema Inspect │  - VPay NUBAN     │  - Grading Policy │  - Clearance Workflows     │
+│  - System Toggles │  - Failover Route │  - Dean Review    │  - NDPA 2023 Export Engine │
+└───────────────────┴───────────────────┴───────────────────┴────────────────────────────┘
+```
 
-The SuperAdmin module provides master oversight for the College Rector, Directorate of ICT, and System Architects.
-* **God Mode Governor (`SuperAdminDashboard.tsx`):** High-level KPI cockpit visualizing real-time student populations, total collections, edge PoP telemetry, and system-wide audit integrity.
-* **System Pipeline View (`SystemPipelineView.tsx`):** Real-time monitoring of students across each stage: Applied $\rightarrow$ Screened $\rightarrow$ Admitted $\rightarrow$ Fees Paid $\rightarrow$ Enrolled $\rightarrow$ Cleared $\rightarrow$ Certified.
-* **Academic Management (`AdminCoursesTab.tsx`):** CRUD operations on accredited courses, department allocations, credit unit definitions, and prerequisite dependencies.
-* **Financial Price Setting (`AdminFeesTab.tsx` & `FeeMatrixAuditor.tsx`):** Precision management of institutional tuition, development levies, hostel fees, and acceptance charges stored strictly as integers in Kobo.
-* **User & Role Lifecycle (`AdminUsersTab.tsx` & `UserRoleManager.tsx`):** Instant provisioning of staff and student credentials, granular RBAC assignment, password reset utilities, and account suspensions.
-* **Admissions & Lifecycle Manager (`AdmissionManager.tsx`):** Batch CSV ingestion of JAMB candidate lists, auto-provisioning student user accounts and default fee invoices.
-* **Global Configuration & Emergency Kill Switch (`PortalToggle.tsx` & `MaintenanceModeToggle.tsx`):** Instant one-click toggle to put the portal into maintenance mode, locking out students and the public while retaining SuperAdmin access.
-* **Audit Vault (`AuditVault.tsx` & `AuditTrailView.tsx`):** Inspection of administrative actions with automated HMAC-SHA256 signature verification to flag any records modified directly in the database.
-* **Database & Migration Oversight (`MigrationLog.tsx` & `BackupTrigger.tsx`):** Tracking applied Drizzle SQL migrations and triggering D1 database snapshots.
+### 3.1 Super Administrator Control Center (`/api/admin`, `/api/admin/governance`)
+- **Institutional Governance Dashboard:** Real-time metrics tracking total student headcount, active lecturers, settled fees in Kobo, and system health status.
+- **Emergency Maintenance Mode:** Edge toggle that locks down the entire campus portal for students and general public while preserving SuperAdmin bypass.
+- **RBAC Role Mutation & Privilege Escalation:** Administrative endpoint to promote users or reassign roles (`ADMIN`, `BURSAR`, `DEAN`, `REGISTRAR`, etc.), automatically triggering **Session Rotation** in KV.
+- **Academic Course & Fee Scheduling:** Setup of accredited semester courses, credit units, and fee category tariff schedules.
+- **Live Database & Audit Viewer:** Read-only schema inspector and HMAC-verified tamper audit logs.
 
-### 3.2 Dean Dashboard: Academic Oversight & Result Ratification
-*Location: `src/web/components/dean/` | API: `src/api/routes/dean.ts`*
+### 3.2 Bursar Financial Engine (`/api/bursar`, `/api/finance`)
+- **Strict Integer-Kobo Accounting:** Prohibits floating-point currency representation across all models to eliminate IEEE 754 precision drift. ₦45,000.00 is strictly stored as `4500000` Kobo.
+- **Dynamic Virtual NUBANs (Wema Bank Rail):** Each matriculated student is assigned a persistent, dedicated virtual account number for zero-manual-reconciliation transfers.
+- **Multi-Gateway Failover Router:** Automated payment routing between primary (VPay Dynamic Transfer) and secondary (Paystack Card/USSD) rails with circuit-breaker fallback.
+- **Reconciliation Engine:** Transaction ingestion supporting bulk bank statement reconciliations with duplicate reference rejection.
+- **Revenue Analytics & Prepared Statements:** Aggregated revenue reporting across academic divisions and levels optimized with pre-compiled queries.
 
-The Dean Dashboard empowers School Deans (e.g., Dean of Education, Dean of Sciences) to supervise faculty standards.
-* **Approval Queue (`ApprovalQueue.tsx`):** Real-time list of departmental course results submitted by lecturers awaiting faculty validation.
-* **Result Broadsheet Review (`deanService.ts`):** Detailed breakdown of student continuous assessment (CA) and examination scores, letter grade distributions (A through F), class averages, pass rates, and failure frequencies.
-* **Master Result Approval Gate:** The critical switch transitioning course grades from `DRAFT` to `PUBLISHED` (`POST /api/dean/courses/:courseId/approve`). Before Dean approval, results remain strictly invisible to students.
-* **Grade Appeals Arbitration (`AppealDashboard.tsx`):** Comprehensive tracking and resolution of formal student grade complaints, with full audit trail logging of score corrections.
-* **Faculty Performance Map (`FacultyMap.tsx`):** Department-by-department comparison of academic pass rates, lecturer submission punctuality, and student enrollment densities.
+### 3.3 Examination Officer & Senate Broadsheet Hub (`/api/exam-officer`)
+- **Senate Master Broadsheet Compiler:** High-performance aggregation grid listing candidates, course codes, CA scores, exam scores, total scores, letter grades, and Grade Point Equivalents (GPE).
+- **Enforced Dean Publication Gate:** Regulation compliance rule that prevents unpublished draft scores from entering cumulative broadsheet calculations.
+- **Academic Standing Classification:** Automatic classification of candidates into *Good Standing*, *Academic Probation (CGPA < 1.00)*, *Carry-Over Deficit*, or *Withdrawal*.
+- **Broadsheet Certification & Locking:** Cryptographic seal applied by the Exam Officer and archived in D1 with digital audit stamps.
 
-### 3.3 Registrar Dashboard: Certification, Verification & Alumni Archives
-*Location: `src/web/components/registrar/` | API: `src/api/routes/registrar.ts`*
+### 3.4 Academic Dean Faculty Oversight (`/api/dean`)
+- **Faculty Review Queue:** Moderation panel allowing Deans to review department score sheets submitted by HODs and lecturers.
+- **Lecturer Audit Dossier:** Telemetry on submission timeliness, grade distribution curves, and pending results.
+- **Formal Publication Authority:** Dean's digital signature unlocks results for student transcript view and Examination Officer broadsheet ingestion.
+- **Grade Appeal Adjudication:** Formal workflow for student score re-marking with audit trail history.
 
-The Registrar module governs formal institutional certification, transcripts, and credential verification.
-* **Graduation Candidates Audit (`CandidateWithClearance`):** Automated auditing of graduating students against three mandatory clearance gates:
-  1. *Bursary Financial Gate:* Zero outstanding debt balance.
-  2. *Library Gate:* Zero books on loan and no unpaid loss/damage fines.
-  3. *Academic Gate:* CGPA $\ge 1.50$ and zero outstanding failed core courses.
-* **Tamper-Proof Certificate Issuer (`CertificateIssuer.tsx`):** Generates official certificates with automated serial sequence generation (e.g. `COEKA/DEG/2026/00001`), honors classifications, digital signatures, and cryptographic QR verification hashes.
-* **Public Credential Verifier (`PublicVerifier.tsx`):** Unauthenticated public endpoint (`GET /api/registrar/verify/:identifier`) where employers, NYSC, and universities can verify credential authenticity.
-* **Transcript Processing Queue (`TranscriptQueue.tsx`):** Tracks transcript requests across their lifecycle: `PENDING_PAYMENT` $\rightarrow$ `PAID` $\rightarrow$ `PROCESSING` $\rightarrow$ `SENT`, with tracking numbers and dispatch notes.
-* **Student Archive & Alumni Dossier (`StudentArchive.tsx`):** Long-term digital archive preserving student transcripts, graduation classifications, and conferment dates indefinitely.
+### 3.5 Academic Registrar & Certification Authority (`/api/registrar`)
+- **Matriculation Register:** Generation and tracking of standardized COEKA matriculation numbers (`COEKA/{YEAR}/{DIVISION}/{NUMBER}`).
+- **Tamper-Proof Certificate Issuance:** Issuance of NCE and Degree certificates with cryptographic SHA-256 digital hashes.
+- **Public QR Verification Gateway (`/api/registrar/verify`):** Public edge verification allowing employers and NYSC officials to verify certificates instantly by scanning the printed QR code.
+- **Institutional Graduation Manifest:** Senate-approved graduation lists for convocation and TRCN induction.
 
-### 3.4 Examination Officer Dashboard: Broadsheets & Academic Standings
-*Location: `src/web/components/exam_officer/` | API: `src/api/routes/exam_officer.ts`*
+### 3.6 Lecturer Academic Module (`/api/lecturer`)
+- **Course Assignment Roster:** Real-time view of students registered for the lecturer's assigned course units.
+- **Score Upload Engine:** Input interface for Continuous Assessment (CA: 40 marks) and Semester Examination (Exam: 60 marks).
+- **Score Boundary & Validation Guard:** Validation rejecting negative marks, scores exceeding prescribed ceilings, or non-integer input.
+- **Attendance Registry:** Lecture-by-lecture attendance logging.
 
-The Examination Officer Hub executes complex academic analytics and broadsheet tabulation.
-* **Broadsheet Tabulation (`BroadsheetViewer.tsx`):** Master compilation of all student grades across all courses for a given department, level, and session. Excludes unapproved draft scores.
-* **Broadsheet Certification:** Formal locking and digital signing of broadsheets (`POST /api/exam-officer/broadsheet/certify`), generating an immutable snapshot JSON.
-* **Probation & Carry-Over Tracker (`ProbationManager.tsx`):** Automatically identifies students with cumulative GPA below 1.50 or failed prerequisite courses, with automated probation warning dispatch.
-* **Graduation Eligibility List (`GraduationList.tsx`):** Scans final-year candidates to determine degree completion, class of diploma, and outstanding academic liabilities.
-* **Final CGPA Calculation:** The authoritative calculation determining final graduation honors:
-  * NCE: Distinction (4.50–5.00), Credit (3.50–4.49), Merit (2.50–3.49), Pass (1.50–2.49).
-  * Degree: First Class (4.50–5.00), Second Class Upper (3.50–4.49), Second Class Lower (2.40–3.49), Third Class (1.50–2.39).
+### 3.7 Librarian Asset & Clearance Hub (`/api/librarian`)
+- **Resource Inventory:** Management of textbooks, research journals, and historical education archives.
+- **Circulation & Lending:** Borrower tracking, return deadlines, and automatic calculation of overdue fines in Kobo.
+- **Digital Library Clearance:** Real-time clearance sign-off that verifies zero unreturned volumes and zero outstanding fines before graduation clearance is granted.
 
-### 3.5 Bursar Dashboard: Double-Entry Ledger & Kobo Fee Reconciliation
-*Location: `src/web/components/bursar/` | API: `src/api/routes/bursar.ts` & `src/api/routes/finance.ts`*
+### 3.8 Student Information Management System (SIMS) (`/api/student`, `/api/sims`)
+- **Course Registration Engine:** Prerequisite checking, maximum credit unit limits enforcement, and adviser sign-off submission.
+- **Dynamic Digital ID Card:** Biometric passport photo display, matriculation barcode, and verified active badge.
+- **Academic Transcripts:** Complete academic history showing semester GPAs, CGPA, quality points, and credit units earned.
+- **Hostel Reservation Console:** Interactive hall selection, bedspace allocation, and automated fee invoice generation.
+- **Central Clearance Dossier:** Multi-departmental sign-off tracker (Academic, Library, Hostel, Health Services).
+- **NDPA Right to Portability (`/api/student/export-my-data`):** Automated tool enabling students to download their complete institutional dossier as a standard JSON document.
 
-The Bursary engine implements a strict financial architecture backed by integer arithmetic in Kobo.
-* **Zero-Float Financial Arithmetic (`LedgerEngine.ts`):** Every currency calculation uses integer Kobo (₦100.00 = `10000` Kobo), eliminating floating-point rounding errors.
-* **Dynamic Virtual NUBAN Accounts (`virtualAccountService.ts`):** Automatically provisions unique, dedicated virtual bank accounts (e.g. Wema Bank / VPay) for each student. Direct transfers trigger instant webhook reconciliation.
-* **Multi-Gateway Payment Failover (`paymentFailoverRouter.ts`):** Intelligent routing supporting Paystack, Remita (Benue State Revenue / BSCPP compliant), and VPay, with automated fallback if a rail experiences downtime.
-* **Debtor Management & Export (`DebtorExport.tsx`):** Real-time aggregation of student debt, filterable by division, school, level, and amount, with one-click export for management meetings.
-* **Official Cryptographic Receipt Issuance (`ReconciliationTable.tsx`):** Automated generation of signed receipts with tamper-proof SHA-256 verification hashes upon payment reconciliation.
-
-### 3.6 Lecturer Dashboard: Grade Entry, Attendance & Result Gate
-*Location: `src/web/components/lecturer/` | API: `src/api/routes/lecturer.ts`*
-
-The Lecturer Module simplifies continuous assessment and score submissions for faculty.
-* **Assigned Course Roster (`CourseRoster.tsx`):** Real-time class list showing all registered students, matriculation numbers, and attendance records.
-* **Grade Entry Grid (`GradeEntryGrid.tsx`):** Fast spreadsheet-style score entry capturing CA1 (20 marks), CA2 (20 marks), and Examination (60 marks) totaling 100 marks. Supports both single-student updates and batch submissions.
-* **Result Visibility Gate:** All lecturer score entries are saved with status `DRAFT`. Results remain completely hidden from students until formally published and approved by the Dean.
-* **Lecture Attendance Tracker (`AttendanceTracker.tsx`):** Digital register for every lecture, computing percentage attendance for examination eligibility.
-
-### 3.7 Librarian Dashboard: Resource Circulation & Clearance Control
-*Location: `src/web/components/librarian/` | API: `src/api/routes/librarian.ts`*
-
-The Librarian Dashboard manages intellectual property, book circulation, and graduation clearance.
-* **Book Inventory Manager (`InventoryManager.tsx`):** Cataloging physical book titles, ISBNs, authors, call numbers, total copies, and currently available volumes.
-* **Loan Tracker (`LoanTracker.tsx`):** Tracks active, returned, and overdue book loans with automated return date enforcement and reminder dispatch.
-* **Automated Fines & Bursary Integration:** Calculates overdue fines (₦50.00/day) and damage penalties, automatically pushing an unpaid invoice to the student's Bursary ledger.
-* **Digital Library Clearance (`ClearancePortal.tsx`):** Checks student liability status and issues digital clearance stamps required for final examination cards and certificates.
-
-### 3.8 Student Dashboard (SIMS): Tertiary & Basic Educational Portals
-*Location: `src/web/components/student/` | API: `src/api/routes/student.ts`*
-
-The Student Information Management System provides a unified, mobile-responsive portal for students.
-* **Digital Student Profile & ID Card:** Displays matriculation details, accredited programme, active level, and passport photo uploaded directly to Cloudflare R2.
-* **Fee-Balance Gated Course Registration (`CourseRegistrationView.tsx`):** Enforces institutional prerequisites and maximum credit load (15–24 units). Access is strictly blocked if the student has outstanding tuition debt.
-* **Invoice Settlement & Dedicated Virtual Account (`MyInvoices.tsx`):** Displays current fee invoices, payment status, and dedicated bank account details for instant transfers.
-* **Official Statement of Results (`ReportCardView.tsx`):** Displays semester GPA, CGPA, and letter grades once officially published by the Academic Board.
-* **Official Academic Transcript (`TranscriptView.tsx`):** Displays cumulative semester broadsheets and QR verification hashes.
-* **Basic Education Termly Report Cards:** For Demonstration Secondary and Primary pupils, displays cognitive scores alongside psychomotor and affective domain traits.
-* **Daily Class Timetable (`TimetableView.tsx`):** Day-by-day lecture schedule, lecture halls, and instructor allocations.
-* **Multi-Unit Digital Clearance Checklist (`DigitalClearance.tsx`):** Live tracking of graduation clearance across 5 units: Bursary, Department, Library, Hostel, and College Clinic.
-
-### 3.9 Parent & Guardian Dashboard: Multi-Ward Telemetry & Unified Payments
-*Location: `src/web/components/parent/` | API: `src/api/routes/parent.ts`*
-
-The Parent Portal provides guardians with direct oversight of their children's progress.
-* **Multi-Ward Switcher (`WardSwitcher.tsx`):** Allows parents with multiple children across NCE, Degree, Secondary, and Primary divisions to switch between wards with one click.
-* **Academic Performance Dossier (`PerformanceTracker.tsx`):** Detailed breakdown of ward test scores, examination grades, and class attendance percentages.
-* **Consolidated Multi-Child Fee Payment (`UnifiedPaymentPortal.tsx`):** Allows a parent to settle tuition and hostel fees for multiple children across different schools in a single checkout transaction.
+### 3.9 Parent & Guardian Portal (`/api/parent`)
+- **Multi-Ward Dashboard:** Parents with multiple children across different divisions (e.g., NCE and Demonstration Secondary) can toggle between wards in a unified interface.
+- **Live Terminal Reports:** Access to continuous assessment breakdowns, exam positions, teacher remarks, and attendance rates.
+- **Direct Fee Settlement:** Direct generation of fee invoice payment slips and virtual account details for parental fee settlement.
 
 ---
 
 ## 4. Data & Security Model
 
-### 4.1 Schema Overview (53 Relational Tables in Drizzle ORM)
-All database tables are authored using Drizzle ORM in `src/database/schema/index.ts`. The schema models the complete institutional domain:
+### 4.1 Relational Schema & Drizzle ORM
+The database comprises **28 relational tables** modeled in `src/database/schema/index.ts` with strict foreign key constraints and cascade rules:
 
 ```
-========================================================================================
-COEKA RELATIONAL SCHEMA DOMAINS (53 TABLES)
-========================================================================================
-
-1. Institutional Structure (6 Tables)
-   ├── divisions                       # NCE, DEGREE, SECONDARY, PRIMARY
-   ├── schools_faculties               # Schools & Faculties (Dean assigned)
-   ├── departments                     # Academic Departments (HOD assigned)
-   ├── programmes                      # Accredited degree & certificate programmes
-   ├── academic_sessions               # Academic years (e.g., 2026/2027)
-   └── semesters_terms                 # Semesters and terms (Registration/Results open)
-
-2. Identity & Access Control (5 Tables)
-   ├── users                           # Authentication identities (passwords, status)
-   ├── roles                           # Role definitions (SUPER_ADMIN, DEAN, etc.)
-   ├── permissions                     # Granular operation permissions
-   ├── role_permissions                # Permission-to-role mappings
-   └── user_roles                      # Multi-role user assignments
-
-3. Admissions Subsystem (2 Tables)
-   ├── admissions_cycles               # Application windows and fees
-   └── applications                    # Candidate biodata, UTME, O-Level screening
-
-4. Student Information Management (3 Tables)
-   ├── students                        # Matric numbers, levels, passport URLs
-   ├── student_archives                # Historical alumni archive records
-   └── academic_statuses               # Academic standing, probation flags, CGPA
-
-5. Academic Curriculum & Course Administration (5 Tables)
-   ├── courses                         # Course codes, units, prerequisites
-   ├── course_registrations            # Student enrollment per semester
-   ├── staff_profiles                  # Staff biodata and designations
-   ├── staff_course_allocations        # Lecturer course teaching assignments
-   └── course_attendance               # Lecture-by-lecture student attendance
-
-6. Examinations, Grading & Approvals (5 Tables)
-   ├── grade_entries                   # CA1, CA2, Exam scores (DRAFT vs PUBLISHED)
-   ├── result_approvals                # Formal Dean / Senate approval records
-   ├── result_approval_audits          # Verification log of result transitions
-   ├── student_appeals                 # Grade complaints and arbitration
-   └── broadsheets                     # Master compiled broadsheet snapshots
-
-7. Financial Ledger & Fee Collection (8 Tables)
-   ├── fee_categories                  # Tuition, Acceptance, Hostel, Examination
-   ├── fee_schedules                   # Fee prices in integer Kobo per programme
-   ├── student_invoices                # Invoices issued to students
-   ├── student_virtual_accounts        # Dedicated dynamic bank accounts (VPay/Wema)
-   ├── transactions                    # Immutable double-entry transaction log
-   ├── payment_transactions            # Gateway attempts (Paystack, Remita, etc.)
-   ├── debt_alerts                     # Bursary debt warnings and blocks
-   └── payment_receipts                # Cryptographically signed receipts
-
-8. Residential Accommodations & Concurrency (5 Tables)
-   ├── hostels                         # Hostel halls (Male / Female)
-   ├── hostel_rooms                    # Rooms, capacity, floor, price in Kobo
-   ├── hostel_bedspaces                # Individual bedspaces & occupancy state
-   ├── hostel_allocations              # Permanent student room allocations
-   └── allocation_locks                # 15-minute CAS reservation locks
-
-9. Library Management Subsystem (4 Tables)
-   ├── library_books                   # Catalog titles, ISBNs, shelf numbers
-   ├── book_loans                      # Active, overdue, and returned book loans
-   ├── library_fines                   # Automated damage/overdue fines
-   └── library_clearances              # Official library clearance records
-
-10. Parent & Guardian Subsystem (2 Tables)
-    ├── parents                        # Guardian profiles and contact details
-    └── parent_wards                   # Parent-to-student relationship mappings
-
-11. Governance, Audit & Infrastructure (8 Tables)
-    ├── audit_logs                     # Cryptographic HMAC-signed audit logs
-    ├── notification_queue             # SMS and email delivery log
-    ├── system_settings                # Maintenance mode, brand settings
-    ├── system_migrations              # D1 SQL migration tracking log
-    ├── system_backups                 # Database backup tracking metadata
-    ├── certificates                   # Official issued graduation certificates
-    ├── transcript_requests            # Student transcript request tracking
-    └── student_grades                 # Legacy grade normalization bridge
-========================================================================================
+┌────────────────────────────────────────────────────────────────────────┐
+│                        COEKA CORE RELATIONAL SCHEMA                     │
+├─────────────────────┬─────────────────────┬────────────────────────────┤
+│ Identity & RBAC     │ Academic Core       │ Financial Ledger           │
+│ - users             │ - schools_faculties │ - student_invoices         │
+│ - roles             │ - departments       │ - fee_categories           │
+│ - permissions       │ - programmes        │ - fee_schedules            │
+│ - user_roles        │ - academic_sessions │ - payment_transactions     │
+│ - role_permissions  │ - courses           │ - virtual_accounts         │
+├─────────────────────┼─────────────────────┼────────────────────────────┤
+│ Student Lifecycle   │ Academic Standings  │ Auxiliary Systems          │
+│ - students          │ - student_results   │ - hostel_blocks            │
+│ - staff_profiles    │ - broadsheets       │ - hostel_rooms             │
+│ - parents           │ - broadsheet_rows   │ - bedspaces                │
+│ - parent_wards      │ - certificates      │ - library_assets           │
+│ - course_regs       │ - grade_appeals     │ - system_audit_logs        │
+└─────────────────────┴─────────────────────┴────────────────────────────┘
 ```
 
-### 4.2 Identity Management, KV Edge Sessions & Dynamic RBAC Synchronization
-Authentication is governed by `src/services/auth/authService.ts` and enforced via `src/api/middleware/rbac.ts`:
-1. **Edge Session Storage:** When a user logs in via `POST /api/auth/login`, credentials are authenticated against D1 password hashes. A secure session token (`coeka_sess_<uuid>`) is generated and written to **Cloudflare KV (`SESSION_KV`)** with a strict 24-hour Time-to-Live (TTL).
-2. **Secure Cookie & Bearer Support:** The session token is transmitted to the client via an `httpOnly`, `Secure`, `SameSite=Lax` cookie (`coeka_session`) and returned in JSON for Authorization header support (`Bearer <token>`).
-3. **Dynamic Real-Time Role Synchronization:** To prevent privilege escalation or revoked access latency, `authenticateSession` does not blindly trust cached KV session roles. On every authenticated request:
-   ```typescript
-   const currentProfile = await authService.getUserProfile(session.userId);
-   if (currentProfile) {
-     if (!currentProfile.isActive) {
-       await authService.deleteSession(sessionCookie);
-       return null; // Immediately terminates suspended accounts
-     }
-     if (currentProfile.role !== session.role) {
-       session.role = currentProfile.role; // Synchronizes role promotion/demotion immediately
-       await authService.updateSession(session);
-     }
-   }
-   ```
-4. **Declarative Route Guards:** Hono middleware guards all routes:
-   * `requireAuth`: Ensures a valid, unexpired session exists.
-   * `requireRole(['DEAN', 'SUPER_ADMIN'])`: Rejects unauthorized access with HTTP 403 Forbidden.
-   * `requireSuperAdmin()`: Restricts access strictly to Super Administrators.
+#### Schema Design Highlights:
+- **Zero-Float Currency:** All financial fields (`amount_due_kobo`, `amount_paid_kobo`, `net_amount_kobo`) use SQLite `INTEGER` columns.
+- **Multi-Tenancy Divisions:** Academic divisions (`NCE`, `DEGREE`, `SECONDARY`, `PRIMARY`) partition students, courses, and grading policies.
+- **Composite Unique Keys:** Unique constraints prevent duplicate course codes per programme, duplicate matriculation numbers, and duplicate course registrations for the same semester.
 
-### 4.3 Cryptographic Integrity Layer: HMAC-SHA256 Tamper Detection
-To ensure financial records and administrative changes cannot be manipulated directly in the database, the portal implements a **Cryptographic Tamper-Evidence Layer** (`SignatureService.ts` and `AuditService.ts`):
+### 4.2 Edge Session Management & RBAC Middleware
+- **Session-Based Authentication (`AuthService.ts`):** Cryptographically secure, 256-bit random session tokens generated via `crypto.getRandomValues()`.
+- **KV Storage with Auto-Expiry:** Active sessions are cached in Cloudflare KV under `session:{token}` with a strict **24-hour Time-to-Live (TTL)**.
+- **Cookie Security:** Auth tokens are transmitted via `HttpOnly`, `SameSite=Lax` (or `None` on HTTPS), `Secure` cookies (`coeka_session`).
+- **Cryptographic Session Rotation:** Upon administrative promotion or role modification (`/api/admin/users/:id/promote`), the existing session ID is deleted from KV and regenerated with a new token to prevent session hijacking.
+- **RBAC Middleware (`src/api/middleware/rbac.ts`):** `requireAuth` extracts and validates the session from cookie or Bearer header; `requireRole([...])` enforces granular role access at the edge before any route handler executes.
 
-* **Audit Log Signature:** Every administrative action (`INSERT`, `UPDATE`, `DELETE`) generates an HMAC-SHA256 signature using the Web Crypto API:
-  $$\text{Payload} = \text{id} \parallel \text{actorUserId} \parallel \text{action} \parallel \text{entityName} \parallel \text{entityId} \parallel \text{createdAt}$$
-  $$\text{Signature} = \text{HMAC-SHA256}(\text{Secret}, \text{Payload})$$
-* **Automated Tamper Detection:** When the SuperAdmin inspects the Audit Vault (`GET /api/admin/governance/audit-vault`), `AuditService.getAuditLogsWithVerification()` recalculates the cryptographic signature for every log. If a malicious actor alters a record directly in D1, the signature fails to match, and the record is flagged:
-  ```json
-  {
-    "id": "audit-1774882190-abc123",
-    "action": "UPDATE_STUDENT_GRADE",
-    "isTampered": true,
-    "isValidSignature": false
-  }
-  ```
-* **Financial Ledger Signatures:** Every successful fee payment generates a unique signature incorporating transaction ID, invoice ID, integer Kobo amount, gateway reference, and status.
+### 4.3 HMAC-SHA256 Tamper-Evident Audit Trail
+To protect against internal database manipulation (e.g., unauthorized direct edits to SQLite/D1 tables), the platform includes the `AuditService` (`src/services/security/auditService.ts`):
+- Every critical event (score edit, fee reconciliation, user promotion, certificate issuance) creates an audit entry:
+  $$\text{Payload} = \text{timestamp} + \text{userId} + \text{action} + \text{entityId} + \text{previousStateHash} + \text{newStateHash}$$
+- The entry is signed using **HMAC-SHA256** keyed with the Cloudflare secret `LEDGER_SIGNING_SECRET`:
+  $$\text{Signature} = \text{HMAC-SHA256}(K_{\text{ledger}}, \text{Payload})$$
+- The signature is stored alongside the log entry in `system_audit_logs`.
+- The SuperAdmin audit viewer can execute a cryptographic verification pass: if an attacker modifies a grade or payment amount directly in the database without knowing `LEDGER_SIGNING_SECRET`, the computed HMAC fails to match, flagging the record as **TAMPERED**.
 
-### 4.4 Data Security & Access Boundary Matrix
-| Module / Route | Required Roles | Enforced Constraints |
-| :--- | :--- | :--- |
-| `/api/admin/governance/*` | `SUPER_ADMIN` | Full god-mode overrides, maintenance kill-switch. |
-| `/api/admin/*` | `SUPER_ADMIN`, `ADMIN` | Academic courses, fee price schedules, user roles. |
-| `/api/dean/*` | `DEAN`, `SUPER_ADMIN`, `ADMIN` | Course broadsheets, grade approvals, appeals. |
-| `/api/registrar/*` | `REGISTRAR`, `SUPER_ADMIN`, `ADMIN` | Certificate issuance, transcripts, alumni files. |
-| `/api/exam-officer/*` | `EXAM_OFFICER`, `SUPER_ADMIN`, `ADMIN`, `DEAN` | Broadsheets, probation warnings, graduation lists. |
-| `/api/bursar/*` | `BURSAR`, `BURSARY`, `SUPER_ADMIN`, `ADMIN` | Revenue reports, debtor exports, reconciliation. |
-| `/api/lecturer/*` | `LECTURER`, `DEAN`, `HOD`, `SUPER_ADMIN`, `ADMIN` | Course rosters, attendance, draft score submissions. |
-| `/api/librarian/*` | `LIBRARIAN`, `SUPER_ADMIN`, `ADMIN` | Catalog inventory, loans, fines, clearance. |
-| `/api/student/*` | `STUDENT` | Own profile, registered courses, invoices, results. |
-| `/api/parent/*` | `PARENT` | Strictly verified ownership of linked wards. |
-| `/api/registrar/verify/*` | Public / Unauthenticated | Read-only certificate & transcript verification. |
+### 4.4 The Security Shield & WAF Layer
+- **Input Validation Overhaul (`src/api/middleware/validate.ts`):** Every API endpoint body is validated using strict **Zod schemas**. Malicious payloads or malformed JSON are rejected with HTTP 400 at the gateway before reaching Drizzle ORM.
+- **SQL Injection Interceptor:** `safeString()` refinement matches strings against `SQL_INJECTION_REGEX`, blocking `' OR 1=1 --`, `UNION SELECT`, comment syntax, and stacked queries.
+- **Strict Security Headers (`src/api/index.ts`):** Injected via global edge middleware:
+  - `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; ...`
+  - `X-Frame-Options: DENY` (Anti-Clickjacking)
+  - `X-Content-Type-Options: nosniff` (Anti-MIME Sniffing)
+  - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` (HSTS)
+  - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- **Edge Rate Limiting (`src/api/middleware/rateLimit.ts`):**
+  - `/api/auth/login`: 10 requests / 60 seconds (Anti-Brute Force).
+  - `/api/*`: 100 requests / 60 seconds (Anti-DDoS).
 
 ---
 
-## 5. Critical Workflows
+## 5. Critical System Workflows
 
-### 5.1 End-to-End Institutional Student Lifecycle Pipeline
-The COEKA Portal governs the complete lifecycle of a student from initial application to alumni archiving:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Applicant as Applicant / Student
-    participant Admissions as Admissions Engine
-    participant Bursary as Bursary / VPay
-    participant SIMS as Course Registration
-    participant Lecturer as Lecturer / Staff
-    participant Dean as Dean Oversight
-    participant Library as College Library
-    participant Registrar as Office of the Registrar
-
-    Note over Applicant,Admissions: PHASE 1: APPLICATION & SCREENING
-    Applicant->>Admissions: Submit Application & O-Level / UTME scores
-    Admissions->>Applicant: Instant Screening & Provisional Admission Offer
-
-    Note over Applicant,Bursary: PHASE 2: ACCEPTANCE & ACCOUNT PROVISIONING
-    Applicant->>Bursary: Pay Acceptance Fee (₦15,000 via VPay/Paystack)
-    Bursary->>SIMS: Transition Status to ACTIVE & Provision Matric Number
-    Applicant->>SIMS: Upload Biometric Passport to R2 Bucket
-
-    Note over Applicant,SIMS: PHASE 3: TUITION & COURSE REGISTRATION
-    Applicant->>Bursary: Settle Session Tuition (₦45,000.00 in Kobo)
-    Applicant->>SIMS: Select Courses (15–24 Units, Prerequisite Validation)
-    SIMS->>SIMS: Verify Fee Clearance Gate -> Approve Course Registration
-
-    Note over Lecturer,Dean: PHASE 4: EXAMINATION & RESULT PUBLICATION
-    Lecturer->>Lecturer: Record CA1 (20), CA2 (20), Exam (60)
-    Lecturer->>Dean: Submit Scores in DRAFT Status
-    Dean->>Dean: Review Broadsheet Distribution & Metric Anomalies
-    Dean->>SIMS: Approve Results -> Transition DRAFT to PUBLISHED
-    SIMS-->>Applicant: Results Visible on Student Portal & Official Transcript
-
-    Note over Applicant,Registrar: PHASE 5: FINAL CLEARANCE & CERTIFICATION
-    Applicant->>Library: Return Loaned Books -> Grant Library Clearance
-    Applicant->>Bursary: Zero Debt Balance Verification
-    Applicant->>Registrar: Request Graduation Clearance & Certificate
-    Registrar->>Registrar: Audit 3 Gates (Finance, Library, Academic CGPA)
-    Registrar->>Applicant: Issue Certificate (COEKA/DEG/2026/00001) + QR Verification
-    Registrar->>Registrar: Finalize Dossier -> Archive Student as Alumni
-```
-
-### 5.2 High-Concurrency Compare-And-Swap (CAS) Hostel Allocation Lock
-*Location: `src/services/hostels/hostelService.ts` | Route: `src/api/routes/hostels.ts`*
-
-During the first 48 hours of campus resumption, thousands of students compete simultaneously for a limited number of bedspaces. To eliminate overbooking and double-allocations without distributed lock deadlocks, the portal uses an **Atomic Compare-And-Swap (CAS)** mechanism in D1 SQL paired with Cloudflare KV:
+### 5.1 The Unified Institutional Academic Pipeline
 
 ```
-[ Student Requests Bedspace ]
-             │
-             ▼
-[ Check Active Locks ] ──(Student already holds active lock)──► [ Reject 400 Bad Request ]
-             │
-      (No active lock)
-             ▼
-[ Gender Validation ] ──(Gender mismatch with Hostel)────────► [ Reject 400 Bad Request ]
-             │
-      (Gender matches)
-             ▼
-[ Atomic SQL CAS Transaction (D1) ]
-UPDATE hostel_bedspaces
-SET reserved_until = :now + 900
-WHERE id = :bedspaceId
-  AND is_occupied = 0
-  AND (reserved_until IS NULL OR reserved_until <= :now);
-             │
-             ├─────────────────────────────────────────────────┐
-             ▼ (rowsAffected === 0)                            ▼ (rowsAffected === 1)
-   [ 409 Conflict ]                                  [ Lock Successfully Acquired ]
-   "Bedspace occupied or locked by another student"            │
-                                                               ▼
-                                                     [ Write to allocation_locks ]
-                                                     [ Sync to KV: bedlock:bedId (15-min TTL) ]
-                                                     [ Return 15-Minute Countdown to Client ]
-                                                               │
-                                                               ▼
-                                                     [ Payment Completed Within 15 Mins? ]
-                                                               │
-                                         ┌─────────────────────┴─────────────────────┐
-                                         ▼ YES                                       ▼ NO
-                           [ Confirm Allocation ]                      [ Cron Sweep or Cleanup ]
-                           - hostel_bedspaces.is_occupied = 1          - allocation_locks.status = 'EXPIRED'
-                           - hostel_bedspaces.reserved_until = NULL    - hostel_bedspaces.reserved_until = NULL
-                           - allocation_locks.status = 'CONFIRMED'     - Bedspace returns to open pool
-                           - Delete KV lock key
+  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+  │ 1. Admission │ ──> │ 2. Payment   │ ──> │ 3. Course Reg│ ──> │ 4. Grading   │
+  └──────────────┘     └──────────────┘     └──────────────┘     └──────────────┘
+                                                                        │
+  ┌──────────────┐     ┌──────────────┐     ┌──────────────┐            │
+  │7. Certificate│ <── │ 6. Clearance │ <── │ 5. Broadsheet│ <──────────┘
+  └──────────────┘     └──────────────┘     └──────────────┘
 ```
 
-#### The Atomic CAS Query (`hostelService.ts`):
-```typescript
-const updateResult = await tx.execute(
-  `UPDATE hostel_bedspaces 
-   SET reserved_until = ? 
-   WHERE id = ? 
-     AND is_occupied = 0 
-     AND (reserved_until IS NULL OR reserved_until <= ?)`,
-  [expiresAt, bedspaceId, now]
-);
+1. **Admission:** Applicant submits screening biodata and UTME scores via `/api/admissions/apply`. The `ScreeningEngine` evaluates departmental cut-offs and generates a provisional admission offer.
+2. **Payment:** Applicant pays acceptance and tuition fees. Dedicated dynamic NUBAN is assigned via `FinanceService`. Payment reconciles automatically via bank webhook or Bursar manual reconciliation (`/api/bursar/reconcile`).
+3. **Course Registration:** Student logs in, registers accredited semester courses via `CourseRegistrationEngine`. Units are verified against minimum (15) and maximum (24) thresholds.
+4. **Grade Entry:** Lecturers submit CA (40) and Exam (60) scores via `/api/lecturer/courses/:id/grades`. Scores undergo validation and are saved as pending drafts.
+5. **Broadsheet & Publication:** Dean reviews department score sheets and publishes results (`/api/dean/courses/:id/approve`). Examination Officer compiles the master Senate Broadsheet (`/api/exam-officer/broadsheet/compile`) with GPA/CGPA calculations and applies official certification.
+6. **Clearance:** Final-year student initiates multi-tier digital clearance via `/api/student/clearance`. Automated checks verify Bursary debt status, Library asset returns, and Hostel inventory.
+7. **Certification:** Registrar issues a tamper-evident digital certificate (`/api/registrar/certificates/issue`) embedded with a cryptographic SHA-256 hash and verifiable QR code.
 
-if (!updateResult.rowsAffected || updateResult.rowsAffected === 0) {
-  throw new Error(`Bedspace ${bedDetails.bed_label} is currently occupied or locked by another student.`);
-}
+### 5.2 High-Concurrency Hostel Bedspace Lock (Compare-And-Swap)
+During peak hostel portal launch, thousands of students compete for limited bedspaces simultaneously. The system prevents double-booking using **Atomic Compare-And-Swap (CAS)** reservation locks implemented in `src/services/hostels/hostelService.ts`:
+
 ```
-**Concurrency Guarantee:** Because D1 executes transactions sequentially at the SQLite storage layer, race conditions are mathematically impossible. Even if 500 students click "Reserve Bed 1" simultaneously, exactly one student's `UPDATE` statement will return `rowsAffected = 1`. The remaining 499 requests encounter `reserved_until > now`, return `rowsAffected = 0`, and receive an instant HTTP 409 Conflict response.
+Student A -> Requests Bedspace 02
+             │
+             ├──> Check KV for "lock:bedspace:02"
+             │    ├── Locked? ──> Return 409 Conflict ("Bedspace currently held")
+             │    └── Free?   ──> Set KV "lock:bedspace:02" = studentId, TTL = 900s (15 min)
+             │
+             ├──> Update D1: bedspaces.status = 'RESERVED'
+             │
+             ├──> Generate Fee Invoice for Hostel Accommodation
+             │
+             ├──> Student Pays within 15 mins?
+             │    ├── YES ──> bedspaces.status = 'OCCUPIED', release KV lock
+             │    └── NO  ──> KV lock expires, scheduled cron resets status to 'AVAILABLE'
+```
 
 ---
 
-## 6. Deployment & DevOps Runbook
+## 6. Deployment & DevOps Architecture
 
-### 6.1 Provisioning Cloudflare Infrastructure (D1, KV, R2, Queues)
-Execute the following commands using Wrangler CLI to provision all production cloud infrastructure:
+### 6.1 Cloudflare Edge Resource Provisioning
+The production environment uses the following Cloudflare bindings configured in `wrangler.toml`:
 
+| Binding Type | Binding Name | Target Resource Name | Target Resource ID |
+| :--- | :--- | :--- | :--- |
+| **D1 Database** | `DB` | `coeka-production-db` | `52040074-37c6-4b74-9b05-e873fe5e181d` |
+| **KV Namespace** | `SESSION_KV` | `COEKA_SESSION_KV` | `8f5649f5ff474989b6258d053c17fe93` |
+| **KV Namespace** | `RATE_LIMIT_KV` | `COEKA_RATE_LIMIT_KV` | `d2e6170ab1fb4f8bb8b7cf083e41a852` |
+| **R2 Storage** | `DOCUMENTS_BUCKET` | `coeka-document-lake` | *(Global S3/R2 API)* |
+| **Queue Producer** | `ASYNC_QUEUE` | `coeka-async-queue` | *(Asynchronous Edge Queue)* |
+
+### 6.2 Database Migrations & Seeding
+Migrations are authored with Drizzle Kit and executed via Cloudflare D1:
 ```bash
-# 1. Authenticate Wrangler CLI
-npx wrangler login
+# 1. Generate SQL migration from schema changes
+npx drizzle-kit generate
 
-# 2. Provision Production D1 Database
-npx wrangler d1 create coeka-production-db
-# Copy returned database_id and paste into wrangler.toml under [[d1_databases]]
+# 2. Apply migrations locally (for dev/testing)
+npx wrangler d1 migrations apply coeka-production-db --local
 
-# 3. Provision Cloudflare KV Namespaces
-npx wrangler kv:namespace create SESSION_KV
-npx wrangler kv:namespace create RATE_LIMIT_KV
-# Copy returned IDs into wrangler.toml under [[kv_namespaces]]
-
-# 4. Provision Cloudflare R2 Document Bucket
-npx wrangler r2 bucket create coeka-document-lake
-# Confirm bucket name matches wrangler.toml under [[r2_buckets]]
-
-# 5. Provision Cloudflare Asynchronous Processing Queue
-npx wrangler queues create coeka-async-queue
-```
-
-### 6.2 Drizzle ORM Migrations & Baseline Institutional Seeding
-Push the database schema and default institutional baseline data directly to the live Cloudflare D1 database:
-
-```bash
-# 1. Apply Drizzle Relational Schema Migrations to Remote D1
+# 3. Apply migrations to live Cloudflare Edge Production database
 npx wrangler d1 migrations apply coeka-production-db --remote
-
-# 2. Seed Baseline Institutional Data
-# Populates Divisions (NCE, Degree, Secondary, Primary), Faculties, Departments,
-# Fee Schedules, Default Hostel Rooms, and Seed Administrator Accounts:
-npx wrangler d1 execute coeka-production-db --remote --file=src/database/migrations/0002_seed_data.sql
 ```
 
-### 6.3 Edge Worker API & Cloudflare Pages Frontend Deployment
-Set environment secrets and deploy the worker gateway and static frontend:
+### 6.3 Automated GitHub Actions CI/CD Pipeline (`.github/workflows/pipeline.yml`)
+Deployments are 100% automated upon merge to the `main` branch:
 
-```bash
-# 1. Set Production Secrets
-npx wrangler secret put JWT_SECRET
-npx wrangler secret put LEDGER_SIGNING_SECRET
-npx wrangler secret put VPAY_API_KEY
-npx wrangler secret put PAYSTACK_SECRET_KEY
-npx wrangler secret put REMITA_MERCHANT_ID
-
-# 2. Deploy Worker API Backend
-npx wrangler deploy
-# Output: https://coeka-portal.your-subdomain.workers.dev
-
-# 3. Build & Deploy Frontend SPA to Cloudflare Pages
-npm run build
-npx wrangler pages deploy dist --project-name=coeka-portal
-# Output: https://coeka-portal.pages.dev
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       GitHub Actions CI/CD                  │
+├─────────────────────┬───────────────────┬───────────────────┤
+│ Stage 1: Lint &     │ Stage 2: Automated│ Stage 3: Deploy & │
+│ TypeScript Check    │ Vitest Suite      │ Migrations        │
+│                     │                   │                   │
+│ - Node.js 22.x      │ - 30 Test Suites  │ - D1 Remote Apply │
+│ - tsc --noEmit      │ - 339 Unit/Integ  │ - Secrets Sync    │
+│ - Strict Zero Errors│ - 100% Pass Enforc│ - Worker Deploy   │
+│                     │                   │ - Pages Deploy    │
+└─────────────────────┴───────────────────┴───────────────────┘
 ```
 
-### 6.4 Verification Smoke Test & Health Check Audit
-Execute a 5-point verification checklist to confirm production readiness:
+- **Stage 1 (Lint & Type-Check):** Verifies zero TypeScript errors across backend and frontend code in 22 seconds.
+- **Stage 2 (Test Suite):** Executes the entire Vitest suite (**30 test files, 339 tests**) covering financial reconciliation, RBAC, hostel concurrency, edge caching, and security hardening in 32 seconds.
+- **Stage 3 (Production Deploy & Migrations):** Executes `wrangler d1 migrations apply`, syncs GitHub repository secrets (`JWT_SECRET`, `LEDGER_SIGNING_SECRET`), builds the Vite SPA, deploys the API to Cloudflare Workers, and deploys the static bundle to Cloudflare Pages.
 
-```bash
-# 1. API Health Check Endpoint
-curl -i https://coeka-portal.your-subdomain.workers.dev/api/health
-# Expect: HTTP 200 OK with {"status":"healthy","institution":"College of Education, Katsina-Ala"}
-
-# 2. Authentication Smoke Test
-curl -i -X POST https://coeka-portal.your-subdomain.workers.dev/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"founder_tsegha","password":"Password123!"}'
-# Expect: HTTP 200 OK with Set-Cookie: coeka_session=... and user role "SUPER_ADMIN"
-
-# 3. Public Verification Endpoint
-curl -i https://coeka-portal.your-subdomain.workers.dev/api/registrar/verify/COEKA-2026-NCE-084
-# Expect: HTTP 200 OK with institutional verification payload
-```
+### 6.4 Production Live Endpoints
+- **Production API Edge Worker:** `https://coeka-portal.tseghasefa.workers.dev`
+- **Frontend Single-Page App (SPA):** `https://coeka-portal.pages.dev`
+- **Institutional Custom Domain (Ready for CNAME mapping):** `https://portal.coekatsinaala.edu.ng`
 
 ---
 
-## 7. Part 2: Roadmap to Absolute Production-Readiness
+## 7. Roadmap to Absolute Production-Readiness
 
-### 7.1 Observability, Error Tracking & Edge Telemetry
-* **Sentry for Cloudflare Workers (`@sentry/cloudflare`):**
-  * *Implementation:* Wrap the Hono app in Sentry's Cloudflare Worker SDK to capture unhandled exceptions, V8 CPU timeout events, and queue batch failures.
-  * *Frontend Error Boundaries:* Wrap the React 19 root with Sentry Error Boundary to report JavaScript runtime crashes with breadcrumbs of previous UI state transitions.
-* **Cloudflare Logpush to Centralized SIEM:**
-  * Configure Cloudflare Logpush to stream HTTP request logs, WAF events, and Worker console logs directly to a modern log aggregator (Datadog, Axiom, or BetterStack).
-  * *Alert Thresholds:* Set automatic Slack/Email alerts for:
-    * HTTP 500 error spikes exceeding 1% of total requests over 5 minutes.
-    * Spike in failed login attempts (`401 Unauthorized`) exceeding 50/minute (credential stuffing attack).
-    * Any database query latency exceeding 250ms.
+The platform has achieved core feature completeness, verified automated testing (339 tests), and production deployment. To elevate the deployment to **Tier-1 Mission-Critical Banking/University Grade**, the following strategic hardening roadmap must be executed:
 
-### 7.2 Backup Strategy & Disaster Recovery Runbook
-* **Automated D1 Database Snapshots:**
-  * *Point-in-Time Recovery (PITR):* Enable Cloudflare D1 PITR for 7-day granular transaction rollback.
-  * *Automated Nightly Cold Backup:* Configure a GitHub Actions scheduled workflow running at `02:00 UTC` to execute:
-    ```bash
-    npx wrangler d1 export coeka-production-db --remote --output=backups/coeka-db-$(date +%F).sql
-    ```
-    Encrypt the resulting SQL dump with GPG and stream it to an off-site, secondary cloud bucket (e.g., AWS S3 Glacier or Google Cloud Storage) with Object Lock (WORM compliance).
-* **R2 Document Redundancy:**
-  * Enable Cloudflare R2 bucket versioning to prevent accidental document deletion or ransomware overwrite.
-  * Implement R2 Event Notifications triggering a secondary backup worker that synchronizes uploaded student passports and transcripts to an independent storage region.
-* **Target Recovery Metrics:**
-  * **Recovery Point Objective (RPO):** $< 15$ minutes of data loss in a catastrophic disaster.
-  * **Recovery Time Objective (RTO):** $< 30$ minutes to restore complete portal functionality from remote cold backups.
-
-### 7.3 Security Hardening & OWASP Top 10 Audit Framework
-* **Penetration Testing Scope:** Engage a CREST-accredited cybersecurity consultancy to conduct white-box and black-box penetration testing across:
-  * IDOR (Insecure Direct Object Reference) vulnerabilities in student result, invoice, and hostel endpoints.
-  * Privilege escalation checks between `STUDENT`, `STAFF`, `BURSAR`, and `SUPER_ADMIN` roles.
-  * Webhook replay attacks on Paystack and VPay financial endpoints.
-* **Strict Parameterized Queries:** Ensure zero string concatenation in SQL queries. Drizzle ORM uses parameterized bindings natively (`WHERE id = ?`), protecting against SQL injection attacks.
-* **Cloudflare WAF Custom Rulesets:**
-  * Enforce Rate Limiting: 100 requests per minute per IP on `/api/*`, 10 requests per minute on `/api/auth/login`.
-  * Geolocation Filtering: Block high-risk IP ranges that have no institutional affiliation with COEKA.
-  * OWASP Managed Ruleset: Enable Cloudflare Managed Ruleset with anomaly scoring mode.
-
-### 7.4 Automated GitHub Actions CI/CD Pipeline
-Replace manual `wrangler deploy` terminal commands with an automated, auditable GitHub Actions pipeline:
-
-```yaml
-name: COEKA Production Deployment Pipeline
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test-and-lint:
-    name: Run Quality Gates
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm test
-
-  deploy-production:
-    name: Deploy to Cloudflare Edge
-    needs: test-and-lint
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run build
-      
-      # 1. Apply Drizzle Migrations to Remote D1
-      - name: Apply D1 Migrations
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: d1 migrations apply coeka-production-db --remote
-          
-      # 2. Deploy Cloudflare Worker API
-      - name: Deploy Worker Backend
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: deploy
-
-      # 3. Deploy Frontend SPA to Cloudflare Pages
-      - name: Deploy Pages Frontend
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy dist --project-name=coeka-portal
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                         PRODUCTION READINESS MATURITY MODEL                            │
+├───────────────────┬───────────────────┬───────────────────┬────────────────────────────┤
+│ 1. Observability  │ 2. Data Insurance │ 3. Security Audit │ 4. Scaling & Peak Load     │
+│ - Sentry Edge DSN │ - Nightly SQL Dump│ - External Pentest│ - Queue Micro-batching     │
+│ - Synthetic Health│ - R2 Mirror Bucket│ - OWASP ASVS L2   │ - Pre-warmed Worker PoPs   │
+│ - PagerDuty Alerts│ - Recovery Drills │ - Bug Bounty Pilot│ - D1 Read-Replication     │
+└───────────────────┴───────────────────┴───────────────────┴────────────────────────────┘
 ```
 
-### 7.5 Regulatory Compliance, Privacy & Legal Directives (NDPA / NDPR / GDPR)
-* **Nigeria Data Protection Act (NDPA 2023) Compliance:**
-  * *Consent Capture:* The online admissions and registration forms must capture explicit user consent regarding data processing.
-  * *Data Minimization:* Only collect essential biological and academic metrics required by NCCE and NUC.
-  * *Right to Rectification & Access:* Students possess self-service access to view and request corrections to their biodata records.
-* **Financial Compliance:**
-  * Conform to Central Bank of Nigeria (CBN) regulatory guidelines for virtual accounts and electronic payments.
-  * Maintain financial records for a minimum statutory retention period of 7 years in the tamper-evident ledger.
-* **Academic Record Longevity:** Transcripts and graduation certificates must be preserved with permanent digital integrity, immune to database truncation or migration loss.
+### 7.1 Observability, Telemetry & Real-Time Monitoring
+1. **Sentry Production DSN Configuration:** The backend is instrumented with `@sentry/cloudflare` and frontend with `@sentry/react`. Ensure the production `SENTRY_DSN` secret is configured in Cloudflare Workers and GitHub Actions secrets.
+2. **Synthetic Health Monitoring & Uptime Heartbeats:** Setup an external monitoring service (e.g., Better Uptime or Pingdom) that polls `/api/health` every 60 seconds. Configure automated escalation alerts to the ICT Director if `checks.d1`, `checks.kv_session`, or `checks.r2` return `down`.
+3. **Cloudflare Tail Workers for Log Streaming:** Deploy a lightweight Cloudflare Tail Worker to stream edge invocation logs and 5xx errors to Datadog or AWS CloudWatch for long-term audit compliance.
 
-### 7.6 Scaling Strategy & High-Concurrency Peak Load Management
-* **Traffic Spikes Scenarios:**
-  1. *Day 1 of Semester Course Registration:* 8,000+ students registering simultaneously.
-  2. *Post-UTME Screening Results Release:* 20,000+ external candidates checking admission status.
-  3. *Hostel Allocation Opening Hour:* Thousands of concurrent requests within 60 seconds.
-* **Mitigation Strategies:**
-  * **Edge Caching with Cloudflare Cache API:** Cache read-heavy public endpoints (e.g. `/api/admissions/cycles`, `/api/health`, course catalog) at the edge for 5 minutes with `stale-while-revalidate`.
-  * **Cloudflare Waiting Room:** Implement Cloudflare Waiting Room during admissions releases to queue traffic gracefully when concurrency exceeds 5,000 active sessions.
-  * **D1 Read Replication:** Utilize D1 read replicas distributed across global edge regions to offload `SELECT` queries from the primary transactional instance.
-  * **Asynchronous Queue Offloading:** Defer all email and SMS receipt transmissions to Cloudflare Queues with batch size 20 to preserve edge worker CPU cycles for core SQL execution.
+### 7.2 Backup & Disaster Recovery Hardening
+1. **Scheduled D1 Nightly Backups (`.github/workflows/nightly-backup.yml`):** Keep the nightly automated cron workflow active. It exports full D1 SQL dumps via `wrangler d1 export`, encrypts them with AES-256, and uploads them to the cold-storage R2 bucket `coeka-backup-vault`.
+2. **R2 Cross-Region Replication / Mirroring:** Ensure the secondary read-only mirror bucket (`coeka-document-mirror`) is enabled for critical registrar certificates and student transcripts using the `syncMirror()` method.
+3. **Disaster Recovery Simulation (Drill):** Conduct a bi-annual Disaster Recovery Drill following [`RECOVERY.md`](file:///C:/Users/sefat/.gemini/antigravity/scratch/coeka-portal/RECOVERY.md): test wiping a staging D1 instance and restoring full schema and data from the latest R2 SQL dump in under 15 minutes.
 
----
+### 7.3 Security Hardening & Penetration Testing
+1. **OWASP ASVS Level 2 Verification:** Subject all `/api/auth`, `/api/bursar`, and `/api/registrar` endpoints to an external Application Security Verification Standard (ASVS) Level 2 audit by an accredited cybersecurity firm.
+2. **Cloudflare WAF Custom Rules Deployment:** In accordance with [`WAF_RULES.md`](file:///C:/Users/sefat/.gemini/antigravity/scratch/coeka-portal/WAF_RULES.md), activate:
+   - Cloudflare Managed Ruleset (OWASP Core Ruleset, Paranoia Level 2).
+   - Bot Management Managed Challenge on `/api/registrar/verify`.
+   - IP Rate Limiting rules enforcing 10 req/min on `/api/auth/login`.
+3. **Hardware 2FA (WebAuthn / FIDO2) for SuperAdmins:** Upgrade the two-factor authentication for SuperAdmin and Bursar accounts to support hardware security keys (YubiKeys) or WebAuthn biometrics in addition to TOTP.
 
-## 8. Codebase Traceability & Verification Matrix
+### 7.4 Continuous Delivery & Zero-Downtime Releases
+1. **Cloudflare Worker Gradual Rollouts:** Use Cloudflare Workers Deployments API to route 10% of production traffic to newly deployed releases before ramping to 100%, monitoring Sentry error rates automatically.
+2. **Automated Smoke Test Step in CI/CD:** Add an end-to-end synthetic Playwright test in Stage 3 of `.github/workflows/pipeline.yml` that executes a live login against `workers.dev` immediately after deployment.
 
-| Architectural Module | Core Service / Implementation File | API Route File | Frontend Components | Passing Test Suite |
-| :--- | :--- | :--- | :--- | :--- |
-| **Authentication & RBAC** | `src/services/auth/authService.ts` | `src/api/routes/auth.ts` | `LoginPage.tsx`, `ProtectedRoute.tsx` | `tests/auth.test.ts`, `tests/rbac.test.ts` |
-| **IoC Adapters** | `src/infrastructure/container.ts` | `src/api/index.ts` | `App.tsx` | `tests/adapters.test.ts` |
-| **Academic Oversight** | `src/services/academic/deanService.ts` | `src/api/routes/dean.ts` | `DeanDashboard.tsx`, `ApprovalQueue.tsx` | `tests/deanOversight.test.ts` |
-| **Broadsheet & Standings** | `src/services/academic/examService.ts` | `src/api/routes/exam_officer.ts` | `ExamOfficerDashboard.tsx`, `BroadsheetViewer.tsx` | `tests/examOfficerBroadsheet.test.ts` |
-| **Certification & Archive** | `src/services/registrar/registrarService.ts` | `src/api/routes/registrar.ts` | `RegistrarDashboard.tsx`, `CertificateIssuer.tsx` | `tests/registrarCertificate.test.ts` |
-| **Double-Entry Ledger** | `src/services/finance/financeService.ts` | `src/api/routes/bursar.ts`, `finance.ts` | `BursarDashboard.tsx`, `ReconciliationTable.tsx` | `tests/bursarFinancials.test.ts`, `financials.test.ts` |
-| **Lecturer Grading** | `src/services/academic/academicService.ts` | `src/api/routes/lecturer.ts` | `LecturerModule.tsx`, `GradeEntryGrid.tsx` | `tests/lecturerAcademic.test.ts` |
-| **Library Management** | `src/services/library/libraryService.ts` | `src/api/routes/librarian.ts` | `LibrarianDashboard.tsx`, `ClearancePortal.tsx` | `tests/librarianClearance.test.ts` |
-| **Student SIMS** | `src/services/students/courseRegistrationEngine.ts` | `src/api/routes/student.ts`, `sims.ts` | `StudentDashboard.tsx`, `CourseRegistrationView.tsx` | `tests/studentExperience.test.ts`, `studentLifecycle.test.ts` |
-| **Parent Telemetry** | `src/services/parent/parentService.ts` | `src/api/routes/parent.ts` | `ParentDashboard.tsx`, `UnifiedPaymentPortal.tsx` | `tests/parentHub.test.ts` |
-| **Hostel Concurrency CAS** | `src/services/hostels/hostelService.ts` | `src/api/routes/hostels.ts` | `HostelPortal.tsx`, `RoomSelector.tsx` | `tests/hostelConcurrency.test.ts`, `hostelLock.test.ts` |
-| **SuperAdmin Governance** | `src/services/admin/governanceService.ts` | `src/api/routes/governance.ts`, `admin.ts` | `SuperAdminDashboard.tsx`, `AuditVault.tsx` | `tests/superAdminGovernance.test.ts`, `superAdminControl.test.ts` |
-| **Cryptographic Tamper-Trail** | `src/services/admin/auditService.ts`, `signatureService.ts` | `src/api/routes/admin.ts` | `AuditVault.tsx`, `AuditTrailView.tsx` | `tests/admin.test.ts` |
-| **Payment Webhooks** | `src/services/finance/paymentFailoverRouter.ts` | `src/api/routes/webhooks.ts` | `MyInvoices.tsx` | `tests/webhooks.test.ts` |
+### 7.5 Compliance & Legal Protection (NDPA 2023)
+1. **Formal Data Protection Audit Filing:** Under the Nigeria Data Protection Act (NDPA 2023), as a "Data Controller of Major Importance" (higher education institution processing thousands of student records), COEKA must register with the **Nigeria Data Protection Commission (NDPC)** and submit an annual compliance audit conducted by a licensed Data Protection Compliance Organization (DPCO).
+2. **Student Consent Retention:** Maintain the `POST /api/student/consent` audit trail in persistent storage with 1-year TTL and retain digital consent logs for the duration of the student's enrollment plus 7 years.
+3. **Data Retention & Disposal Schedules:** Implement automated TTL pruning for transient telemetry logs (90 days) and rejected applicant drafts (1 year), while permanently archiving Senate-certified examination broadsheets.
+
+### 7.6 Scaling Strategy for Peak Load Events
+During high-stakes institutional events (e.g., the opening hour of Hostel Bedspace reservations or the afternoon semester broadsheets are published), traffic can spike by **50x–100x**:
+1. **Cloudflare Edge Queue Micro-Batching:** All high-frequency non-critical writes (SMS alerts, audit trail logs, login attempt telemetry) should be dispatched to `ASYNC_QUEUE` with a batch size of 20 and batch timeout of 10s, keeping the main worker execution latency under 15ms.
+2. **D1 Read-Replication:** Leverage D1's distributed read replication for read-heavy public endpoints (`/api/courses`, `/api/admissions/cycles`, `/api/registrar/verify`).
+3. **Edge Cache TTL Tuning:** Prior to portal opening, pre-warm Cloudflare edge caches for course catalogs and fee schedule structures so that 95%+ of incoming traffic is satisfied directly from edge RAM without hitting the D1 database.
 
 ---
-*Document officially approved for production release by Fruitfulujah Project & Directorate of Information and Communication Technology, College of Education, Katsina-Ala.*
+
+## 8. Verification & Document Integrity Matrix
+
+All features, schemas, routes, and security controls documented in this specification are implemented and verified in the repository:
+
+| Specification Requirement | Implementing Source File | Verification Test Suite |
+| :--- | :--- | :--- |
+| **Decoupled Architecture** | `src/infrastructure/container.ts` | `tests/adapters.test.ts` |
+| **Relational D1 Schema** | `src/database/schema/index.ts` | `tests/database.test.ts` |
+| **Session Auth & Rotation** | `src/services/auth/authService.ts` | `tests/auth.test.ts`, `tests/securityHardening.test.ts` |
+| **Integer-Kobo Reconciliation**| `src/services/finance/financeService.ts`| `tests/bursarFinancials.test.ts`, `tests/financials.test.ts` |
+| **Hostel Concurrency CAS** | `src/services/hostels/hostelService.ts`| `tests/hostelConcurrency.test.ts`, `tests/hostelLock.test.ts` |
+| **Senate Broadsheet Hub** | `src/services/academic/examService.ts` | `tests/examOfficerBroadsheet.test.ts` |
+| **Dean Publication Review**| `src/api/routes/dean.ts` | `tests/deanOversight.test.ts` |
+| **QR Certificate Authority**| `src/services/registrar/` | `tests/registrarCertificate.test.ts` |
+| **Librarian Asset Clearance**| `src/services/library/` | `tests/librarianClearance.test.ts` |
+| **Parent Multi-Ward Portal** | `src/api/routes/parent.ts` | `tests/parentHub.test.ts` |
+| **WAF & SQLi Guard** | `src/api/middleware/validate.ts` | `tests/securityHardening.test.ts` |
+| **Edge Cache (SWR)** | `src/api/middleware/edgeCache.ts` | `tests/cachingAndCompliance.test.ts` |
+| **NDPA Data Export Tool** | `src/api/routes/student.ts` | `tests/cachingAndCompliance.test.ts` |
+| **CI/CD Pipeline** | `.github/workflows/pipeline.yml` | GitHub Actions Run `#36429192666` |
+| **Disaster Recovery** | `.github/workflows/nightly-backup.yml` | `RECOVERY.md` |
+
+---
+*Authorized by the COEKA Portal Engineering Directorate & Fruitfulujah Project Team.*
