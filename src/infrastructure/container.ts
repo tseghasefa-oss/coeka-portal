@@ -36,7 +36,11 @@ export function createCloudflareContainer(env: Env): ServiceContainer {
   return {
     db: new CloudflareDatabaseAdapter(env.DB),
     cache: new CloudflareCacheAdapter(env.SESSION_KV),
-    storage: new CloudflareStorageAdapter(env.DOCUMENTS_BUCKET),
+    storage: new CloudflareStorageAdapter(
+      env.DOCUMENTS_BUCKET,
+      'https://assets.coekatsinaala.edu.ng',
+      env.MIRROR_BUCKET
+    ),
     queue: new CloudflareQueueAdapter(env.ASYNC_QUEUE),
   };
 }

@@ -3,6 +3,8 @@ export interface Env {
   SESSION_KV: KVNamespace;
   RATE_LIMIT_KV: KVNamespace;
   DOCUMENTS_BUCKET: R2Bucket;
+  MIRROR_BUCKET?: R2Bucket;
+  COLD_STORAGE_BUCKET?: R2Bucket;
   ASYNC_QUEUE: Queue<any>;
 
   // Secrets & Environment Variables

@@ -40,11 +40,15 @@ export class MemoryCacheAdapter implements ICacheProvider {
 
 export class MemoryStorageAdapter implements IStorageProvider {
   private files = new Map<string, { data: ArrayBuffer; contentType: string }>();
+  private versions = new Map<string, Array<{ versionId: string; data: ArrayBuffer; uploadedAt: number; contentType: string }>>();
+  private deleted = new Map<string, Array<{ data: ArrayBuffer; deletedAt: number; contentType: string }>>();
+  public mirrorStorage?: MemoryStorageAdapter;
 
   async upload(
     key: string,
     data: Uint8Array | ArrayBuffer | string,
-    contentType: string = 'application/octet-stream'
+    contentType: string = 'application/octet-stream',
+    options?: import('../../interfaces/IStorageProvider').StorageUploadOptions
   ): Promise<StorageUploadResult> {
     let buffer: ArrayBuffer;
     if (typeof data === 'string') {
@@ -56,26 +60,112 @@ export class MemoryStorageAdapter implements IStorageProvider {
       buffer = data as ArrayBuffer;
     }
 
-    this.files.set(key, { data: buffer, contentType });
+    const versionId = `v_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const effectiveContentType = options?.contentType || contentType;
+
+    this.files.set(key, { data: buffer, contentType: effectiveContentType });
+
+    // Store version
+    const keyVersions = this.versions.get(key) || [];
+    keyVersions.unshift({
+      versionId,
+      data: buffer,
+      uploadedAt: Date.now(),
+      contentType: effectiveContentType,
+    });
+    this.versions.set(key, keyVersions);
+
+    let mirrored = false;
+    if ((options?.isCritical || options?.mirror) && this.mirrorStorage) {
+      await this.mirrorStorage.upload(key, buffer, effectiveContentType);
+      mirrored = true;
+    }
+
     return {
       key,
       url: `https://storage.local/${key}`,
       sizeBytes: buffer.byteLength,
+      versionId,
+      mirrored,
     };
   }
 
-  async download(key: string): Promise<ArrayBuffer | null> {
-    return this.files.get(key)?.data || null;
+  async download(key: string, versionId?: string): Promise<ArrayBuffer | null> {
+    if (versionId) {
+      const keyVersions = this.versions.get(key);
+      const v = keyVersions?.find((x) => x.versionId === versionId);
+      return v ? v.data : null;
+    }
+    const current = this.files.get(key)?.data || null;
+    if (!current && this.mirrorStorage) {
+      return await this.mirrorStorage.download(key);
+    }
+    return current;
   }
 
-  async delete(key: string): Promise<void> {
+  async delete(key: string, softDelete: boolean = true): Promise<void> {
+    const existing = this.files.get(key);
+    if (softDelete && existing) {
+      const list = this.deleted.get(key) || [];
+      list.unshift({ ...existing, deletedAt: Date.now() });
+      this.deleted.set(key, list);
+    }
     this.files.delete(key);
+  }
+
+  async restore(key: string, versionId?: string): Promise<boolean> {
+    if (versionId) {
+      const keyVersions = this.versions.get(key);
+      const v = keyVersions?.find((x) => x.versionId === versionId);
+      if (!v) return false;
+      this.files.set(key, { data: v.data, contentType: v.contentType });
+      return true;
+    }
+
+    // Restore from soft delete
+    const list = this.deleted.get(key);
+    if (list && list.length > 0) {
+      const item = list.shift()!;
+      this.files.set(key, { data: item.data, contentType: item.contentType });
+      return true;
+    }
+
+    // Fallback: restore latest version
+    const keyVersions = this.versions.get(key);
+    if (keyVersions && keyVersions.length > 0) {
+      const latest = keyVersions[0];
+      this.files.set(key, { data: latest.data, contentType: latest.contentType });
+      return true;
+    }
+
+    return false;
+  }
+
+  async listVersions(key: string): Promise<import('../../interfaces/IStorageProvider').StorageObjectVersion[]> {
+    const keyVersions = this.versions.get(key) || [];
+    return keyVersions.map((v, idx) => ({
+      versionId: v.versionId,
+      key,
+      sizeBytes: v.data.byteLength,
+      uploadedAt: v.uploadedAt,
+      isLatest: idx === 0,
+      contentType: v.contentType,
+    }));
+  }
+
+  async syncMirror(key: string): Promise<boolean> {
+    if (!this.mirrorStorage) return false;
+    const existing = this.files.get(key);
+    if (!existing) return false;
+    await this.mirrorStorage.upload(key, existing.data, existing.contentType);
+    return true;
   }
 
   getPublicUrl(key: string): string {
     return `https://storage.local/${key}`;
   }
 }
+
 
 export class MemoryQueueAdapter implements IQueueProvider {
   public messages: any[] = [];
