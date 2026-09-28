@@ -438,11 +438,13 @@ export function LoginPage() {
               {[
                 { label: 'Student', user: 'std_iorliam', role: 'STUDENT' },
                 { label: 'Super Admin', user: 'founder_tsegha', role: 'SUPER_ADMIN' },
+                { label: 'Student Affairs', user: 'student_affairs', role: 'WARDEN' },
                 { label: 'Registrar', user: 'registrar_coeka', role: 'REGISTRAR' },
                 { label: 'Exam Officer', user: 'exam_officer1', role: 'EXAM_OFFICER' },
                 { label: 'Lecturer', user: 'lecturer1', role: 'LECTURER' },
                 { label: 'Bursar', user: 'bursar_ikyur', role: 'BURSAR' },
                 { label: 'Dean', user: 'dean_tyav', role: 'DEAN' },
+                { label: 'Librarian', user: 'librarian_wende', role: 'LIBRARIAN' },
                 { label: 'Parent', user: 'parent_iorliam', role: 'PARENT' },
               ].map((persona) => (
                 <button

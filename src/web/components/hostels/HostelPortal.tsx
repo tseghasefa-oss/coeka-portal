@@ -19,19 +19,27 @@ export const HostelPortal: React.FC = () => {
   const { userSession } = useAppStore();
   const [hostels, setHostels] = useState<HostelSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState<'student' | 'warden'>('student');
-
-  // Student State
-  const [studentStatus, setStudentStatus] = useState<any>(null);
-  const [isReserving, setIsReserving] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
   const isStaffOrAdmin =
     userSession?.role === 'SUPER_ADMIN' ||
     userSession?.role === 'ADMIN' ||
     userSession?.role === 'BURSARY' ||
     userSession?.role === 'STAFF' ||
     (userSession?.role as string) === 'WARDEN';
+
+  const [activeSubTab, setActiveSubTab] = useState<'student' | 'warden'>(
+    (userSession?.role as string) === 'WARDEN' ? 'warden' : 'student'
+  );
+
+  // Student State
+  const [studentStatus, setStudentStatus] = useState<any>(null);
+  const [isReserving, setIsReserving] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  useEffect(() => {
+    if ((userSession?.role as string) === 'WARDEN') {
+      setActiveSubTab('warden');
+    }
+  }, [userSession]);
 
   const fetchHostelData = async () => {
     setLoading(true);

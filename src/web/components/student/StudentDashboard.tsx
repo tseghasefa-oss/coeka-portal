@@ -22,6 +22,7 @@ import { TimetableView } from './TimetableView';
 import { MyInvoices } from './MyInvoices';
 import { DigitalClearance } from './DigitalClearance';
 import { OnboardingView } from './OnboardingView';
+import { HostelPortal } from '../hostels/HostelPortal';
 
 export const StudentDashboard: React.FC = () => {
   const { userSession } = useAppStore();
@@ -89,6 +90,25 @@ export const StudentDashboard: React.FC = () => {
           <p className="text-xs text-emerald-100 leading-relaxed">
             {profile?.programme || 'NCE Computer Science / Mathematics'} • Level {profile?.level || 100} • Matric: {profile?.matricNumber || 'COEKA/2026/NCE/084'}
           </p>
+
+          {!isBasicEd && (
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <button
+                onClick={() => setActiveSubTab('hostels')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition shadow-xs cursor-pointer"
+              >
+                <Building className="w-3.5 h-3.5 text-slate-900" />
+                <span>Reserve Hostel Bedspace (Edge Lock)</span>
+              </button>
+              <button
+                onClick={() => setActiveSubTab('courseReg')}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800/80 hover:bg-emerald-800 text-white text-xs font-semibold border border-emerald-700 transition cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Course Registration</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Digital ID Card Preview */}
@@ -134,6 +154,22 @@ export const StudentDashboard: React.FC = () => {
           >
             <BookOpen className="w-3.5 h-3.5" />
             <span>Course Registration</span>
+          </button>
+        )}
+
+        {/* Tertiary Specific: Hostel Allocation (Autonomous Edge Concurrency Engine) */}
+        {!isBasicEd && (
+          <button
+            onClick={() => setActiveSubTab('hostels')}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeSubTab === 'hostels'
+                ? 'bg-emerald-800 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+            }`}
+            title="Autonomous Edge Concurrency Engine — Self-Service Bedspace Allocation"
+          >
+            <Building className="w-3.5 h-3.5" />
+            <span>Hostel & Bedspace</span>
           </button>
         )}
 
@@ -261,6 +297,31 @@ export const StudentDashboard: React.FC = () => {
 
       {activeSubTab === 'courseReg' && (
         <CourseRegistrationView onNavigateToInvoices={() => setActiveSubTab('invoices')} />
+      )}
+
+      {activeSubTab === 'hostels' && (
+        <div className="space-y-4">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
+                <Building className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-emerald-950">
+                  Autonomous Edge Concurrency Engine — Self-Service Bedspace Allocation
+                </h4>
+                <p className="text-xs text-emerald-800">
+                  Real-time bedspace picker with 15-minute Compare-and-Swap (CAS) reservation locks. Choose your hall and bedspace to generate an instant fee invoice.
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-900 shrink-0">
+              Edge CAS Locks
+            </span>
+          </div>
+
+          <HostelPortal />
+        </div>
       )}
 
       {activeSubTab === 'reportCard' && <ReportCardView />}

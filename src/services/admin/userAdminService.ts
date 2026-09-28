@@ -30,7 +30,8 @@ export class UserAdminService {
    */
   async ensureSeedUsers(): Promise<void> {
     const existing = await this.db.queryFirst<{ count: number }>(`SELECT COUNT(*) as count FROM users`);
-    if (existing && existing.count >= 10) {
+    const dsaExists = await this.db.queryFirst<{ id: string }>(`SELECT id FROM users WHERE id = 'usr-dsa-001'`);
+    if (existing && existing.count >= 11 && dsaExists) {
       return;
     }
 
@@ -175,6 +176,20 @@ export class UserAdminService {
         isActive: 1,
         twoFactor: 1,
       },
+      {
+        id: 'usr-dsa-001',
+        username: 'student_affairs',
+        name: 'Dr. Jerry Agba',
+        identifier: 'COEKA/DSA/001',
+        email: 'studentaffairs@coeka.edu.ng',
+        phoneNumber: '08035557788',
+        role: 'WARDEN',
+        userType: 'STAFF',
+        dept: 'Directorate of Student Affairs & Hall Warden',
+        div: 'CENTRAL',
+        isActive: 1,
+        twoFactor: 1,
+      },
     ];
 
     for (const u of initialUsers) {
@@ -184,6 +199,21 @@ export class UserAdminService {
         [u.id, u.username, u.email, u.phoneNumber, '$2a$12$demo_default_hash', u.userType, u.isActive, u.twoFactor]
       );
     }
+
+    // Ensure role and staff profile for Directorate of Student Affairs / Hall Warden
+    await this.db.execute(
+      `INSERT OR IGNORE INTO roles (id, name, description) VALUES (?, ?, ?)`,
+      ['role-warden', 'WARDEN', 'Directorate of Student Affairs, hostel allocations, bedspace reassignment, and student welfare']
+    );
+    await this.db.execute(
+      `INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)`,
+      ['usr-dsa-001', 'role-warden']
+    );
+    await this.db.execute(
+      `INSERT OR IGNORE INTO staff_profiles (id, user_id, staff_id_number, department_id, first_name, last_name, cadre, designation, employment_date, highest_qualification)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ['stf-dsa-001', 'usr-dsa-001', 'COEKA/DSA/001', 'dept-edu-fnd', 'Jerry', 'Agba', 'ACADEMIC', 'Dean of Student Affairs / Chief Hall Warden', '2019-01-10', 'Ph.D Student Personnel Services']
+    );
   }
 
   /**
@@ -295,6 +325,13 @@ export class UserAdminService {
         identifier: 'COEKA/EXAM/003',
         role: 'EXAM_OFFICER',
         dept: 'Examinations & Records Unit',
+        div: 'CENTRAL',
+      },
+      'usr-dsa-001': {
+        name: 'Dr. Jerry Agba',
+        identifier: 'COEKA/DSA/001',
+        role: 'WARDEN',
+        dept: 'Directorate of Student Affairs & Hall Warden',
         div: 'CENTRAL',
       },
     };

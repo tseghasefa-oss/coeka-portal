@@ -12,6 +12,7 @@ export type UserRole =
   | 'LIBRARIAN'
   | 'EXAM_OFFICER'
   | 'REGISTRAR'
+  | 'WARDEN'
   | 'ADMIN'
   | 'SUPER_ADMIN'
   | 'PARENT';
@@ -167,6 +168,8 @@ export function resolveDashboardTab(role?: string): ActiveTab {
     case 'BURSAR':
     case 'BURSARY':
       return 'finance';
+    case 'WARDEN':
+      return 'hostels';
     case 'PARENT':
       return 'parent';
     case 'STUDENT':

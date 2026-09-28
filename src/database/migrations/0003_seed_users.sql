@@ -11,7 +11,8 @@ INSERT OR IGNORE INTO users (id, username, email, phone_number, password_hash, u
 ('usr-std-001', 'std_iorliam', 'm.iorliam@student.coeka.edu.ng', '08055556677', 'a109e36947ad56de1dca1cc49f0ef8ac9ad9a7b1aa0df41fb3c4cb73c1ff01ea', 'STUDENT', 1, 0),
 ('usr-std-002', 'std_gbadu', 'd.gbadu@student.coeka.edu.ng', '08066667788', 'a109e36947ad56de1dca1cc49f0ef8ac9ad9a7b1aa0df41fb3c4cb73c1ff01ea', 'STUDENT', 1, 0),
 ('usr-std-003', 'std_chia', 'v.chia@degree.coeka.edu.ng', '08077778899', 'a109e36947ad56de1dca1cc49f0ef8ac9ad9a7b1aa0df41fb3c4cb73c1ff01ea', 'STUDENT', 1, 0),
-('usr-par-001', 'parent_iorliam', 'tor.iorliam@gmail.com', '08088889900', 'a109e36947ad56de1dca1cc49f0ef8ac9ad9a7b1aa0df41fb3c4cb73c1ff01ea', 'PARENT', 1, 0);
+('usr-par-001', 'parent_iorliam', 'tor.iorliam@gmail.com', '08088889900', 'a109e36947ad56de1dca1cc49f0ef8ac9ad9a7b1aa0df41fb3c4cb73c1ff01ea', 'PARENT', 1, 0),
+('usr-dsa-001', 'student_affairs', 'studentaffairs@coeka.edu.ng', '08035557788', 'a109e36947ad56de1dca1cc49f0ef8ac9ad9a7b1aa0df41fb3c4cb73c1ff01ea', 'STAFF', 1, 1);
 
 -- Update lecturer1 password hash if already exists with old bcrypt mock
 UPDATE users SET password_hash = 'a109e36947ad56de1dca1cc49f0ef8ac9ad9a7b1aa0df41fb3c4cb73c1ff01ea' WHERE username = 'lecturer1';
@@ -20,7 +21,8 @@ UPDATE users SET password_hash = 'a109e36947ad56de1dca1cc49f0ef8ac9ad9a7b1aa0df4
 INSERT OR IGNORE INTO staff_profiles (id, user_id, staff_id_number, department_id, first_name, last_name, cadre, designation, employment_date, highest_qualification) VALUES
 ('stf-002', 'usr-admin-001', 'COEKA/ADM/001', 'dept-csc', 'Stephen', 'Tsegha', 'NON_ACADEMIC', 'Chief Architect / Super Admin', '2018-01-01', 'Engr. Prof.'),
 ('stf-003', 'usr-dean-001', 'COEKA/STF/2026/012', 'dept-edu-fnd', 'Bridget', 'Tyav', 'ACADEMIC', 'Dean of Education', '2019-03-01', 'Ph.D Education'),
-('stf-004', 'usr-bur-001', 'COEKA/BUR/005', 'dept-csc', 'Gabriel', 'Ikyur', 'NON_ACADEMIC', 'Bursar', '2019-06-15', 'FCA, B.Sc Accounting');
+('stf-004', 'usr-bur-001', 'COEKA/BUR/005', 'dept-csc', 'Gabriel', 'Ikyur', 'NON_ACADEMIC', 'Bursar', '2019-06-15', 'FCA, B.Sc Accounting'),
+('stf-dsa-001', 'usr-dsa-001', 'COEKA/DSA/001', 'dept-edu-fnd', 'Jerry', 'Agba', 'ACADEMIC', 'Dean of Student Affairs / Chief Hall Warden', '2019-01-10', 'Ph.D Student Personnel Services');
 
 -- 3. Students
 INSERT OR IGNORE INTO students (id, user_id, division_id, programme_id, current_level, matric_number, admission_year, first_name, middle_name, last_name, gender, date_of_birth, state_of_origin, lga_of_origin, blood_group, contact_address, passport_photo_url, qr_code_signature, academic_status) VALUES
@@ -37,6 +39,9 @@ INSERT OR IGNORE INTO parent_wards (parent_id, student_id, relationship) VALUES
 ('par-001', 'std-001', 'FATHER');
 
 -- 6. User Roles Mapping
+INSERT OR IGNORE INTO roles (id, name, description) VALUES
+('role-warden', 'WARDEN', 'Directorate of Student Affairs, hostel allocations, bedspace reassignment, and student welfare');
+
 INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES
 ('usr-admin-001', 'role-super-admin'),
 ('usr-staff-001', 'role-lecturer'),
@@ -45,4 +50,5 @@ INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES
 ('usr-std-001', 'role-student'),
 ('usr-std-002', 'role-student'),
 ('usr-std-003', 'role-student'),
-('usr-par-001', 'role-parent');
+('usr-par-001', 'role-parent'),
+('usr-dsa-001', 'role-warden');
