@@ -232,11 +232,11 @@ export const AuditVault: React.FC = () => {
 
           <div className="bg-black/25 rounded-xl p-3 border border-white/10">
             <div className="text-[10px] font-bold uppercase tracking-wider text-slate-300">Active SuperAdmins</div>
-            <div className="text-xl font-extrabold text-purple-300 mt-0.5">
+            <div className="text-xl font-extrabold text-blue-300 mt-0.5">
               {securitySummary?.activeSuperAdminsCount || 1}
             </div>
             <div className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-              <Shield className="w-3 h-3 text-purple-400" /> Supreme Authority
+              <Shield className="w-3 h-3 text-blue-400" /> Supreme Authority
             </div>
           </div>
 
@@ -311,12 +311,12 @@ export const AuditVault: React.FC = () => {
               placeholder="Search by Actor User ID, Action, or Entity ID..."
               value={actorFilter}
               onChange={(e) => setActorFilter(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-purple-500 focus:outline-none dark:text-white"
+              className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-[#0B192C] focus:ring-1 focus:ring-[#0B192C] focus:outline-none dark:text-white"
             />
           </div>
           <button
             type="submit"
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-all cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0B192C] hover:bg-slate-900 text-white transition-colors shadow-sm cursor-pointer"
           >
             Filter
           </button>
@@ -361,7 +361,7 @@ export const AuditVault: React.FC = () => {
         <div className="p-4 border-b border-slate-200/60 dark:border-slate-800 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-purple-500" />
+              <Terminal className="w-4 h-4 text-blue-600" />
               Verified Transaction Ledger
             </h3>
             <p className="text-xs text-slate-500">
@@ -372,7 +372,7 @@ export const AuditVault: React.FC = () => {
 
         {loading ? (
           <div className="p-12 text-center text-slate-400 flex flex-col items-center justify-center">
-            <RefreshCw className="w-6 h-6 animate-spin mb-2 text-purple-500" />
+            <RefreshCw className="w-6 h-6 animate-spin mb-2 text-blue-600" />
             <span className="text-xs font-bold">Verifying HMAC signatures across database rows...</span>
           </div>
         ) : filteredLogs.length === 0 ? (
@@ -449,7 +449,7 @@ export const AuditVault: React.FC = () => {
                       {/* Cryptographic Hash */}
                       <td className="py-3 px-4 whitespace-nowrap font-mono text-[11px]">
                         <div className="flex items-center gap-1.5">
-                          <Key className="w-3 h-3 text-purple-400 shrink-0" />
+                          <Key className="w-3 h-3 text-blue-500 shrink-0" />
                           <span className="truncate max-w-[140px] text-slate-500 dark:text-slate-400">
                             {log.signature || 'UNSIGNED_LEGACY'}
                           </span>
@@ -499,7 +499,7 @@ export const AuditVault: React.FC = () => {
                   className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                     selectedEntry.isTampered
                       ? 'bg-rose-600 text-white'
-                      : 'bg-purple-500/10 text-purple-500 border border-purple-500/20'
+                      : 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-700'
                   }`}
                 >
                   {selectedEntry.isTampered ? <AlertOctagon className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
@@ -556,7 +556,7 @@ export const AuditVault: React.FC = () => {
 
               {/* Cryptographic Comparison */}
               <div className="p-3 rounded-xl bg-black/30 border border-white/10 space-y-2">
-                <div className="text-[10px] font-black uppercase tracking-wider text-purple-300">
+                <div className="text-[10px] font-black uppercase tracking-wider text-blue-300">
                   Cryptographic Verification Hashes
                 </div>
                 <div>

@@ -24,17 +24,17 @@ import { ConfirmationModal } from '../common/ConfirmationModal';
 import { PasswordResetTool } from './PasswordResetTool';
 
 const ROLES_LIST = [
-  { value: 'SUPER_ADMIN', label: 'Super Administrator', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300' },
-  { value: 'ADMIN', label: 'Administrator', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' },
-  { value: 'REGISTRAR', label: 'Registrar', color: 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300' },
-  { value: 'EXAM_OFFICER', label: 'Examination Officer', color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' },
-  { value: 'DEAN', label: 'Dean of School', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300' },
-  { value: 'HOD', label: 'Head of Department', color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-300' },
-  { value: 'LECTURER', label: 'Academic Lecturer', color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300' },
-  { value: 'BURSAR', label: 'Bursary Officer', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' },
-  { value: 'LIBRARIAN', label: 'Library Officer', color: 'bg-teal-100 text-teal-800 dark:bg-teal-900/40 dark:text-teal-300' },
-  { value: 'STUDENT', label: 'Student / Scholar', color: 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300' },
-  { value: 'PARENT', label: 'Parent / Guardian', color: 'bg-pink-100 text-pink-800 dark:bg-pink-900/40 dark:text-pink-300' },
+  { value: 'SUPER_ADMIN', label: 'Super Administrator', color: 'bg-[#0B192C]/10 text-[#0B192C] border border-[#0B192C]/20 dark:bg-blue-950/60 dark:text-blue-200 dark:border-blue-800' },
+  { value: 'ADMIN', label: 'Administrator', color: 'bg-[#0B192C]/10 text-[#0B192C] border border-[#0B192C]/20 dark:bg-blue-950/60 dark:text-blue-200 dark:border-blue-800' },
+  { value: 'REGISTRAR', label: 'Registrar', color: 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700' },
+  { value: 'BURSAR', label: 'Bursary Officer', color: 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700' },
+  { value: 'DEAN', label: 'Dean of School', color: 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700' },
+  { value: 'HOD', label: 'Head of Department', color: 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700' },
+  { value: 'EXAM_OFFICER', label: 'Examination Officer', color: 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700' },
+  { value: 'LIBRARIAN', label: 'Library Officer', color: 'bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-200 dark:border-blue-700' },
+  { value: 'LECTURER', label: 'Academic Lecturer', color: 'bg-slate-100 text-slate-800 border border-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700' },
+  { value: 'STUDENT', label: 'Student / Scholar', color: 'bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800' },
+  { value: 'PARENT', label: 'Parent / Guardian', color: 'bg-slate-50 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800' },
 ];
 
 export const UserRoleManager: React.FC = () => {
@@ -251,13 +251,13 @@ export const UserRoleManager: React.FC = () => {
                 : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-200/50 dark:border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 flex items-center justify-center">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center">
                 <ShieldCheck className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold">Change Institutional Role</h3>
-                <p className="text-xs text-slate-400">User: {roleChangeModal.user.name}</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Change Institutional Role</h3>
+                <p className="text-xs text-slate-500">User: {roleChangeModal.user.name}</p>
               </div>
             </div>
 
@@ -278,12 +278,12 @@ export const UserRoleManager: React.FC = () => {
                       onClick={() => setRoleChangeModal((prev) => ({ ...prev, selectedRole: role.value }))}
                       className={`p-2.5 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
                         roleChangeModal.selectedRole === role.value
-                          ? 'bg-purple-600 text-white border-purple-500 shadow-sm'
-                          : 'bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-transparent hover:border-slate-300'
+                          ? 'bg-[#0B192C] text-white border-[#0B192C] shadow-sm'
+                          : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full ${role.value === 'SUPER_ADMIN' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                        <span className={`w-2.5 h-2.5 rounded-full ${role.value.includes('ADMIN') ? 'bg-amber-400' : 'bg-blue-500'}`} />
                         <span>{role.label}</span>
                       </div>
                       <span className="text-[10px] font-mono opacity-80">{role.value}</span>
@@ -292,11 +292,11 @@ export const UserRoleManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setRoleChangeModal({ isOpen: false, user: null, selectedRole: '' })}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -304,7 +304,7 @@ export const UserRoleManager: React.FC = () => {
                   type="button"
                   onClick={handleExecuteRoleChange}
                   disabled={isChangingRole || roleChangeModal.selectedRole === roleChangeModal.user.currentRole}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-md disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-[#0B192C] hover:bg-slate-900 text-white transition-all shadow-sm disabled:opacity-50 cursor-pointer"
                 >
                   {isChangingRole ? 'Updating...' : 'Assign Role'}
                 </button>
@@ -324,13 +324,13 @@ export const UserRoleManager: React.FC = () => {
                 : 'bg-white border-slate-200 text-slate-900'
             }`}
           >
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-200/50 dark:border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 flex items-center justify-center">
+            <div className="flex items-center gap-3 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 flex items-center justify-center">
                 <Sparkles className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold">Bulk Academic Level Promotion</h3>
-                <p className="text-xs text-slate-400">Advance student cohorts across levels</p>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Bulk Academic Level Promotion</h3>
+                <p className="text-xs text-slate-500">Advance student cohorts across levels</p>
               </div>
             </div>
 
@@ -345,7 +345,7 @@ export const UserRoleManager: React.FC = () => {
                   <select
                     value={bulkPromoteModal.fromLevel}
                     onChange={(e) => setBulkPromoteModal((prev) => ({ ...prev, fromLevel: Number(e.target.value) }))}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-slate-100 dark:bg-slate-800 font-bold"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-slate-50 dark:bg-slate-800 font-bold"
                   >
                     <option value={100}>100 Level</option>
                     <option value={200}>200 Level</option>
@@ -358,7 +358,7 @@ export const UserRoleManager: React.FC = () => {
                   <select
                     value={bulkPromoteModal.toLevel}
                     onChange={(e) => setBulkPromoteModal((prev) => ({ ...prev, toLevel: Number(e.target.value) }))}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-slate-100 dark:bg-slate-800 font-bold"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-slate-50 dark:bg-slate-800 font-bold"
                   >
                     <option value={200}>200 Level</option>
                     <option value={300}>300 Level</option>
@@ -367,11 +367,11 @@ export const UserRoleManager: React.FC = () => {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/50 dark:border-slate-800">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setBulkPromoteModal((prev) => ({ ...prev, isOpen: false }))}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -379,7 +379,7 @@ export const UserRoleManager: React.FC = () => {
                   type="button"
                   disabled={bulkPromoteModal.isSubmitting || bulkPromoteModal.fromLevel >= bulkPromoteModal.toLevel}
                   onClick={handleExecuteBulkPromote}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-all shadow-md disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-[#0B192C] transition-all shadow-sm disabled:opacity-50 cursor-pointer"
                 >
                   {bulkPromoteModal.isSubmitting ? 'Promoting...' : `Promote All to ${bulkPromoteModal.toLevel}L`}
                 </button>
@@ -391,15 +391,11 @@ export const UserRoleManager: React.FC = () => {
 
       {/* Top Banner Card */}
       <div
-        className={`bento-card p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border shadow-sm ${
-          isNavy
-            ? 'bg-gradient-to-r from-slate-900 via-slate-950 to-blue-950 border-slate-800'
-            : 'bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 border-emerald-800'
-        }`}
+        className="rounded-2xl p-5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-slate-800 shadow-sm bg-[#0B192C]"
       >
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-white/10 text-slate-200 border border-white/20">
               User Lifecycle & RBAC Engine
             </span>
           </div>
@@ -412,7 +408,7 @@ export const UserRoleManager: React.FC = () => {
           <button
             type="button"
             onClick={() => setBulkPromoteModal({ isOpen: true, fromLevel: 100, toLevel: 200, isSubmitting: false })}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-700 text-white transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-400 hover:bg-amber-300 text-[#0B192C] transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5" />
             Bulk Level Promotion
@@ -429,7 +425,7 @@ export const UserRoleManager: React.FC = () => {
       </div>
 
       {/* Search & Filter Toolbar */}
-      <div className="bento-card p-4 space-y-3">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
         <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
@@ -438,7 +434,7 @@ export const UserRoleManager: React.FC = () => {
               placeholder="Search by name, matric/staff ID, username, or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs bg-slate-50/50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0B192C] dark:focus:ring-blue-500"
             />
           </div>
 
@@ -446,7 +442,7 @@ export const UserRoleManager: React.FC = () => {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold bg-slate-50/50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0B192C] dark:focus:ring-blue-500 text-slate-700 dark:text-slate-300"
             >
               <option value="ALL">All Roles</option>
               <option value="SUPER_ADMIN">Super Admins</option>
@@ -465,7 +461,7 @@ export const UserRoleManager: React.FC = () => {
             <select
               value={divisionFilter}
               onChange={(e) => setDivisionFilter(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-xs font-bold bg-slate-50 dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold bg-slate-50/50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0B192C] dark:focus:ring-blue-500 text-slate-700 dark:text-slate-300"
             >
               <option value="ALL">All Divisions</option>
               <option value="NCE">NCE Division</option>
@@ -478,25 +474,25 @@ export const UserRoleManager: React.FC = () => {
         </div>
       </div>
 
-      {/* Users Master Table */}
-      <div className="bento-card overflow-hidden">
+      {/* Users Master Ghost Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200 dark:border-slate-700">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead className="bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-bold border-b border-slate-200/80 dark:border-slate-700">
               <tr>
-                <th className="py-3 px-4">User Identity</th>
-                <th className="py-3 px-4">Identifier / Portal ID</th>
-                <th className="py-3 px-4">Institutional Role</th>
-                <th className="py-3 px-4">Affiliation / Dept</th>
-                <th className="py-3 px-4">Account Status</th>
-                <th className="py-3 px-4 text-right">Administrative Actions</th>
+                <th className="py-3.5 px-4">User Identity</th>
+                <th className="py-3.5 px-4">Identifier / Portal ID</th>
+                <th className="py-3.5 px-4">Institutional Role</th>
+                <th className="py-3.5 px-4">Affiliation / Dept</th>
+                <th className="py-3.5 px-4">Account Status</th>
+                <th className="py-3.5 px-4 text-right">Administrative Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-700 dark:text-slate-300">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
               {isLoading ? (
                 <tr>
                   <td colSpan={6} className="py-12 text-center text-slate-400">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-emerald-500" />
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-600" />
                     Loading user directory...
                   </td>
                 </tr>
@@ -508,7 +504,7 @@ export const UserRoleManager: React.FC = () => {
                 </tr>
               ) : (
                 users.map((u) => (
-                  <tr key={u.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                  <tr key={u.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="font-bold text-slate-900 dark:text-white">{u.name}</div>
                       <div className="text-[11px] text-slate-400 font-mono">{u.email}</div>
@@ -527,13 +523,13 @@ export const UserRoleManager: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4">
                       {u.isActive ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 inline-flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" />
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                           Active
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 inline-flex items-center gap-1">
-                          <UserX className="w-3 h-3" />
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800 inline-flex items-center gap-1">
+                          <UserX className="w-3 h-3 text-rose-600 dark:text-rose-400" />
                           Suspended
                         </span>
                       )}
@@ -543,7 +539,7 @@ export const UserRoleManager: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenRoleModal(u)}
-                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-purple-500/10 hover:bg-purple-500/20 text-purple-600 dark:text-purple-300 border border-purple-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200 border border-blue-200 dark:border-blue-800 transition-colors flex items-center gap-1 cursor-pointer"
                           title="Change User Role (Promote/Reassign)"
                         >
                           <ShieldCheck className="w-3.5 h-3.5" />
@@ -553,7 +549,7 @@ export const UserRoleManager: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => setResetToolState({ isOpen: true, user: { id: u.id, name: u.name, username: u.username } })}
-                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/20 transition-all flex items-center gap-1 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-amber-50 hover:bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200 border border-amber-200 dark:border-amber-700 transition-colors flex items-center gap-1 cursor-pointer"
                           title="Force Password Reset"
                         >
                           <KeyRound className="w-3.5 h-3.5" />
@@ -563,10 +559,10 @@ export const UserRoleManager: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => handleToggleStatusClick(u)}
-                          className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer border ${
                             u.isActive
-                              ? 'text-rose-500 hover:bg-rose-500/10'
-                              : 'text-emerald-500 hover:bg-emerald-500/10'
+                              ? 'text-rose-600 hover:bg-rose-50 border-transparent hover:border-rose-200'
+                              : 'text-emerald-700 hover:bg-emerald-50 border-transparent hover:border-emerald-200'
                           }`}
                           title={u.isActive ? 'Suspend User Account' : 'Activate User Account'}
                         >
