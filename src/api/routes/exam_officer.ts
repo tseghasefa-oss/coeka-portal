@@ -62,17 +62,19 @@ examOfficerRoutes.get('/broadsheet', async (c) => {
   }
 });
 
+import { validateBody, CertifyBroadsheetSchema } from '../middleware/validate';
+
 /**
  * POST /api/exam-officer/broadsheet/certify
  * Lock and certify an official broadsheet
  */
-examOfficerRoutes.post('/broadsheet/certify', async (c) => {
+examOfficerRoutes.post('/broadsheet/certify', validateBody(CertifyBroadsheetSchema), async (c) => {
   const container = getContainer(c.env);
   const service = new ExamOfficerService(container.db);
   const user = c.get('user');
 
   try {
-    const body = await c.req.json();
+    const body: any = c.get('validBody' as any) || await c.req.json();
     const { broadsheetId } = body;
     if (!broadsheetId) {
       return c.json({ error: 'broadsheetId is required' }, 400);

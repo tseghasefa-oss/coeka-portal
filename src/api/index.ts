@@ -32,7 +32,7 @@ export type AppVariables = {
 
 export const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
-// 1. Global Middleware
+// 1. Global Middleware & Security Shield
 app.use('*', logger());
 app.use('*', cors({
   origin: (origin) => origin || '*',
@@ -40,22 +40,64 @@ app.use('*', cors({
   allowHeaders: ['Content-Type', 'Authorization', 'X-Demo-Role', 'Cookie'],
   credentials: true,
 }));
+
+// Strict Institutional Defense Security Headers
+app.use('*', async (c, next) => {
+  await next();
+  c.header('X-Content-Type-Options', 'nosniff');
+  c.header('X-Frame-Options', 'DENY');
+  c.header('X-XSS-Protection', '1; mode=block');
+  c.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  c.header(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https:; frame-ancestors 'none';"
+  );
+  c.header('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  c.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+});
+
+// Geo-Fencing & Threat Telemetry: Flag high-volume requests originating outside Nigeria
+app.use('/api/*', async (c, next) => {
+  const country = c.req.header('cf-ipcountry') || 'NG';
+  if (country !== 'NG' && country !== 'XX' && country !== 'T1') {
+    c.header('X-Geo-Warning', `Foreign-Traffic-Origin: ${country}`);
+    Sentry.addBreadcrumb({
+      category: 'coeka.security',
+      message: `[Geo-Defense] Request received from foreign IP country: ${country}`,
+      level: 'warning',
+      data: { path: c.req.path, method: c.req.method, country },
+    });
+  }
+  await next();
+});
+
+// Dependency Injection Container
 app.use('*', async (c, next) => {
   const container = getContainer(c.env);
   c.set('container', container);
   await next();
 });
-app.use('/api/*', rateLimiter(300, 60, 'global')); // 300 requests per minute
+
+// Cloudflare WAF Rate Limiting
+app.use('/api/auth/login', rateLimiter(10, 60, 'auth_login')); // 10 requests per minute
+app.use('/api/*', rateLimiter(100, 60, 'global_api')); // 100 requests per minute
+
 
 // 2. Health & Institutional Metadata (Enhanced)
 app.get('/api/health', async (c) => {
   const start = Date.now();
   const checks: Record<string, { status: 'ok' | 'degraded' | 'down'; latencyMs?: number; detail?: string }> = {};
 
+  const container = getContainer(c.env);
+
   // ── D1 Database Check ─────────────────────────────────────────────────────
   try {
     const d1Start = Date.now();
-    await c.env.DB.prepare('SELECT 1').first();
+    if (c.env?.DB) {
+      await c.env.DB.prepare('SELECT 1').first();
+    } else {
+      await container.db.query('SELECT 1');
+    }
     checks.d1 = { status: 'ok', latencyMs: Date.now() - d1Start };
   } catch (err: any) {
     checks.d1 = { status: 'down', detail: err?.message ?? 'query failed' };
@@ -65,7 +107,11 @@ app.get('/api/health', async (c) => {
   // ── KV Session Store Check ───────────────────────────────────────────────
   try {
     const kvStart = Date.now();
-    await c.env.SESSION_KV.get('__health_probe__');
+    if (c.env?.SESSION_KV) {
+      await c.env.SESSION_KV.get('__health_probe__');
+    } else {
+      await container.cache.get('__health_probe__');
+    }
     checks.kv_session = { status: 'ok', latencyMs: Date.now() - kvStart };
   } catch (err: any) {
     checks.kv_session = { status: 'down', detail: err?.message ?? 'kv read failed' };
@@ -75,7 +121,11 @@ app.get('/api/health', async (c) => {
   // ── R2 Document Store Check ───────────────────────────────────────────────
   try {
     const r2Start = Date.now();
-    await c.env.DOCUMENTS_BUCKET.head('__health_probe__');
+    if (c.env?.DOCUMENTS_BUCKET) {
+      await c.env.DOCUMENTS_BUCKET.head('__health_probe__');
+    } else {
+      await container.storage.download('__health_probe__');
+    }
     checks.r2 = { status: 'ok', latencyMs: Date.now() - r2Start };
   } catch (err: any) {
     // R2 returns null for missing keys — that is normal and healthy.

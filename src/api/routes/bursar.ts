@@ -88,18 +88,20 @@ bursarRoutes.get('/transactions', async (c) => {
   }
 });
 
+import { validateBody, ReconcilePaymentSchema } from '../middleware/validate';
+
 /**
  * POST /api/bursar/reconcile
  * Matches a manual bank transfer or POS transaction to a student's matriculation number/invoice.
  * Updates D1 balance with integer Kobo arithmetic and issues signed tamper-proof receipt.
  */
-bursarRoutes.post('/reconcile', async (c) => {
+bursarRoutes.post('/reconcile', validateBody(ReconcilePaymentSchema), async (c) => {
   const container = getContainer(c.env);
   const service = new FinanceAdminService(container.db);
   const user = c.get('user');
 
   try {
-    const body = await c.req.json();
+    const body: any = c.get('validBody' as any) || await c.req.json();
     const { transactionId, studentId, amountKobo, invoiceId, notes } = body;
 
     Sentry.addBreadcrumb(bursarBreadcrumb('reconcile_start', { transactionId, studentId, amountKobo }));

@@ -98,18 +98,20 @@ registrarRoutes.get('/candidates', async (c) => {
   }
 });
 
+import { validateBody, IssueCertificateSchema } from '../middleware/validate';
+
 /**
  * POST /api/registrar/certificates/issue
  * Issue tamper-proof digital certificate with cryptographic QR hash
  * Strictly blocked if financial or library clearance is missing
  */
-registrarRoutes.post('/certificates/issue', async (c) => {
+registrarRoutes.post('/certificates/issue', validateBody(IssueCertificateSchema), async (c) => {
   const container = getContainer(c.env);
   const service = new RegistrarService(container.db);
   const user = c.get('user');
 
   try {
-    const body = await c.req.json();
+    const body: any = c.get('validBody' as any) || await c.req.json();
     const { studentId, confermentDate, qualification } = body;
 
     Sentry.addBreadcrumb(registrarBreadcrumb('certificate_issue_start', { studentId, qualification }));

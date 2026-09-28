@@ -9,7 +9,16 @@ import { UserAdminService } from '../../services/admin/userAdminService';
 import { AuditService } from '../../services/admin/auditService';
 import { PromotionService } from '../../services/academic/promotionService';
 import { SessionBillingService } from '../../services/finance/sessionBillingService';
+import { AuthService } from '../../services/auth/authService';
+import { setCookie, getCookie } from 'hono/cookie';
 import * as Sentry from '@sentry/cloudflare';
+import {
+  validateBody,
+  CreateCourseSchema,
+  SetFeeScheduleSchema,
+  PromoteUserSchema,
+  ChangeUserRoleSchema,
+} from '../middleware/validate';
 
 export const adminRoutes = new Hono<{ Bindings: Env }>();
 
@@ -34,10 +43,10 @@ adminRoutes.get('/courses', async (c) => {
 });
 
 // Create Course
-adminRoutes.post('/courses', async (c) => {
+adminRoutes.post('/courses', validateBody(CreateCourseSchema), async (c) => {
   const container = getContainer(c.env);
   const service = new AcademicAdminService(container.db);
-  const body = await c.req.json();
+  const body: any = c.get('validBody' as any) || await c.req.json();
 
   if (!body.programmeId || !body.code || !body.title || body.creditUnits === undefined || body.level === undefined || body.semesterTerm === undefined) {
     return c.json({
@@ -203,10 +212,10 @@ adminRoutes.get('/fees', async (c) => {
 });
 
 // Set Fee Schedule Price (Strict Kobo-Integer or Naira-Converted)
-adminRoutes.post('/fees', async (c) => {
+adminRoutes.post('/fees', validateBody(SetFeeScheduleSchema), async (c) => {
   const container = getContainer(c.env);
   const service = new FinanceAdminService(container.db);
-  const body = await c.req.json();
+  const body: any = c.get('validBody' as any) || await c.req.json();
 
   if (!body.categoryId || !body.sessionId || body.level === undefined) {
     return c.json({ error: 'Validation Error: categoryId, sessionId, and level are required' }, 400);
@@ -302,20 +311,40 @@ adminRoutes.get('/users', async (c) => {
 });
 
 // Promote User to Admin / Super Admin
-adminRoutes.patch('/users/:id/promote', async (c) => {
+adminRoutes.patch('/users/:id/promote', validateBody(PromoteUserSchema), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
   const container = getContainer(c.env);
   const service = new UserAdminService(container.db);
-  const body = await c.req.json();
+  const body: any = c.get('validBody' as any) || await c.req.json();
 
   const newRole = body.role === 'SUPER_ADMIN' ? 'SUPER_ADMIN' : 'ADMIN';
 
   try {
-    const updatedUser = await service.promoteUser(id, newRole, user?.username || 'admin');
+    const updatedUser = await service.promoteUser(id!, newRole, user?.userId || 'usr-admin-001');
+
+    // Session Hardening: Rotate session ID in KV upon privilege promotion
+    const authService = new AuthService(container.db, container.cache);
+    const currentSessionId = getCookie(c, 'coeka_session');
+    let rotatedSessionId: string | undefined;
+
+    if (currentSessionId && user?.userId === id) {
+      const rotated = await authService.rotateSession(currentSessionId);
+      rotatedSessionId = rotated.sessionId;
+      const isHttps = c.req.url.startsWith('https:');
+      setCookie(c, 'coeka_session', rotated.sessionId, {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: isHttps ? 'None' : 'Lax',
+        path: '/',
+        maxAge: AuthService.SESSION_TTL_SECONDS,
+      });
+    }
+
     return c.json({
       message: `User ${updatedUser.name} has been promoted to ${newRole}`,
       user: updatedUser,
+      sessionRotated: Boolean(rotatedSessionId),
     });
   } catch (err: any) {
     return c.json({ error: err.message }, 400);
@@ -323,22 +352,38 @@ adminRoutes.patch('/users/:id/promote', async (c) => {
 });
 
 // Change User Role (e.g. promote Lecturer to Dean, HOD, Bursar, Admin, etc.)
-adminRoutes.patch('/users/:id/role', async (c) => {
+adminRoutes.patch('/users/:id/role', validateBody(ChangeUserRoleSchema), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
   const container = getContainer(c.env);
   const service = new UserAdminService(container.db);
-  const body = await c.req.json();
-
-  if (!body.role) {
-    return c.json({ error: 'Validation Error: role is required' }, 400);
-  }
+  const body: any = c.get('validBody' as any) || await c.req.json();
 
   try {
-    const updatedUser = await service.changeUserRole(id, body.role, user?.username || 'admin');
+    const updatedUser = await service.changeUserRole(id!, body.role, user?.userId || 'usr-admin-001');
+
+    // Session Hardening: Rotate session ID in KV upon role change
+    const authService = new AuthService(container.db, container.cache);
+    const currentSessionId = getCookie(c, 'coeka_session');
+    let rotatedSessionId: string | undefined;
+
+    if (currentSessionId && user?.userId === id) {
+      const rotated = await authService.rotateSession(currentSessionId);
+      rotatedSessionId = rotated.sessionId;
+      const isHttps = c.req.url.startsWith('https:');
+      setCookie(c, 'coeka_session', rotated.sessionId, {
+        httpOnly: true,
+        secure: isHttps,
+        sameSite: isHttps ? 'None' : 'Lax',
+        path: '/',
+        maxAge: AuthService.SESSION_TTL_SECONDS,
+      });
+    }
+
     return c.json({
       message: `User ${updatedUser.name} role changed to ${updatedUser.role}`,
       user: updatedUser,
+      sessionRotated: Boolean(rotatedSessionId),
     });
   } catch (err: any) {
     return c.json({ error: err.message }, 400);

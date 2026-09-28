@@ -308,5 +308,30 @@ export class AuthService {
     const remainingTtl = Math.max(60, (session.expiresAt || (now + AuthService.SESSION_TTL_SECONDS)) - now);
     await this.cache.set(`session:${session.sessionId}`, session, remainingTtl);
   }
+
+  /**
+   * Session Hardening: Regenerates the session ID in KV after a privilege change
+   * (e.g., user promoted to Admin or role updated).
+   * Invalidate old session ID immediately and issues a new cryptographically secure session.
+   */
+  async rotateSession(oldSessionId: string): Promise<SessionData> {
+    const oldSession = await this.getSession(oldSessionId);
+    if (!oldSession) {
+      throw new Error('Cannot rotate session: Existing session not found or expired');
+    }
+
+    // 1. Invalidate old session in KV
+    await this.deleteSession(oldSessionId);
+
+    // 2. Fetch fresh user profile reflecting newly granted role/privileges
+    const profile = await this.getUserProfile(oldSession.userId);
+    if (!profile) {
+      throw new Error(`Cannot rotate session: User ${oldSession.userId} not found`);
+    }
+
+    // 3. Issue fresh session with newly generated random ID
+    return await this.createSession(profile);
+  }
 }
+
 

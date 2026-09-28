@@ -7,11 +7,13 @@ import { rateLimiter } from '../middleware/rateLimit';
 
 import { SystemAdminService } from '../../services/admin/systemAdminService';
 
+import { validateBody, LoginSchema } from '../middleware/validate';
+
 export const authRoutes = new Hono<{ Bindings: Env }>();
 
 // Rate limit login endpoint to prevent brute-force attacks (10 attempts per minute per IP)
-authRoutes.post('/login', rateLimiter(10, 60, 'login'), async (c) => {
-  const body = await c.req.json().catch(() => ({}));
+authRoutes.post('/login', rateLimiter(10, 60, 'login'), validateBody(LoginSchema), async (c) => {
+  const body: any = c.get('validBody' as any) || await c.req.json().catch(() => ({}));
   const emailOrUsername = body.email || body.username || body.identifier;
   const password = body.password;
 
