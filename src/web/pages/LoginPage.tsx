@@ -480,14 +480,25 @@ export function LoginPage() {
         </div>
 
         {/* ICT Support Footer */}
-        <div className="mt-6 text-center text-xs text-slate-400 max-w-sm">
-          <span>Need help logging in? Contact the Directorate of ICT at </span>
-          <a
-            href="mailto:ict@coekatsinaala.edu.ng"
-            className="text-emerald-700 hover:underline font-medium"
-          >
-            ict@coekatsinaala.edu.ng
-          </a>
+        <div className="mt-6 text-center text-xs text-slate-400 max-w-sm space-y-1.5">
+          <div>
+            <span>Need help logging in? Contact the Directorate of ICT at </span>
+            <a
+              href="mailto:ict@coekatsinaala.edu.ng"
+              className="text-emerald-700 hover:underline font-medium"
+            >
+              ict@coekatsinaala.edu.ng
+            </a>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('privacy')}
+              className="text-slate-500 hover:text-emerald-700 underline transition cursor-pointer"
+            >
+              Institutional Privacy Policy & NDPA 2023 Compliance
+            </button>
+          </div>
         </div>
       </div>
 

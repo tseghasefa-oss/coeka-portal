@@ -56,6 +56,8 @@ import { HostelPortal } from './components/hostels/HostelPortal';
 import { useSystemSettings } from './hooks/useAdminData';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './pages/LoginPage';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { ConsentModal } from './components/compliance/ConsentModal';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { InstitutionalMaintenanceScreen } from './components/common/InstitutionalMaintenanceScreen';
 
@@ -74,6 +76,22 @@ export default function App() {
 
   // Session Synchronization via useAuth
   const { logout } = useAuth();
+
+  // NDPA 2023 Consent State
+  const [hasConsented, setHasConsented] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const userId = userSession?.userId || userSession?.username || 'default';
+    return Boolean(localStorage.getItem(`coeka_ndpa_consent_${userId}`));
+  });
+
+  // Keep consent state in sync when userSession changes
+  useEffect(() => {
+    if (userSession) {
+      const userId = userSession.userId || userSession.username || 'default';
+      const consented = Boolean(localStorage.getItem(`coeka_ndpa_consent_${userId}`));
+      setHasConsented(consented);
+    }
+  }, [userSession?.userId, userSession?.username]);
 
   // Guard Admin Route: If non-admin attempts to access admin tab, redirect to their authorized dashboard
   useEffect(() => {
@@ -205,6 +223,11 @@ export default function App() {
     );
   };
 
+  // If activeTab is 'privacy', render PrivacyPolicy page
+  if (activeTab === 'privacy') {
+    return <PrivacyPolicy />;
+  }
+
   // If activeTab is 'login', render high-fidelity LoginPage
   if (activeTab === 'login') {
     return <LoginPage />;
@@ -219,13 +242,30 @@ export default function App() {
   if (activeTab === 'admin') {
     return (
       <ProtectedRoute allowedRoles={['SUPER_ADMIN', 'ADMIN']}>
+        {userSession && !hasConsented && (
+          <ConsentModal
+            isOpen={true}
+            studentId={userSession.userId}
+            studentName={userSession.fullName}
+            onConsentAccepted={() => setHasConsented(true)}
+          />
+        )}
         <AdminLayout />
       </ProtectedRoute>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-50 relative">
+      {/* NDPA 2023 Mandatory Consent Modal - Blocks dashboard access until accepted */}
+      {userSession && !hasConsented && (
+        <ConsentModal
+          isOpen={true}
+          studentId={userSession.userId}
+          studentName={userSession.fullName}
+          onConsentAccepted={() => setHasConsented(true)}
+        />
+      )}
       {/* Maintenance Mode SuperAdmin Control Banner */}
       {isMaintenanceMode && (
         <div className="bg-amber-500 text-slate-950 font-bold text-xs px-4 py-2.5 shadow-md border-b border-amber-600 sticky top-0 z-[60]">
@@ -895,7 +935,16 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p>© 2026 College of Education, Katsina-Ala. All rights reserved.</p>
+          <div className="flex items-center gap-3">
+            <p>© 2026 College of Education, Katsina-Ala. All rights reserved.</p>
+            <span className="text-slate-600">•</span>
+            <button
+              onClick={() => setActiveTab('privacy')}
+              className="text-emerald-400 hover:text-emerald-300 underline font-medium transition cursor-pointer"
+            >
+              Privacy Policy & NDPA 2023
+            </button>
+          </div>
           <p className="flex items-center gap-1.5">
             <span>Powered by</span>
             <strong className="text-amber-400">Fruitfulujah Project</strong>

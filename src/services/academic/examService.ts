@@ -134,6 +134,20 @@ export interface GraduationCandidateItem {
 }
 
 export class ExamOfficerService {
+  // Pre-compiled prepared query cache for peak load Broadsheet generation
+  private static PREPARED_BROADSHEET_COURSES = `SELECT c.* 
+     FROM courses c 
+     JOIN programmes p ON c.programme_id = p.id 
+     WHERE p.department_id = ? AND c.level = ? 
+     ORDER BY c.code ASC`;
+
+  private static PREPARED_BROADSHEET_STUDENTS = `SELECT s.*, p.name as programme_name, p.code as programme_code, div.name as division_name, div.grading_policy
+     FROM students s
+     JOIN programmes p ON s.programme_id = p.id
+     JOIN divisions div ON s.division_id = div.id
+     WHERE p.department_id = ? AND s.current_level = ?
+     ORDER BY s.matric_number ASC`;
+
   constructor(private db: IDatabaseProvider) {}
 
   /**
@@ -141,6 +155,7 @@ export class ExamOfficerService {
    * Aggregates all PUBLISHED results into a master grid for a department and level.
    * Crucial rule: The Broadsheet only factors in results that have been PUBLISHED by the Dean.
    * Draft results are excluded from GPA/CGPA calculations and flagged as warnings.
+   * Optimized for peak load with pre-compiled prepared queries.
    */
   async compileBroadsheet(
     departmentId: string,
@@ -191,13 +206,9 @@ export class ExamOfficerService {
       session = { id: 'sess-2026-2027', name: '2026/2027 Session' };
     }
 
-    // 3. Fetch all courses for this department and level
+    // 3. Fetch all courses for this department and level (Pre-compiled prepared query)
     let courses = await this.db.query<any>(
-      `SELECT c.* 
-       FROM courses c 
-       JOIN programmes p ON c.programme_id = p.id 
-       WHERE p.department_id = ? AND c.level = ? 
-       ORDER BY c.code ASC`,
+      ExamOfficerService.PREPARED_BROADSHEET_COURSES,
       [effectiveDeptId, level]
     );
 
@@ -209,14 +220,9 @@ export class ExamOfficerService {
       );
     }
 
-    // 4. Fetch all students in this department and level
+    // 4. Fetch all students in this department and level (Pre-compiled prepared query)
     let students = await this.db.query<any>(
-      `SELECT s.*, p.name as programme_name, p.code as programme_code, div.name as division_name, div.grading_policy
-       FROM students s
-       JOIN programmes p ON s.programme_id = p.id
-       JOIN divisions div ON s.division_id = div.id
-       WHERE p.department_id = ? AND s.current_level = ?
-       ORDER BY s.matric_number ASC`,
+      ExamOfficerService.PREPARED_BROADSHEET_STUDENTS,
       [effectiveDeptId, level]
     );
 

@@ -22,6 +22,7 @@ import { deanRoutes } from './routes/dean';
 import { librarianRoutes } from './routes/librarian';
 import { examOfficerRoutes } from './routes/exam_officer';
 import { registrarRoutes } from './routes/registrar';
+import { coursesRoutes } from './routes/courses';
 
 import { getContainer, ServiceContainer } from '../infrastructure/container';
 
@@ -169,6 +170,7 @@ app.route('/api/dean', deanRoutes);
 app.route('/api/librarian', librarianRoutes);
 app.route('/api/exam-officer', examOfficerRoutes);
 app.route('/api/registrar', registrarRoutes);
+app.route('/api/courses', coursesRoutes);
 
 // 4. Cloudflare Worker Export (wrapped in Sentry for unhandled exception capture)
 //    Sentry.withSentry() instruments the fetch handler so every uncaught error

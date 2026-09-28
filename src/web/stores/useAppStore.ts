@@ -31,6 +31,7 @@ export type ActiveTab =
   | 'parent'
   | 'admin'
   | 'login'
+  | 'privacy'
   | 'unauthorized';
 
 export type AdminTab = 'godmode' | 'courses' | 'fees' | 'users' | 'admissions' | 'settings' | 'audit' | 'database';

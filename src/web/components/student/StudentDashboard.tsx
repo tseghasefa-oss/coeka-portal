@@ -11,6 +11,7 @@ import {
   Award,
   Layers,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import { useAppStore } from '../../stores/useAppStore';
 import { useStudentProfile } from '../../hooks/useStudentData';
@@ -25,6 +26,35 @@ import { OnboardingView } from './OnboardingView';
 export const StudentDashboard: React.FC = () => {
   const { userSession } = useAppStore();
   const { data: profile } = useStudentProfile();
+  const [exporting, setExporting] = useState(false);
+
+  const handleExportData = async () => {
+    setExporting(true);
+    try {
+      const token = localStorage.getItem('coeka_token') || '';
+      const res = await fetch('/api/student/export-my-data', {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          'X-Demo-Role': 'STUDENT',
+        },
+      });
+      if (!res.ok) throw new Error('Data export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `coeka-student-data-export-${profile?.matricNumber?.replace(/\//g, '_') || 'record'}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Data export error:', err);
+      alert('Unable to generate data export at this time.');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   // Determine if active user or selected tier is Basic Ed (Secondary / Primary) or Tertiary (NCE / Degree)
   const isBasicEd =
@@ -189,8 +219,19 @@ export const StudentDashboard: React.FC = () => {
           <span>Admissions Onboarding</span>
         </button>
 
+        {/* NDPA 2023 Right to Portability Data Export */}
+        <button
+          onClick={handleExportData}
+          disabled={exporting}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer bg-slate-900 hover:bg-slate-800 text-amber-300 shadow-xs ml-auto"
+          title="Download your complete personal data dossier under NDPA 2023 Section 38 (Right to Portability)"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>{exporting ? 'Exporting...' : 'Export My Data (NDPA)'}</span>
+        </button>
+
         {/* Preview Toggle for demonstration purposes */}
-        <div className="ml-auto flex items-center gap-1 px-2 text-[10px] text-slate-500 font-semibold">
+        <div className="flex items-center gap-1 px-2 text-[10px] text-slate-500 font-semibold">
           <span>Tier View:</span>
           <button
             onClick={() => {

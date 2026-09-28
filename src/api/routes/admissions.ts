@@ -4,10 +4,11 @@ import { ScreeningEngine, ScreeningEvaluationInput } from '../../services/admiss
 import { BulkUploadService, RawApplicantRecord } from '../../services/admissions/bulkUploadService';
 import { getContainer } from '../../infrastructure/container';
 import { LedgerEngine } from '../../services/finance/ledgerEngine';
+import { edgeCache } from '../middleware/edgeCache';
 
 export const admissionsRoutes = new Hono<{ Bindings: Env }>();
 
-admissionsRoutes.get('/cycles', async (c) => {
+admissionsRoutes.get('/cycles', edgeCache({ ttlSeconds: 3600, staleWhileRevalidateSeconds: 86400 }), async (c) => {
   return c.json({
     cycles: [
       {
