@@ -243,48 +243,10 @@ export const SuperAdminDashboard: React.FC = () => {
       {/* 2. BENTO GRID SYSTEM: COMMAND CENTER LANDING VIEW                         */}
       {/* ========================================================================= */}
       {activeSuite === 'hub' && (
-        <div className="space-y-5 animate-fade-in">
-          
-          {/* Institutional Master Console Header Bar */}
-          <div className="bg-[#0B192C] text-white rounded-2xl sm:rounded-3xl p-5 border border-slate-800 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="space-y-1 relative z-10">
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/10 text-slate-200 border border-white/20">
-                  Institutional Master Console
-                </span>
-                <span className="text-xs text-slate-300 font-medium">College of Education, Katsina-Ala</span>
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-                Executive Command Center
-              </h1>
-              <p className="text-xs text-slate-300 max-w-xl">
-                Integrated Bento Grid architecture for sovereign edge governance, fee matrix, cryptographic audit vault, and SIMS pipelines.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0 relative z-10">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700/80 text-xs">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-mono font-bold text-slate-200">Cloudflare D1: Operational</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCommandPaletteOpen(true)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-200 bg-white/10 border border-white/20 hover:bg-white/20 transition-all cursor-pointer shadow-xs"
-              >
-                <Search className="w-3.5 h-3.5 text-slate-300" />
-                <span>Jump to Suite</span>
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-white/10 rounded text-slate-300">Ctrl+K</kbd>
-              </button>
-            </div>
-          </div>
-
+        <div className="space-y-6 animate-fade-in">
           {/* ================================================================= */}
           {/* THE BENTO BOXES (ALONE ON EACH LINE FOR EXPANSIVE BREATHING ROOM) */}
           {/* ================================================================= */}
-          <div className="space-y-6">
 
             {/* --------------------------------------------------------------- */}
             {/* BOX 1: INSTITUTIONAL PULSE & VITAL METRICS                      */}
@@ -922,7 +884,6 @@ export const SuperAdminDashboard: React.FC = () => {
             </div>
 
           </div>
-        </div>
       )}
 
       {/* ========================================================================= */}
