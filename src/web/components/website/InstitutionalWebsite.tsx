@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   GraduationCap,
   BookOpen,
@@ -7,6 +7,7 @@ import {
   Calendar,
   CheckCircle2,
   ChevronRight,
+  ChevronLeft,
   ArrowRight,
   ShieldCheck,
   Award,
@@ -43,66 +44,75 @@ interface Announcement {
   author: string;
 }
 
+const announcements: Announcement[] = [
+  {
+    id: 'ann-1',
+    title: '2026/2027 Academic Session Admissions Exercise Commences',
+    category: 'Admissions',
+    date: 'September 25, 2026',
+    summary: 'Applications are formally invited from suitably qualified candidates for admission into NCE and Degree Programmes.',
+    content: `The Academic Board of the College of Education, Katsina-Ala announces the commencement of admission screening for the 2026/2027 academic year. 
+
+Candidates who sat for the 2026 Unified Tertiary Matriculation Examination (UTME) and scored a minimum of 100 for NCE or 140 for Degree programmes, and have five (5) O'Level credits including English Language and Mathematics at not more than two sittings, are invited to apply.
+
+Direct Entry candidates for Degree programmes with NCE, ND, or IJMB are also eligible to register via the official COEKA Portal.`,
+    author: 'Office of the Registrar'
+  },
+  {
+    id: 'ann-2',
+    title: 'Autonomous Hostel Allocation Now Live on Student Portal',
+    category: 'Hostel',
+    date: 'September 22, 2026',
+    summary: 'Students who have completed 100% of their tuition fee clearance can now select hostel rooms directly from their dashboard.',
+    content: `The Directorate of Student Affairs has activated the autonomous room reservation engine for the 2026/2027 academic session. 
+
+Eligible full-time students who have settled their mandatory institutional tuition in full can log into the COEKA Student Portal, navigate to the Hostel Allocation tab, and secure an available bedspace across Sir Kashim Ibrahim, Queen Amina, and Benue Hall residences with zero manual paperwork.`,
+    author: 'Directorate of Student Affairs'
+  },
+  {
+    id: 'ann-3',
+    title: 'First Semester 2026/2027 Resumption & Orientation Schedule',
+    category: 'Academic',
+    date: 'September 18, 2026',
+    summary: 'Fresh and returning students are advised to review the approved semester calendar and scheduled matriculation ceremony.',
+    content: `All fresh and returning students of the College are notified that physical resumption for the first semester begins on Monday, October 12, 2026. 
+
+Fresh student verification, digital ID capture at the Admissions Directorate, and mandatory orientation lectures will hold between October 14 and October 18 at the College Auditorium. Course registration on the SIMS portal closes three weeks from resumption.`,
+    author: 'Academic Planning & Registry'
+  },
+  {
+    id: 'ann-4',
+    title: 'NCCE Re-Accreditation Team Awards Top Institutional Rating',
+    category: 'General',
+    date: 'September 10, 2026',
+    summary: 'Full accreditation affirmed across all science, vocational, and arts departments following a rigorous week-long review.',
+    content: `The National Commission for Colleges of Education (NCCE) evaluation team has concluded its quinquennial accreditation exercise at the College of Education, Katsina-Ala, awarding an outstanding 100% accreditation rating across all 28 NCE academic programmes.
+
+The Provost commends the Governing Council, academic staff, and management for maintaining premier educational standards and investing in state-of-the-art laboratory infrastructure.`,
+    author: 'College Information & Protocol Unit'
+  }
+];
+
 export function InstitutionalWebsite() {
   const { setActiveTab } = useAppStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const [activeDivisionFilter, setActiveDivisionFilter] = useState<'ALL' | 'NCE' | 'DEGREE' | 'SECONDARY' | 'PRIMARY'>('ALL');
+  const [currentBulletinIndex, setCurrentBulletinIndex] = useState(0);
+
+  // Auto-rotate top bulletin every 5 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentBulletinIndex((prev) => (prev + 1) % announcements.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Quick Eligibility Checker state
   const [checkDivision, setCheckDivision] = useState<'NCE' | 'DEGREE'>('NCE');
   const [jambScore, setJambScore] = useState<number | ''>(140);
   const [oLevelCredits, setOLevelCredits] = useState<number>(5);
   const [eligibilityResult, setEligibilityResult] = useState<{ eligible: boolean; message: string } | null>(null);
-
-  const announcements: Announcement[] = [
-    {
-      id: 'ann-1',
-      title: '2026/2027 Academic Session Admissions Exercise Commences',
-      category: 'Admissions',
-      date: 'September 25, 2026',
-      summary: 'Applications are formally invited from suitably qualified candidates for admission into NCE and Degree Programmes.',
-      content: `The Academic Board of the College of Education, Katsina-Ala announces the commencement of admission screening for the 2026/2027 academic year. 
-
-Candidates who sat for the 2026 Unified Tertiary Matriculation Examination (UTME) and scored a minimum of 100 for NCE or 140 for Degree programmes, and have five (5) O'Level credits including English Language and Mathematics at not more than two sittings, are invited to apply.
-
-Direct Entry candidates for Degree programmes with NCE, ND, or IJMB are also eligible to register via the official COEKA Portal.`,
-      author: 'Office of the Registrar'
-    },
-    {
-      id: 'ann-2',
-      title: 'Autonomous Hostel Allocation Now Live on Student Portal',
-      category: 'Hostel',
-      date: 'September 22, 2026',
-      summary: 'Students who have completed 100% of their tuition fee clearance can now select hostel rooms directly from their dashboard.',
-      content: `The Directorate of Student Affairs has activated the autonomous room reservation engine for the 2026/2027 academic session. 
-
-Eligible full-time students who have settled their mandatory institutional tuition in full can log into the COEKA Student Portal, navigate to the Hostel Allocation tab, and secure an available bedspace across Sir Kashim Ibrahim, Queen Amina, and Benue Hall residences with zero manual paperwork.`,
-      author: 'Directorate of Student Affairs'
-    },
-    {
-      id: 'ann-3',
-      title: 'First Semester 2026/2027 Resumption & Orientation Schedule',
-      category: 'Academic',
-      date: 'September 18, 2026',
-      summary: 'Fresh and returning students are advised to review the approved semester calendar and scheduled matriculation ceremony.',
-      content: `All fresh and returning students of the College are notified that physical resumption for the first semester begins on Monday, October 12, 2026. 
-
-Fresh student verification, digital ID capture at the Admissions Directorate, and mandatory orientation lectures will hold between October 14 and October 18 at the College Auditorium. Course registration on the SIMS portal closes three weeks from resumption.`,
-      author: 'Academic Planning & Registry'
-    },
-    {
-      id: 'ann-4',
-      title: 'NCCE Re-Accreditation Team Awards Top Institutional Rating',
-      category: 'General',
-      date: 'September 10, 2026',
-      summary: 'Full accreditation affirmed across all science, vocational, and arts departments following a rigorous week-long review.',
-      content: `The National Commission for Colleges of Education (NCCE) evaluation team has concluded its quinquennial accreditation exercise at the College of Education, Katsina-Ala, awarding an outstanding 100% accreditation rating across all 28 NCE academic programmes.
-
-The Provost commends the Governing Council, academic staff, and management for maintaining premier educational standards and investing in state-of-the-art laboratory infrastructure.`,
-      author: 'College Information & Protocol Unit'
-    }
-  ];
 
   const handleCheckEligibility = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,36 +136,86 @@ The Provost commends the Governing Council, academic staff, and management for m
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col selection:bg-amber-400 selection:text-slate-950">
       
       {/* ========================================================================= */}
-      {/* TOP EMERGENCY / TICKER BAR (High Authority & Informational)             */}
+      {/* TOP EMERGENCY / TICKER BAR (High Authority & Responsive)                  */}
       {/* ========================================================================= */}
-      <div className="bg-[#0B192C] border-b border-slate-800 text-slate-300 text-xs py-2 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-2">
-          <div className="flex items-center gap-2 overflow-hidden">
-            <span className="bg-amber-400 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded shrink-0">
-              Bulletin 2026/2027
-            </span>
-            <span className="truncate text-slate-300 font-medium">
-              Admissions Open for NCE & Affiliated Degree Programmes • Hostel Self-Service Allocation Active • 100% NCCE Accredited
-            </span>
+      <div className="bg-[#0B192C] border-b border-slate-800 text-slate-300 text-xs py-1 px-2.5 sm:px-6 relative z-50 print:hidden select-none">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-2 sm:gap-4 h-7 sm:h-8">
+          
+          {/* Left / Center: Interactive Rotating Announcement Ticker */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 overflow-hidden">
+            
+            {/* Live Indicator Badge */}
+            <div className="flex items-center gap-1 sm:gap-1.5 bg-amber-400 text-slate-950 text-[9px] sm:text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full shrink-0 shadow-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" />
+              <span>Bulletin</span>
+            </div>
+
+            {/* Rotating Headline & Direct Modal Trigger */}
+            <div 
+              onClick={() => setSelectedAnnouncement(announcements[currentBulletinIndex])}
+              className="flex items-center gap-2 cursor-pointer group min-w-0 flex-1 overflow-hidden"
+              title="Click to view bulletin notice"
+            >
+              <span className="text-[10px] font-bold text-amber-300 hidden md:inline shrink-0">
+                [{announcements[currentBulletinIndex].category}]
+              </span>
+              <p className="text-[11px] sm:text-xs text-slate-200 group-hover:text-amber-300 transition-colors truncate font-medium">
+                {announcements[currentBulletinIndex].title}
+              </p>
+              <span className="text-[10px] text-amber-400 font-bold hidden sm:inline-flex items-center gap-0.5 shrink-0 group-hover:underline">
+                Read Notice →
+              </span>
+            </div>
+
+            {/* Quick Next/Prev Controls */}
+            <div className="flex items-center gap-0.5 shrink-0 text-slate-400">
+              <button
+                type="button"
+                onClick={() => setCurrentBulletinIndex((prev) => (prev - 1 + announcements.length) % announcements.length)}
+                className="p-1 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer"
+                aria-label="Previous bulletin"
+                title="Previous announcement"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-[10px] font-mono text-slate-500 hidden sm:inline px-0.5">
+                {currentBulletinIndex + 1}/{announcements.length}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentBulletinIndex((prev) => (prev + 1) % announcements.length)}
+                className="p-1 hover:text-white hover:bg-white/10 rounded transition-colors cursor-pointer"
+                aria-label="Next bulletin"
+                title="Next announcement"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-4 text-xs shrink-0 text-slate-400">
-            <span className="hidden sm:inline-flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-amber-400" />
-              Katsina-Ala, Benue State
+
+          {/* Right: Institutional Contact & Fast Links (Desktop only, hidden on mobile for clean fit) */}
+          <div className="hidden lg:flex items-center gap-3 text-xs shrink-0 text-slate-400 pl-3 border-l border-slate-700/60">
+            <span className="inline-flex items-center gap-1 text-[11px]">
+              <MapPin className="w-3 h-3 text-amber-400" />
+              <span>Katsina-Ala, Benue</span>
             </span>
-            <span className="hidden sm:inline-block">•</span>
-            <a href="mailto:info@coeka.edu.ng" className="hover:text-amber-400 transition-colors flex items-center gap-1">
-              <Mail className="w-3.5 h-3.5 text-amber-400" />
-              info@coeka.edu.ng
+            <span className="text-slate-600">•</span>
+            <a 
+              href="mailto:info@coeka.edu.ng" 
+              className="hover:text-amber-400 transition-colors flex items-center gap-1 text-[11px]"
+            >
+              <Mail className="w-3 h-3 text-amber-400" />
+              <span>info@coeka.edu.ng</span>
             </a>
-            <span className="hidden sm:inline-block">•</span>
+            <span className="text-slate-600">•</span>
             <button 
               onClick={() => setActiveTab('privacy')} 
-              className="hover:text-amber-400 transition-colors"
+              className="hover:text-amber-400 transition-colors text-[11px] cursor-pointer"
             >
               NDPA Privacy
             </button>
           </div>
+
         </div>
       </div>
 
