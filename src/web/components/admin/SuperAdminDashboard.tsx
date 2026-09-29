@@ -193,7 +193,7 @@ export const SuperAdminDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-5 max-w-7xl mx-auto pb-12 animate-fade-in font-sans">
+    <div className="space-y-6 w-full pb-12 animate-fade-in font-sans">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-semibold bg-[#0B192C] text-white border border-slate-700 animate-in slide-in-from-bottom duration-200">
