@@ -31,7 +31,8 @@ export class UserAdminService {
   async ensureSeedUsers(): Promise<void> {
     const existing = await this.db.queryFirst<{ count: number }>(`SELECT COUNT(*) as count FROM users`);
     const dsaExists = await this.db.queryFirst<{ id: string }>(`SELECT id FROM users WHERE id = 'usr-dsa-001'`);
-    if (existing && existing.count >= 11 && dsaExists) {
+    const testDegExists = await this.db.queryFirst<{ id: string }>(`SELECT id FROM users WHERE id = 'usr-test-degree'`);
+    if (existing && existing.count >= 15 && dsaExists && testDegExists) {
       return;
     }
 
@@ -190,6 +191,62 @@ export class UserAdminService {
         isActive: 1,
         twoFactor: 1,
       },
+      {
+        id: 'usr-test-degree',
+        username: 'degree_test',
+        name: 'Degree Test',
+        identifier: 'COEKA/2026/DEG/901',
+        email: 'degree@test.com',
+        phoneNumber: '08090000001',
+        role: 'STUDENT',
+        userType: 'STUDENT',
+        dept: 'B.Ed Business Education',
+        div: 'DEGREE',
+        isActive: 1,
+        twoFactor: 0,
+      },
+      {
+        id: 'usr-test-nce',
+        username: 'nce_test',
+        name: 'NCE Test',
+        identifier: 'COEKA/2026/NCE/902',
+        email: 'nce@test.com',
+        phoneNumber: '08090000002',
+        role: 'STUDENT',
+        userType: 'STUDENT',
+        dept: 'NCE Computer Science / Mathematics',
+        div: 'NCE',
+        isActive: 1,
+        twoFactor: 0,
+      },
+      {
+        id: 'usr-test-sec',
+        username: 'sec_test',
+        name: 'Sec Test',
+        identifier: 'DSS/2026/SEC/903',
+        email: 'sec@test.com',
+        phoneNumber: '08090000003',
+        role: 'STUDENT',
+        userType: 'STUDENT',
+        dept: 'Senior Secondary School (Science Track)',
+        div: 'SECONDARY',
+        isActive: 1,
+        twoFactor: 0,
+      },
+      {
+        id: 'usr-test-pri',
+        username: 'pri_test',
+        name: 'Pri Test',
+        identifier: 'SPS/2026/PRI/904',
+        email: 'pri@test.com',
+        phoneNumber: '08090000004',
+        role: 'STUDENT',
+        userType: 'STUDENT',
+        dept: 'Primary Basic Education Unit',
+        div: 'PRIMARY',
+        isActive: 1,
+        twoFactor: 0,
+      },
     ];
 
     for (const u of initialUsers) {
@@ -214,6 +271,26 @@ export class UserAdminService {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ['stf-dsa-001', 'usr-dsa-001', 'COEKA/DSA/001', 'dept-edu-fnd', 'Jerry', 'Agba', 'ACADEMIC', 'Dean of Student Affairs / Chief Hall Warden', '2019-01-10', 'Ph.D Student Personnel Services']
     );
+
+    // Ensure student profiles and roles for test student accounts
+    const testStudentProfiles = [
+      { id: 'std-test-degree', userId: 'usr-test-degree', divId: 'div-degree', progId: 'prog-deg-bed', matric: 'COEKA/2026/DEG/901', first: 'Degree', last: 'Test' },
+      { id: 'std-test-nce', userId: 'usr-test-nce', divId: 'div-nce', progId: 'prog-nce-csc-mth', matric: 'COEKA/2026/NCE/902', first: 'NCE', last: 'Test' },
+      { id: 'std-test-sec', userId: 'usr-test-sec', divId: 'div-secondary', progId: 'prog-sec-sss', matric: 'DSS/2026/SEC/903', first: 'Sec', last: 'Test' },
+      { id: 'std-test-pri', userId: 'usr-test-pri', divId: 'div-primary', progId: 'prog-pri-elem', matric: 'SPS/2026/PRI/904', first: 'Pri', last: 'Test' },
+    ];
+
+    for (const tsp of testStudentProfiles) {
+      await this.db.execute(
+        `INSERT OR IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)`,
+        [tsp.userId, 'role-student']
+      );
+      await this.db.execute(
+        `INSERT OR IGNORE INTO students (id, user_id, division_id, programme_id, current_level, matric_number, admission_year, first_name, last_name, gender, date_of_birth, state_of_origin, lga_of_origin, contact_address, passport_photo_url, qr_code_signature, academic_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [tsp.id, tsp.userId, tsp.divId, tsp.progId, 100, tsp.matric, 2026, tsp.first, tsp.last, 'FEMALE', '2005-01-01', 'Benue', 'Katsina-Ala', 'COEKA Campus', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb', `SIG_${tsp.id}`, 'ACTIVE']
+      );
+    }
   }
 
   /**

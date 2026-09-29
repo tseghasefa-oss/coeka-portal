@@ -3,8 +3,7 @@ import {
   GraduationCap,
   BookOpen,
   CreditCard,
-  FileText,
-  Calendar,
+  FileCheck,
   ShieldCheck,
   QrCode,
   Building,
@@ -12,106 +11,69 @@ import {
   Layers,
   Sparkles,
   Download,
+  User,
+  Printer,
+  CheckCircle2,
 } from 'lucide-react';
-import { useAppStore } from '../../stores/useAppStore';
+import { useAppStore, AcademicDivision } from '../../stores/useAppStore';
 import { useStudentProfile } from '../../hooks/useStudentData';
-import { CourseRegistrationView } from './CourseRegistrationView';
-import { TranscriptView } from './TranscriptView';
-import { ReportCardView } from './ReportCardView';
-import { TimetableView } from './TimetableView';
+import { StudentDivisionResolver } from './StudentDivisionResolver';
 import { MyInvoices } from './MyInvoices';
 import { DigitalClearance } from './DigitalClearance';
-import { OnboardingView } from './OnboardingView';
 import { HostelPortal } from '../hostels/HostelPortal';
 
 export const StudentDashboard: React.FC = () => {
-  const { userSession } = useAppStore();
+  const { userSession, activeDivision } = useAppStore();
   const { data: profile } = useStudentProfile();
-  const [exporting, setExporting] = useState(false);
 
-  const handleExportData = async () => {
-    setExporting(true);
-    try {
-      const token = localStorage.getItem('coeka_token') || '';
-      const res = await fetch('/api/student/export-my-data', {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          'X-Demo-Role': 'STUDENT',
-        },
-      });
-      if (!res.ok) throw new Error('Data export failed');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `coeka-student-data-export-${profile?.matricNumber?.replace(/\//g, '_') || 'record'}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error('Data export error:', err);
-      alert('Unable to generate data export at this time.');
-    } finally {
-      setExporting(false);
-    }
-  };
+  const division = (userSession?.division || activeDivision || 'NCE').toUpperCase() as AcademicDivision;
+  const isBasic = division === 'SECONDARY' || division === 'PRIMARY';
 
-  // Determine if active user or selected tier is Basic Ed (Secondary / Primary) or Tertiary (NCE / Degree)
-  const isBasicEd =
-    userSession?.division === 'SECONDARY' ||
-    userSession?.division === 'PRIMARY' ||
-    profile?.division?.includes('Secondary') ||
-    profile?.division?.includes('Primary');
-
-  // Sub-tab selection state
-  const [activeSubTab, setActiveSubTab] = useState<string>(
-    isBasicEd ? 'reportCard' : 'courseReg'
-  );
+  // Sub-tab selection state: defaults to academic hub
+  const [activeTab, setActiveTab] = useState<'academic' | 'fees' | 'profile' | 'clearance' | 'hostels'>('academic');
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
-      {/* Student Identity & Digital ID Header Banner */}
-      <div className="bento-card p-6 bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-6 border border-emerald-800 shadow-lg">
-        <div className="space-y-1.5 max-w-xl">
-          <div className="flex items-center gap-2">
-            <span className="bg-amber-400 text-emerald-950 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              {profile?.division || 'NCE Programmes'}
+    <div className="space-y-6 max-w-6xl mx-auto pb-12 font-sans animate-fade-in">
+      {/* 1. SHARED STUDENT SHELL HEADER BANNER */}
+      <div className={`p-6 sm:p-7 rounded-3xl text-white shadow-xl border flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden ${
+        division === 'PRIMARY'
+          ? 'bg-gradient-to-r from-amber-600 via-amber-700 to-yellow-600 border-amber-500'
+          : division === 'SECONDARY'
+          ? 'bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 border-emerald-800'
+          : 'bg-gradient-to-r from-[#0B192C] via-[#132c4d] to-[#0B192C] border-slate-800'
+      }`}>
+        <div className="space-y-2 max-w-xl z-10">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="bg-amber-400 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+              {division === 'DEGREE' && 'Affiliated Degree Directorate (Unilorin)'}
+              {division === 'NCE' && 'NCE Undergraduate Directorate'}
+              {division === 'SECONDARY' && 'Demonstration Secondary School'}
+              {division === 'PRIMARY' && 'Staff Primary Basic Education'}
             </span>
-            <span className="text-xs text-emerald-200">
-              {isBasicEd ? 'Basic Education Dossier' : 'Tertiary SIMS Portal'}
+            <span className="text-xs text-white/80 font-medium">
+              {isBasic ? 'Basic Education Academic Terminal' : 'Tertiary SIMS Enterprise Hub'}
             </span>
           </div>
 
-          <h2 className="text-2xl font-black text-white tracking-tight">
-            Welcome, {profile?.fullName || userSession?.fullName || 'Aondoaver Moses Iorliam'}, {profile?.role || 'STUDENT'}
-          </h2>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            Welcome, {profile?.fullName || userSession?.fullName || 'Student Scholar'}
+          </h1>
 
-          <p className="text-xs text-emerald-100 leading-relaxed">
-            {profile?.programme || 'NCE Computer Science / Mathematics'} • Level {profile?.level || 100} • Matric: {profile?.matricNumber || 'COEKA/2026/NCE/084'}
+          <p className="text-xs text-slate-200 leading-relaxed font-medium">
+            {profile?.programme || (division === 'SECONDARY' ? 'Senior Secondary Science Stream' : division === 'PRIMARY' ? 'Primary Basic Education (Basic 4)' : 'NCE Computer Science / Mathematics')} • {profile?.matricNumber || userSession?.username || 'COEKA/2026/084'}
           </p>
 
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <button
-              onClick={() => setActiveSubTab('hostels')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-bold transition shadow-xs cursor-pointer"
-            >
-              <Building className="w-3.5 h-3.5 text-slate-900" />
-              <span>Reserve Hostel Bedspace (Edge Lock)</span>
-            </button>
-            <button
-              onClick={() => setActiveSubTab('courseReg')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-800/80 hover:bg-emerald-800 text-white text-xs font-semibold border border-emerald-700 transition cursor-pointer"
-            >
-              <BookOpen className="w-3.5 h-3.5" />
-              <span>Course Registration</span>
-            </button>
+          <div className="flex items-center gap-2 pt-1 text-xs">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 font-semibold text-[11px]">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Identity Verified • 2026/2027 Active</span>
+            </span>
           </div>
         </div>
 
-        {/* Digital ID Card Preview */}
-        <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 flex items-center gap-4 shrink-0 shadow-inner">
-          <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-amber-400 shrink-0">
+        {/* Digital Student ID Badge Preview */}
+        <div className="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 flex items-center gap-4 shrink-0 shadow-inner z-10">
+          <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-amber-400 shrink-0 bg-slate-800 flex items-center justify-center">
             <img
               src={profile?.passportPhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'}
               alt="Student Passport"
@@ -123,212 +85,212 @@ export const StudentDashboard: React.FC = () => {
             <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
               Digital Student ID
             </span>
-            <strong className="text-white font-mono block">
-              {profile?.matricNumber || 'COEKA/2026/NCE/084'}
+            <strong className="text-white font-mono block text-sm">
+              {profile?.matricNumber || userSession?.username || 'COEKA/2026/084'}
             </strong>
-            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-300 font-bold bg-emerald-900/60 px-2 py-0.2 rounded border border-emerald-700">
-              <ShieldCheck className="w-3 h-3 text-emerald-400" />
-              VERIFIED ACTIVE
+            <span className="text-[10px] text-slate-300 block font-medium">
+              {division} Division
             </span>
           </div>
 
-          <div className="p-1.5 bg-white rounded-lg shrink-0 ml-2">
+          <div className="p-1.5 bg-white rounded-lg shrink-0 ml-2 hidden sm:block">
             <QrCode className="w-8 h-8 text-slate-900" />
           </div>
         </div>
       </div>
 
-      {/* Sub-Navigation Bar */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-slate-100/90 backdrop-blur-md rounded-2xl border border-slate-200 shadow-xs">
-        {/* Tertiary Specific: Course Registration */}
-        {!isBasicEd && (
+      {/* 2. SHARED STUDENT SHELL NAVIGATION TABS */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
+        <div className="flex items-center gap-1 overflow-x-auto max-w-full scrollbar-none">
+          {/* TAB 1: ACADEMIC CORE (DIVISION SPECIFIC) */}
           <button
-            onClick={() => setActiveSubTab('courseReg')}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeSubTab === 'courseReg'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+            type="button"
+            onClick={() => setActiveTab('academic')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'academic'
+                ? 'bg-[#0B192C] text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            <BookOpen className="w-3.5 h-3.5" />
-            <span>Course Registration</span>
+            <BookOpen className="w-3.5 h-3.5 text-blue-500" />
+            <span>Academic Core</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 uppercase">
+              {division}
+            </span>
           </button>
-        )}
 
-        {/* Hostel Allocation (Autonomous Edge Concurrency Engine) */}
-        <button
-          onClick={() => setActiveSubTab('hostels')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeSubTab === 'hostels'
-              ? 'bg-emerald-800 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-          }`}
-          title="Autonomous Edge Concurrency Engine — Self-Service Bedspace Allocation"
-        >
-          <Building className="w-3.5 h-3.5" />
-          <span>Hostel & Bedspace</span>
-        </button>
-
-        {/* Basic Ed Specific: Report Card */}
-        {isBasicEd && (
+          {/* TAB 2: COMMON FEE MANAGEMENT */}
           <button
-            onClick={() => setActiveSubTab('reportCard')}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeSubTab === 'reportCard'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+            type="button"
+            onClick={() => setActiveTab('fees')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'fees'
+                ? 'bg-[#0B192C] text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            <FileText className="w-3.5 h-3.5" />
-            <span>Termly Report Card</span>
+            <CreditCard className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Fee Invoices & VPay</span>
           </button>
-        )}
 
-        {/* Unified: My Invoices */}
-        <button
-          onClick={() => setActiveSubTab('invoices')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeSubTab === 'invoices'
-              ? 'bg-emerald-800 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-          }`}
-        >
-          <CreditCard className="w-3.5 h-3.5" />
-          <span>My Invoices & Debt</span>
-        </button>
-
-        {/* Tertiary Specific: Transcript */}
-        {!isBasicEd && (
+          {/* TAB 3: COMMON USER PROFILE & DIGITAL ID */}
           <button
-            onClick={() => setActiveSubTab('transcript')}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeSubTab === 'transcript'
-                ? 'bg-emerald-800 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+            type="button"
+            onClick={() => setActiveTab('profile')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'profile'
+                ? 'bg-[#0B192C] text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            <Award className="w-3.5 h-3.5" />
-            <span>Official Transcript</span>
+            <User className="w-3.5 h-3.5 text-amber-500" />
+            <span>Profile & Digital ID</span>
           </button>
-        )}
 
-        {/* Unified: Class Timetable */}
-        <button
-          onClick={() => setActiveSubTab('timetable')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeSubTab === 'timetable'
-              ? 'bg-emerald-800 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-          }`}
-        >
-          <Calendar className="w-3.5 h-3.5" />
-          <span>Class Timetable</span>
-        </button>
-
-        {/* Unified: Digital Clearance */}
-        <button
-          onClick={() => setActiveSubTab('clearance')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeSubTab === 'clearance'
-              ? 'bg-emerald-800 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-          }`}
-        >
-          <ShieldCheck className="w-3.5 h-3.5" />
-          <span>Digital Clearance</span>
-        </button>
-
-        {/* Admissions Onboarding Wizard */}
-        <button
-          onClick={() => setActiveSubTab('onboarding')}
-          className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeSubTab === 'onboarding'
-              ? 'bg-emerald-800 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-          }`}
-        >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-          <span>Admissions Onboarding</span>
-        </button>
-
-        {/* NDPA 2023 Right to Portability Data Export */}
-        <button
-          onClick={handleExportData}
-          disabled={exporting}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer bg-slate-900 hover:bg-slate-800 text-amber-300 shadow-xs ml-auto"
-          title="Download your complete personal data dossier under NDPA 2023 Section 38 (Right to Portability)"
-        >
-          <Download className="w-3.5 h-3.5" />
-          <span>{exporting ? 'Exporting...' : 'Export My Data (NDPA)'}</span>
-        </button>
-
-        {/* Preview Toggle for demonstration purposes */}
-        <div className="flex items-center gap-1 px-2 text-[10px] text-slate-500 font-semibold">
-          <span>Tier View:</span>
+          {/* TAB 4: COMMON DIGITAL CLEARANCE */}
           <button
-            onClick={() => {
-              setActiveSubTab('courseReg');
-              useAppStore.setState({ activeDivision: 'NCE' });
-            }}
-            className={`px-2 py-0.5 rounded ${!isBasicEd ? 'bg-emerald-800 text-white font-bold' : 'bg-slate-200'}`}
+            type="button"
+            onClick={() => setActiveTab('clearance')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+              activeTab === 'clearance'
+                ? 'bg-[#0B192C] text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
           >
-            Tertiary
+            <FileCheck className="w-3.5 h-3.5 text-purple-500" />
+            <span>Institutional Clearance</span>
           </button>
-          <button
-            onClick={() => {
-              setActiveSubTab('reportCard');
-              useAppStore.setState({ activeDivision: 'SECONDARY' });
-            }}
-            className={`px-2 py-0.5 rounded ${isBasicEd ? 'bg-emerald-800 text-white font-bold' : 'bg-slate-200'}`}
-          >
-            Basic Ed
-          </button>
+
+          {/* TAB 5: HOSTEL ALLOCATION (TERTIARY / BOARDING) */}
+          {!isBasic && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('hostels')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
+                activeTab === 'hostels'
+                  ? 'bg-[#0B192C] text-white shadow-xs'
+                  : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800'
+              }`}
+            >
+              <Building className="w-3.5 h-3.5 text-teal-500" />
+              <span>Hostel Bedspace</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Sub-Tab View Rendering */}
-      {activeSubTab === 'onboarding' && (
-        <OnboardingView onComplete={() => setActiveSubTab('courseReg')} />
-      )}
+      {/* 3. DYNAMIC CONTENT WORKSPACE */}
+      {/* TAB 1: ACADEMIC CORE VIA DIVISION RESOLVER */}
+      {activeTab === 'academic' && <StudentDivisionResolver />}
 
-      {activeSubTab === 'courseReg' && (
-        <CourseRegistrationView onNavigateToInvoices={() => setActiveSubTab('invoices')} />
-      )}
+      {/* TAB 2: COMMON FEE INVOICES & VPAY NUBAN */}
+      {activeTab === 'fees' && <MyInvoices />}
 
-      {activeSubTab === 'hostels' && (
-        <div className="space-y-4">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold shrink-0 shadow-sm">
-                <Building className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-emerald-950">
-                  Autonomous Edge Concurrency Engine — Self-Service Bedspace Allocation
-                </h4>
-                <p className="text-xs text-emerald-800">
-                  Real-time bedspace picker with 15-minute Compare-and-Swap (CAS) reservation locks. Choose your hall and bedspace to generate an instant fee invoice.
-                </p>
-              </div>
+      {/* TAB 3: COMMON USER PROFILE & DIGITAL ID CARD */}
+      {activeTab === 'profile' && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800 gap-3">
+            <div>
+              <h3 className="text-lg font-black text-[#0B192C] dark:text-white">
+                Official Student Identity & Digital Dossier
+              </h3>
+              <p className="text-xs text-slate-500">
+                HMAC SHA-256 tamper-evident credentials and QR-code verified pass
+              </p>
             </div>
-            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-emerald-200 text-emerald-900 shrink-0">
-              Edge CAS Locks
-            </span>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#0B192C] text-white hover:bg-slate-900 transition flex items-center gap-1.5 cursor-pointer shadow-xs self-start sm:self-auto"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              <span>Print Student ID Card</span>
+            </button>
           </div>
 
-          <HostelPortal />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* ID Card Front Visual */}
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-[#0B192C] via-slate-900 to-blue-950 text-white border border-slate-700 shadow-xl flex flex-col justify-between space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 flex items-center justify-center">
+                    <img src="/coeka-logo.png" alt="COEKA" className="w-full h-full object-contain" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider block">COEKA Identity Card</span>
+                    <span className="text-[9px] text-slate-300 font-mono">2026/2027 Session</span>
+                  </div>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-400 text-slate-950">
+                  {division}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-amber-400 bg-slate-800 shrink-0">
+                  <img
+                    src={profile?.passportPhotoUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=250'}
+                    alt="Passport"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div>
+                  <h4 className="font-black text-sm text-white">{profile?.fullName || userSession?.fullName || 'Student Scholar'}</h4>
+                  <span className="text-[11px] font-mono text-amber-300 block">{profile?.matricNumber || userSession?.username || 'COEKA/2026/084'}</span>
+                  <span className="text-[10px] text-slate-300 block">{profile?.programme || 'Full-Time Student'}</span>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-300">
+                <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                  <ShieldCheck className="w-3 h-3" />
+                  Verified Active
+                </span>
+                <span className="font-mono">VALID: 2026 - 2029</span>
+              </div>
+            </div>
+
+            {/* Bio-Data Sheet */}
+            <div className="md:col-span-2 space-y-4">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Institutional Bio-Data & Contacts
+              </h4>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Email Address</span>
+                  <span className="font-semibold text-slate-900 dark:text-white truncate block">{userSession?.email || 'student@coeka.edu.ng'}</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Academic Division</span>
+                  <span className="font-semibold text-blue-700 dark:text-blue-400 block">{division}</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">State of Origin</span>
+                  <span className="font-semibold text-slate-900 dark:text-white block">Benue State</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">LGA of Origin</span>
+                  <span className="font-semibold text-slate-900 dark:text-white block">Katsina-Ala LGA</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Blood Group</span>
+                  <span className="font-semibold text-slate-900 dark:text-white block">O+ (Positive)</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold block">Residential Address</span>
+                  <span className="font-semibold text-slate-900 dark:text-white truncate block">COEKA Student Village</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      {activeSubTab === 'reportCard' && <ReportCardView />}
+      {/* TAB 4: COMMON DIGITAL CLEARANCE */}
+      {activeTab === 'clearance' && <DigitalClearance />}
 
-      {activeSubTab === 'invoices' && <MyInvoices />}
-
-      {activeSubTab === 'transcript' && <TranscriptView />}
-
-      {activeSubTab === 'timetable' && <TimetableView />}
-
-      {activeSubTab === 'clearance' && <DigitalClearance />}
+      {/* TAB 5: HOSTEL ALLOCATION */}
+      {activeTab === 'hostels' && !isBasic && <HostelPortal />}
     </div>
   );
 };

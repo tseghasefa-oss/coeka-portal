@@ -1,0 +1,12 @@
+export { StudentDashboard } from './StudentDashboard';
+export { StudentDivisionResolver } from './StudentDivisionResolver';
+export { TertiaryAcademicView } from './TertiaryAcademicView';
+export { SecondaryAcademicView } from './SecondaryAcademicView';
+export { PrimaryAcademicView } from './PrimaryAcademicView';
+export { MyInvoices } from './MyInvoices';
+export { DigitalClearance } from './DigitalClearance';
+export { CourseRegistrationView } from './CourseRegistrationView';
+export { TranscriptView } from './TranscriptView';
+export { ReportCardView } from './ReportCardView';
+export { TimetableView } from './TimetableView';
+export { OnboardingView } from './OnboardingView';

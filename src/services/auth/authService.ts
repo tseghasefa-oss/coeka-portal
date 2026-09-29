@@ -116,7 +116,7 @@ export class AuthService {
 
     // Backward compatibility for seed mock bcrypt hashes ($2a$)
     if (!passwordMatches && typeof user.password_hash === 'string' && user.password_hash.startsWith('$2a$')) {
-      const allowedDefaultPasswords = ['Password123!', 'coeka2026', 'admin123', 'student123', 'staff123'];
+      const allowedDefaultPasswords = ['Password123!', 'Pass123!', 'coeka2026', 'admin123', 'student123', 'staff123'];
       if (allowedDefaultPasswords.includes(password)) {
         passwordMatches = true;
         // Upgrade stored hash to new SHA-256 hash
@@ -185,6 +185,10 @@ export class AuthService {
       'usr-std-002': { name: 'Doose Mercy Gbadu', role: 'STUDENT', div: 'NCE' },
       'usr-std-003': { name: 'Terna Victor Chia', role: 'STUDENT', div: 'DEGREE' },
       'usr-par-001': { name: 'Elder Tor Iorliam', role: 'PARENT', div: 'NCE' },
+      'usr-test-degree': { name: 'Degree Test', role: 'STUDENT', div: 'DEGREE' },
+      'usr-test-nce': { name: 'NCE Test', role: 'STUDENT', div: 'NCE' },
+      'usr-test-sec': { name: 'Sec Test', role: 'STUDENT', div: 'SECONDARY' },
+      'usr-test-pri': { name: 'Pri Test', role: 'STUDENT', div: 'PRIMARY' },
     };
 
     const seedMeta = seedDictionary[user.id];

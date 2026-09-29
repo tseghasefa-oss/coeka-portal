@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export type SchoolDivision = 'NCE' | 'DEGREE' | 'SECONDARY' | 'PRIMARY';
+export type AcademicDivision = SchoolDivision;
 export type UserRole =
   | 'STUDENT'
   | 'STAFF'

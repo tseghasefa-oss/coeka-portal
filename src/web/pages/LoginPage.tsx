@@ -443,9 +443,41 @@ export function LoginPage() {
               </span>
             </div>
 
+            {/* Division-Specific Test Students */}
+            <div className="mb-2">
+              <span className="text-[10px] font-black uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 block w-fit mb-1.5">
+                Division-Specific Student Personas (Pass123!)
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                {[
+                  { label: 'Degree Student', user: 'degree@test.com', pass: 'Pass123!', div: 'DEGREE' },
+                  { label: 'NCE Student', user: 'nce@test.com', pass: 'Pass123!', div: 'NCE' },
+                  { label: 'Secondary Student', user: 'sec@test.com', pass: 'Pass123!', div: 'SECONDARY' },
+                  { label: 'Primary Pupil', user: 'pri@test.com', pass: 'Pass123!', div: 'PRIMARY' },
+                ].map((s) => (
+                  <button
+                    key={s.user}
+                    type="button"
+                    onClick={() => handleSelectDemoPersona(s.user, s.pass, s.label)}
+                    className="flex flex-col text-left p-2 rounded-xl bg-blue-50/70 hover:bg-blue-100/80 border border-blue-200 transition-all group"
+                  >
+                    <span className="text-xs font-black text-blue-900 group-hover:text-blue-950">
+                      {s.label}
+                    </span>
+                    <span className="text-[10px] text-blue-700 font-mono truncate">
+                      {s.user}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase mt-0.5">
+                      {s.div}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Other Institutional Roles */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {[
-                { label: 'Student', user: 'std_iorliam', role: 'STUDENT' },
                 { label: 'Super Admin', user: 'founder_tsegha', role: 'SUPER_ADMIN' },
                 { label: 'Student Affairs', user: 'student_affairs', role: 'WARDEN' },
                 { label: 'Registrar', user: 'registrar_coeka', role: 'REGISTRAR' },
@@ -453,7 +485,6 @@ export function LoginPage() {
                 { label: 'Lecturer', user: 'lecturer1', role: 'LECTURER' },
                 { label: 'Bursar', user: 'bursar_ikyur', role: 'BURSAR' },
                 { label: 'Dean', user: 'dean_tyav', role: 'DEAN' },
-                { label: 'Librarian', user: 'librarian_wende', role: 'LIBRARIAN' },
                 { label: 'Parent', user: 'parent_iorliam', role: 'PARENT' },
               ].map((persona) => (
                 <button
@@ -473,7 +504,7 @@ export function LoginPage() {
             </div>
 
             <p className="text-center text-[10px] text-slate-400 mt-2">
-              Default Seed Password: <code className="text-emerald-700 font-mono font-semibold">Password123!</code>
+              Student Accounts: <code className="text-blue-700 font-mono font-semibold">Pass123!</code> • Staff Accounts: <code className="text-emerald-700 font-mono font-semibold">Password123!</code>
             </p>
           </div>
 
