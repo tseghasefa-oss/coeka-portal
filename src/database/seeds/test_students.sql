@@ -118,3 +118,12 @@ INSERT OR IGNORE INTO students (
   'SIG_COEKA_STD_TEST_PRI_QR',
   'ACTIVE'
 );
+
+-- 4. Invoices Table for Students
+INSERT OR IGNORE INTO student_invoices (id, student_id, fee_schedule_id, invoice_number, amount_due_kobo, amount_paid_kobo, status) VALUES
+('inv-test-deg-01', 'std-test-degree', 'sched-deg-100-tui', 'INV-2026-DEG-901-01', 7500000, 0, 'UNPAID'),
+('inv-test-nce-01', 'std-test-nce', 'sched-nce-100-tui', 'INV-2026-NCE-902-01', 4500000, 4500000, 'PAID'),
+('inv-test-sec-01', 'std-test-sec', 'sched-nce-100-tui', 'INV-2026-SEC-903-01', 3500000, 0, 'UNPAID'),
+('inv-test-pri-01', 'std-test-pri', 'sched-nce-100-tui', 'INV-2026-PRI-904-01', 2500000, 0, 'UNPAID');
+
+

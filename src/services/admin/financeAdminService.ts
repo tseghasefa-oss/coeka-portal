@@ -403,11 +403,11 @@ export class FinanceAdminService {
    * Ensure standard baseline demo student invoices and pending transactions exist
    */
   async ensureSeedInvoicesAndTransactions(): Promise<void> {
-    const existingInvoices = await this.db.queryFirst<{ count: number }>(
-      `SELECT COUNT(*) as count FROM student_invoices`
+    const existingInvStd001 = await this.db.queryFirst<{ id: string }>(
+      `SELECT id FROM student_invoices WHERE id = 'inv-std-001'`
     );
 
-    if (!existingInvoices || existingInvoices.count === 0) {
+    if (!existingInvStd001) {
       // Find fee schedules to bind to invoices
       const nceSched = await this.db.queryFirst<any>(
         `SELECT id, amount_kobo FROM fee_schedules WHERE category_id = 'fee-nce-tuition' LIMIT 1`

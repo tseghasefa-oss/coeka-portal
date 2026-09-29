@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { LedgerEngine } from '../../services/finance/ledgerEngine';
 import { ScreeningEngine, ScreeningEvaluationInput, ScreeningResult } from '../../services/admissions/screeningEngine';
 import { API_HOST } from '../config/api';
+import { useAppStore } from '../stores/useAppStore';
 
 const API_BASE = `${API_HOST}/api`;
 
@@ -398,3 +399,59 @@ export function useAdmissionsScreening() {
     },
   });
 }
+
+export interface ScopedSearchResultItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  type: 'STUDENT' | 'COURSE' | 'INVOICE' | 'STAFF' | 'FINANCE';
+  tab: string;
+  url?: string;
+  metadata?: Record<string, any>;
+}
+
+/**
+ * Hook to perform real-time Scoped Search querying /api/search
+ */
+export function useScopedSearch(query: string, enabled: boolean = true) {
+  const { userSession } = useAppStore();
+  const token = userSession?.token;
+  const role = userSession?.role;
+  const division = userSession?.division;
+
+  return useQuery<ScopedSearchResultItem[]>({
+    queryKey: ['scoped-search', query, role, userSession?.userId],
+    queryFn: async () => {
+      const trimmed = query.trim();
+      if (!trimmed) return [];
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      if (role) {
+        headers['X-Demo-Role'] = role;
+      }
+      if (division) {
+        headers['X-Demo-Division'] = division;
+      }
+
+      try {
+        const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(trimmed)}`, {
+          headers,
+          credentials: 'include',
+        });
+        if (!res.ok) return [];
+        const data = (await res.json()) as { results?: ScopedSearchResultItem[] };
+        return (data.results || []) as ScopedSearchResultItem[];
+      } catch {
+        return [];
+      }
+    },
+    enabled: enabled && query.trim().length > 0,
+    staleTime: 1000 * 30,
+  });
+}
+

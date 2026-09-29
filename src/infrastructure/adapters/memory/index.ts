@@ -247,6 +247,10 @@ export class MemoryDatabaseAdapter implements IDatabaseProvider {
             if (fs.existsSync(hostelMigrationPath)) {
               this.sqlite.exec(fs.readFileSync(hostelMigrationPath, 'utf8'));
             }
+            const testStudentsPath = path.resolve(process.cwd(), 'src/database/seeds/test_students.sql');
+            if (fs.existsSync(testStudentsPath)) {
+              this.sqlite.exec(fs.readFileSync(testStudentsPath, 'utf8'));
+            }
           } catch {
             // Optional fallback
           }

@@ -37,6 +37,7 @@ import {
 import { useAppStore, UserRole, ActiveTab, AdminTab } from '../../stores/useAppStore';
 import { useAuth } from '../../hooks/useAuth';
 import { getStudentNavItems } from '../student/StudentSidebar';
+import { useScopedSearch } from '../../hooks/usePortalData';
 
 interface NavItem {
   id: ActiveTab;
@@ -53,6 +54,27 @@ interface NotificationItem {
   unread: boolean;
   category: 'result' | 'fee' | 'hostel' | 'system';
 }
+
+// Dynamic role-based search placeholder
+export const getSearchPlaceholder = (currentRole?: string) => {
+  const r = (currentRole || '').toUpperCase();
+  if (r === 'SUPER_ADMIN' || r === 'ADMIN') {
+    return 'Search any student, staff, or record...';
+  }
+  if (r === 'BURSAR') {
+    return 'Search student invoices & financial ledgers...';
+  }
+  if (['LECTURER', 'DEAN', 'HOD'].includes(r)) {
+    return 'Search students in your courses...';
+  }
+  if (r === 'PARENT') {
+    return 'Search for your children...';
+  }
+  if (r === 'STUDENT') {
+    return 'Search your own records...';
+  }
+  return 'Search portal records... (Ctrl + K)';
+};
 
 export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { userSession, activeTab, setActiveTab, adminTab, setAdminTab, uiPreferences, toast, setToast, activeDivision } = useAppStore();
@@ -112,8 +134,20 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         setNotificationsOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setSearchFocused(true);
+        const input = document.getElementById('global-search-input');
+        if (input) (input as HTMLInputElement).focus();
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   const unreadCount = notifications.filter((n) => n.unread).length;
@@ -241,13 +275,16 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
     setMobileDrawerOpen(false);
   };
 
-  // Search Results Simulation
-  const searchResults = [
-    { title: 'Aondoaver Moses Iorliam (COEKA/2026/NCE/084)', type: 'Student Record', tab: 'results' },
-    { title: 'MTH 211: Linear Algebra & Differential Equations', type: 'Course Catalog', tab: 'sims' },
-    { title: 'Fee Invoice #INV-2026-0928-84 (Tuition ₦48,500)', type: 'Bursary Invoice', tab: 'finance' },
-    { title: 'Sir Kashim Ibrahim Hall - Room 204 (Bed 02)', type: 'Hostel Bedspace', tab: 'hostels' },
+  const { data: remoteResults, isLoading: isSearchLoading } = useScopedSearch(searchQuery, searchFocused);
+
+  // Scoped search results with fallback simulation
+  const fallbackResults = [
+    { id: 'sim-1', title: 'Aondoaver Moses Iorliam (COEKA/2026/NCE/084)', subtitle: 'NCE • Computer Science / Mathematics', type: 'STUDENT', tab: 'results' },
+    { id: 'sim-2', title: 'MTH 211: Linear Algebra & Differential Equations', subtitle: 'Curriculum Course • 3 Units', type: 'COURSE', tab: 'sims' },
+    { id: 'sim-3', title: 'Fee Invoice #INV-2026-0928-84 (Tuition ₦48,500)', subtitle: 'Institutional Academic Fees', type: 'INVOICE', tab: 'finance' },
   ].filter((item) => item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.type.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const searchResults = remoteResults !== undefined ? remoteResults : fallbackResults;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-amber-400 selection:text-slate-950">
@@ -296,44 +333,76 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
                 <Search className="w-4 h-4" />
               </div>
               <input
+                id="global-search-input"
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
-                placeholder="Search students, courses, invoices... (Ctrl + K)"
+                placeholder={getSearchPlaceholder(role)}
                 className="w-full pl-9 pr-4 py-2 sm:py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/70 focus:bg-white border border-transparent focus:border-blue-500 text-xs sm:text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all placeholder:text-slate-400 text-slate-900"
               />
             </div>
 
             {/* Search Dropdown Results Popover */}
-            {searchFocused && (
+            {searchFocused && searchQuery.trim().length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-200 p-3 z-50 animate-fade-in max-h-80 overflow-y-auto">
-                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1">
-                  Global Edge Search Matches
+                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1 mb-1 flex items-center justify-between">
+                  <span>Authorized Edge Search Matches</span>
+                  {isSearchLoading && (
+                    <span className="text-[10px] text-blue-600 font-semibold animate-pulse">Searching...</span>
+                  )}
                 </div>
                 {searchResults.length > 0 ? (
                   <div className="space-y-1">
-                    {searchResults.map((res, i) => (
-                      <div
-                        key={i}
-                        onClick={() => {
-                          setActiveTab(res.tab as any);
-                          setSearchFocused(false);
-                          setSearchQuery('');
-                        }}
-                        className="p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors flex items-center justify-between"
-                      >
-                        <div>
-                          <span className="text-xs font-bold text-slate-900 block">{res.title}</span>
-                          <span className="text-[10px] text-blue-600 font-semibold">{res.type}</span>
+                    {searchResults.map((res: any, i: number) => {
+                      const badgeColor =
+                        res.type === 'STUDENT'
+                          ? 'bg-blue-50 text-blue-700 border-blue-200'
+                          : res.type === 'COURSE'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          : res.type === 'INVOICE'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                          : res.type === 'STAFF'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                          : 'bg-slate-100 text-slate-700 border-slate-200';
+
+                      return (
+                        <div
+                          key={res.id || i}
+                          onClick={() => {
+                            if (res.tab) {
+                              setActiveTab(res.tab as any);
+                            }
+                            setSearchFocused(false);
+                            setSearchQuery('');
+                          }}
+                          className="p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors flex items-center justify-between group"
+                        >
+                          <div className="flex-1 pr-2">
+                            <span className="text-xs font-bold text-slate-900 block group-hover:text-blue-700 transition-colors">
+                              {res.title}
+                            </span>
+                            {res.subtitle && (
+                              <span className="text-[11px] text-slate-500 block truncate">
+                                {res.subtitle}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${badgeColor}`}>
+                              {res.type}
+                            </span>
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 transition-colors" />
+                          </div>
                         </div>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-4 text-center text-xs text-slate-500">
-                    No results found for "{searchQuery}". Try searching by matric, course code, or invoice.
+                    {isSearchLoading
+                      ? 'Querying institutional records...'
+                      : `No records found matching "${searchQuery}" within your authorized scope.`}
                   </div>
                 )}
               </div>

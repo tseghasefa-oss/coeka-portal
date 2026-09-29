@@ -9,11 +9,17 @@ import { SignatureService } from '../../services/finance/signatureService';
 import { CourseRegistrationEngine, CourseToRegister } from '../../services/students/courseRegistrationEngine';
 import { AcademicService } from '../../services/academic/academicService';
 import { LibrarianService } from '../../services/library/libraryService';
+import { handleGuardedInvoiceDetail } from '../middleware/dataOwnershipGuard';
 
 export const studentRoutes = new Hono<{ Bindings: Env }>();
 
-// Only enrolled students can access student dashboard endpoints
-studentRoutes.use('*', requireAuth, requireRole(['STUDENT']));
+// Only enrolled students can access student dashboard endpoints; guarded invoice detail uses DataOwnershipGuard
+studentRoutes.use('*', requireAuth, async (c, next) => {
+  if (c.req.path.match(/^\/api\/student\/invoices\/[^/]+$/) && c.req.method === 'GET') {
+    return next();
+  }
+  return requireRole(['STUDENT'])(c, next);
+});
 
 // Helper to resolve student profile
 async function resolveStudent(container: any, user: any) {
@@ -282,6 +288,8 @@ studentRoutes.get('/invoices', async (c) => {
     },
   });
 });
+
+studentRoutes.get('/invoices/:id', handleGuardedInvoiceDetail);
 
 // 6. Virtual Bank Account
 studentRoutes.get('/virtual-account', async (c) => {

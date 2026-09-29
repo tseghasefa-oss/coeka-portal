@@ -6,11 +6,17 @@ import { SignatureService } from '../../services/finance/signatureService';
 import { FinanceService } from '../../services/finance/financeService';
 import { getContainer } from '../../infrastructure/container';
 import { requireAuth, requireRole } from '../middleware/rbac';
+import { handleGuardedInvoiceDetail } from '../middleware/dataOwnershipGuard';
 
 export const financeRoutes = new Hono<{ Bindings: Env }>();
 
-// Only Bursar and Super Admin can access institutional finance operations
-financeRoutes.use('*', requireAuth, requireRole(['BURSAR', 'SUPER_ADMIN']));
+// Only Bursar and Super Admin can access institutional finance operations; guarded invoice detail uses DataOwnershipGuard
+financeRoutes.use('*', requireAuth, async (c, next) => {
+  if (c.req.path.match(/^\/api\/finance\/invoices\/[^/]+$/) && c.req.method === 'GET') {
+    return next();
+  }
+  return requireRole(['BURSAR', 'SUPER_ADMIN'])(c, next);
+});
 
 // 0. Bursary Summary & Financial Health
 financeRoutes.get('/summary', async (c) => {
@@ -46,6 +52,8 @@ financeRoutes.get('/invoices', async (c) => {
 
   return c.json({ invoices });
 });
+
+financeRoutes.get('/invoices/:id', handleGuardedInvoiceDetail);
 
 // 2. Get Dedicated Virtual Bank Account for Instant Transfer
 financeRoutes.get('/virtual-account', async (c) => {

@@ -105,3 +105,20 @@ INSERT OR IGNORE INTO users (id, username, email, phone_number, password_hash, u
 INSERT OR IGNORE INTO staff_profiles (id, user_id, staff_id_number, department_id, first_name, last_name, cadre, designation, employment_date, highest_qualification) VALUES
 ('stf-001', 'usr-staff-001', 'COEKA/STF/2026/001', 'dept-csc', 'Olufemi', 'Adeyemi', 'ACADEMIC', 'Senior Lecturer', '2020-01-15', 'Ph.D Computer Science');
 
+-- 11. Baseline Courses
+INSERT OR IGNORE INTO courses (id, programme_id, code, title, credit_units, level, semester_term, is_compulsory) VALUES
+('crs-csc111', 'prog-nce-csc-mth', 'CSC 111', 'Introduction to Computer Systems', 2, 100, 1, 1),
+('crs-csc112', 'prog-nce-csc-mth', 'CSC 112', 'Problem Solving & BASIC Programming', 3, 100, 1, 1),
+('crs-mth111', 'prog-nce-csc-mth', 'MTH 111', 'Algebra and Trigonometry', 3, 100, 1, 1),
+('crs-edu111', 'prog-nce-csc-mth', 'EDU 111', 'Foundations of Education', 2, 100, 1, 1),
+('crs-gse111', 'prog-nce-csc-mth', 'GSE 111', 'General English I', 2, 100, 1, 1),
+('crs-bed111', 'prog-deg-bed', 'BED 111', 'Principles of Business Education (Degree)', 3, 100, 1, 1),
+('crs-sec-bio', 'prog-sec-sss', 'BIO 101', 'Secondary Biology (SS1)', 3, 100, 1, 1),
+('crs-pri-sci', 'prog-pri-elem', 'SCI 101', 'Basic Science & Technology (Primary 1)', 2, 100, 1, 1);
+
+-- 12. Staff Course Allocations
+INSERT OR IGNORE INTO staff_course_allocations (id, staff_id, course_id, semester_id, role) VALUES
+('alloc-001', 'stf-001', 'crs-csc111', 'sem-nce-2026-1', 'PRIMARY_LECTURER'),
+('alloc-002', 'stf-001', 'crs-csc112', 'sem-nce-2026-1', 'PRIMARY_LECTURER');
+
+
