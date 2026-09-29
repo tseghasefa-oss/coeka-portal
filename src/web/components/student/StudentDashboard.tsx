@@ -21,6 +21,7 @@ import { StudentDivisionResolver } from './StudentDivisionResolver';
 import { MyInvoices } from './MyInvoices';
 import { DigitalClearance } from './DigitalClearance';
 import { HostelPortal } from '../hostels/HostelPortal';
+import { DivisionGuard } from '../common/DivisionGuard';
 
 export const StudentDashboard: React.FC = () => {
   const { userSession, activeDivision } = useAppStore();
@@ -290,7 +291,11 @@ export const StudentDashboard: React.FC = () => {
       {activeTab === 'clearance' && <DigitalClearance />}
 
       {/* TAB 5: HOSTEL ALLOCATION */}
-      {activeTab === 'hostels' && !isBasic && <HostelPortal />}
+      {activeTab === 'hostels' && (
+        <DivisionGuard allowedDivisions={['DEGREE', 'NCE']} featureName="Hostel Allocation">
+          <HostelPortal />
+        </DivisionGuard>
+      )}
     </div>
   );
 };

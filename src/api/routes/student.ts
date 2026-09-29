@@ -79,8 +79,13 @@ studentRoutes.get('/profile', async (c) => {
 
 // 2. Available Courses for Registration
 studentRoutes.get('/courses/available', async (c) => {
-  const container = getContainer(c.env);
   const user = c.get('user');
+  const userDivision = (user?.division || '').toUpperCase();
+  if (userDivision === 'SECONDARY' || userDivision === 'PRIMARY') {
+    return c.json({ error: 'Unauthorized: Feature not available for this division' }, 403);
+  }
+
+  const container = getContainer(c.env);
   const student = await resolveStudent(container, user);
   const level = student?.current_level || 100;
 
@@ -121,10 +126,15 @@ studentRoutes.get('/courses/available', async (c) => {
   });
 });
 
-// 3. Register Courses (Fee Balance Gate Verification)
-studentRoutes.post('/courses/register', async (c) => {
-  const body = await c.req.json();
+// 3. Register Courses (Fee Balance Gate Verification & Strict Division Gating)
+const handleCourseRegistration = async (c: any) => {
   const user = c.get('user');
+  const userDivision = (user?.division || '').toUpperCase();
+  if (userDivision === 'SECONDARY' || userDivision === 'PRIMARY') {
+    return c.json({ error: 'Unauthorized: Feature not available for this division' }, 403);
+  }
+
+  const body = await c.req.json();
   const container = getContainer(c.env);
   const financeService = new FinanceService(container.db, container.cache, container.queue);
 
@@ -196,11 +206,19 @@ studentRoutes.post('/courses/register', async (c) => {
     totalCreditUnits: validation.totalCreditUnits,
     submittedAt: now,
   });
-});
+};
+
+studentRoutes.post('/courses/register', handleCourseRegistration);
+studentRoutes.post('/register-course', handleCourseRegistration);
 
 // 4. Currently Registered Courses
 studentRoutes.get('/courses/registered', async (c) => {
   const user = c.get('user');
+  const userDivision = (user?.division || '').toUpperCase();
+  if (userDivision === 'SECONDARY' || userDivision === 'PRIMARY') {
+    return c.json({ error: 'Unauthorized: Feature not available for this division' }, 403);
+  }
+
   const container = getContainer(c.env);
   const student = await resolveStudent(container, user);
   const studentId = student?.id || 'std-001';

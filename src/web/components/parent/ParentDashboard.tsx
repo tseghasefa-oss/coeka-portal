@@ -131,6 +131,23 @@ export const ParentDashboard: React.FC = () => {
           {/* Ward Switcher: changes activeWardId in Zustand store */}
           <WardSwitcher wards={wards} />
 
+          {/* Academic Model Division Badge & Gating Disclosure */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3.5 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-slate-700 dark:text-slate-200">
+                Active Ward Division:
+              </span>
+              <span className="font-mono text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                {selectedWard?.division || 'NCE'}
+              </span>
+            </div>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              {(selectedWard?.division === 'PRIMARY' || selectedWard?.division === 'SECONDARY')
+                ? 'Basic Education Curriculum (Continuous Assessment & Report Cards • Tertiary Course Registration Not Applicable)'
+                : 'Tertiary Higher Education Model (Course Units, GPA Tracking & Senate Results)'}
+            </span>
+          </div>
+
           {/* Performance Tracker for currently selected ward */}
           <PerformanceTracker childId={currentWardId} />
         </div>

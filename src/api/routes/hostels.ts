@@ -49,6 +49,11 @@ hostelRoutes.get('/student-status', async (c) => {
   const service = new HostelService(container.db, container.cache);
   const user = await authenticateSession(c);
 
+  const userDivision = (user?.division || '').toUpperCase();
+  if (userDivision === 'SECONDARY' || userDivision === 'PRIMARY') {
+    return c.json({ error: 'Unauthorized: Feature not available for this division' }, 403);
+  }
+
   let studentId = c.req.query('studentId');
   if (!studentId && user?.userId) {
     // Look up student from user ID
@@ -84,11 +89,17 @@ hostelRoutes.get('/student-status', async (c) => {
 /**
  * 3. Concurrency-Safe 15-Minute Bed Reservation Lock
  * POST /api/hostels/reserve
+ * POST /api/hostels/lock-bed
  */
-hostelRoutes.post('/reserve', async (c) => {
+const handleBedLock = async (c: any) => {
+  const user = await authenticateSession(c);
+  const userDivision = (user?.division || '').toUpperCase();
+  if (userDivision === 'SECONDARY' || userDivision === 'PRIMARY') {
+    return c.json({ error: 'Unauthorized: Feature not available for this division' }, 403);
+  }
+
   const container = getContainer(c.env);
   const service = new HostelService(container.db, container.cache);
-  const user = await authenticateSession(c);
 
   let body: any = {};
   try {
@@ -157,16 +168,24 @@ hostelRoutes.post('/reserve', async (c) => {
       isConflict ? 409 : 400
     );
   }
-});
+};
+
+hostelRoutes.post('/reserve', handleBedLock);
+hostelRoutes.post('/lock-bed', handleBedLock);
 
 /**
  * 4. Permanent Allocation Confirmation
  * POST /api/hostels/confirm
  */
 hostelRoutes.post('/confirm', async (c) => {
+  const user = await authenticateSession(c);
+  const userDivision = (user?.division || '').toUpperCase();
+  if (userDivision === 'SECONDARY' || userDivision === 'PRIMARY') {
+    return c.json({ error: 'Unauthorized: Feature not available for this division' }, 403);
+  }
+
   const container = getContainer(c.env);
   const service = new HostelService(container.db, container.cache);
-  const user = await authenticateSession(c);
 
   let body: any = {};
   try {

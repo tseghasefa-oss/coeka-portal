@@ -24,6 +24,7 @@ export type ActiveTab =
   | 'profile'
   | 'admissions'
   | 'sims'
+  | 'course_reg'
   | 'finance'
   | 'results'
   | 'hostels'
@@ -83,6 +84,11 @@ export interface AppState {
   uiPreferences: UiPreferences;
   setUiPreferences: (prefs: Partial<UiPreferences>) => void;
 
+  // Global Toast Notifications
+  toast: { message: string; type?: 'error' | 'success' | 'warning' | 'info' } | null;
+  setToast: (toast: { message: string; type?: 'error' | 'success' | 'warning' | 'info' } | null) => void;
+  showToast: (message: string, type?: 'error' | 'success' | 'warning' | 'info') => void;
+
   // Utility Actions
   logout: () => void;
 }
@@ -93,6 +99,9 @@ function getInitialActiveTab(): ActiveTab {
     const pathname = window.location.pathname.toLowerCase();
     const search = window.location.search.toLowerCase();
 
+    if (pathname.startsWith('/student/course-reg') || pathname.startsWith('/student/course_reg') || pathname.startsWith('/course-reg')) return 'course_reg';
+    if (pathname.startsWith('/student/results')) return 'results';
+    if (pathname.startsWith('/student/hostels')) return 'hostels';
     if (pathname.startsWith('/admin')) return 'admin';
     if (pathname.startsWith('/login') || search.includes('tab=login')) return 'login';
     if (pathname.startsWith('/admissions') || search.includes('tab=admissions')) return 'admissions';
@@ -134,6 +143,15 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({
       uiPreferences: { ...state.uiPreferences, ...prefs },
     })),
+
+  toast: null,
+  setToast: (toast) => set({ toast }),
+  showToast: (message, type = 'info') => {
+    set({ toast: { message, type } });
+    setTimeout(() => {
+      set((state) => (state.toast?.message === message ? { toast: null } : {}));
+    }, 4500);
+  },
 
   logout: () =>
     set({

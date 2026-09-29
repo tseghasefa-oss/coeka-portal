@@ -46,6 +46,10 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import { BursarModule } from './components/bursar/BursarModule';
 import { LecturerModule } from './components/lecturer/LecturerModule';
 import { StudentDashboard } from './components/student/StudentDashboard';
+import { CourseRegistrationView } from './components/student/CourseRegistrationView';
+import { SenateResultsView } from './components/student/SenateResultsView';
+import { HostelAllocationView } from './components/student/HostelAllocationView';
+import { DivisionGuard } from './components/common/DivisionGuard';
 import { ParentDashboard } from './components/parent/ParentDashboard';
 import { DeanDashboard } from './components/dean/DeanDashboard';
 import { LibrarianDashboard } from './components/librarian/LibrarianDashboard';
@@ -122,7 +126,25 @@ export default function App() {
         hostname.includes('workers.dev') ||
         hostname.includes('portal');
 
-      if (pathname.startsWith('/dashboard')) {
+      if (pathname.startsWith('/student/course-reg') || pathname.startsWith('/student/course_reg') || pathname.startsWith('/course-reg') || search.includes('tab=course_reg')) {
+        if (userSession) {
+          setActiveTab('course_reg');
+        } else {
+          setActiveTab('login');
+        }
+      } else if (pathname.startsWith('/student/results') || search.includes('tab=results')) {
+        if (userSession) {
+          setActiveTab('results');
+        } else {
+          setActiveTab('login');
+        }
+      } else if (pathname.startsWith('/student/hostels') || search.includes('tab=hostels')) {
+        if (userSession) {
+          setActiveTab('hostels');
+        } else {
+          setActiveTab('login');
+        }
+      } else if (pathname.startsWith('/dashboard')) {
         if (userSession) {
           setActiveTab(resolveDashboardTab(userSession.role));
         } else {
@@ -280,6 +302,13 @@ export default function App() {
           </ProtectedRoute>
         )}
 
+      {/* TAB 3.5: DIRECT COURSE REGISTRATION ROUTE (TERTIARY ONLY) */}
+      {activeTab === 'course_reg' && (
+        <ProtectedRoute allowedRoles={['STUDENT', 'SUPER_ADMIN', 'ADMIN']}>
+          <CourseRegistrationView />
+        </ProtectedRoute>
+      )}
+
         {/* TAB 4: BURSARY & FINANCIAL ENGINE */}
         {activeTab === 'finance' && (
           <ProtectedRoute allowedRoles={['BURSAR', 'BURSARY', 'SUPER_ADMIN', 'ADMIN', 'STUDENT']}>
@@ -395,89 +424,18 @@ export default function App() {
           </ProtectedRoute>
         )}
 
-        {/* TAB 5: ACADEMIC RESULTS */}
+        {/* TAB 5: ACADEMIC RESULTS (SENATE APPROVED - TERTIARY ONLY) */}
         {activeTab === 'results' && (
-          <div className="space-y-6 max-w-5xl mx-auto">
-            <div className="bento-card p-6 bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
-                    SENATE APPROVED
-                  </span>
-                  <span className="text-xs text-slate-500">2026/2027 • First Semester</span>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">Official Semester Examination Statement</h3>
-                <span className="text-xs text-slate-600">Aondoaver Moses Iorliam (COEKA/2026/NCE/084)</span>
-              </div>
-
-              <div className="flex items-center gap-6 bg-slate-50 p-4 rounded-xl border border-slate-200 text-center">
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase block font-semibold">Semester GPA</span>
-                  <strong className="text-2xl font-black text-emerald-700">
-                    {studentResult?.semester?.gpa !== undefined ? studentResult.semester.gpa.toFixed(2) : '4.83'}
-                  </strong>
-                </div>
-                <div className="h-8 w-px bg-slate-200" />
-                <div>
-                  <span className="text-[10px] text-slate-500 uppercase block font-semibold">Academic Standing</span>
-                  <strong className="text-sm font-bold text-slate-900">
-                    {studentResult?.cumulative?.academicStanding || 'Distinction'}
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            <div className="bento-card p-6 space-y-4">
-              <h4 className="text-sm font-bold text-slate-900">Continuous Assessment & Examination Breakdown</h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
-                      <th className="py-2.5 px-3">Course Code</th>
-                      <th className="py-2.5 px-3">Title</th>
-                      <th className="py-2.5 px-3 text-center">Units</th>
-                      <th className="py-2.5 px-3 text-center">CA (40)</th>
-                      <th className="py-2.5 px-3 text-center">Exam (60)</th>
-                      <th className="py-2.5 px-3 text-center">Total (100)</th>
-                      <th className="py-2.5 px-3 text-center">Grade</th>
-                      <th className="py-2.5 px-3 text-center">Point</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {(studentResult?.semester?.courses || [
-                      { courseCode: 'CSC 111', courseTitle: 'Intro to Computer Systems', creditUnits: 2, caScore: 34, examScore: 52, totalScore: 86, letterGrade: 'A', gradePoint: 5.0 },
-                      { courseCode: 'CSC 112', courseTitle: 'Problem Solving & BASIC', creditUnits: 3, caScore: 30, examScore: 48, totalScore: 78, letterGrade: 'A', gradePoint: 5.0 },
-                      { courseCode: 'MTH 111', courseTitle: 'Algebra & Trigonometry', creditUnits: 3, caScore: 28, examScore: 42, totalScore: 70, letterGrade: 'A', gradePoint: 5.0 },
-                      { courseCode: 'EDU 111', courseTitle: 'Philosophy of Education', creditUnits: 2, caScore: 36, examScore: 44, totalScore: 80, letterGrade: 'A', gradePoint: 5.0 },
-                      { courseCode: 'GSE 111', courseTitle: 'General English I', creditUnits: 2, caScore: 32, examScore: 46, totalScore: 78, letterGrade: 'A', gradePoint: 5.0 },
-                    ]).map((row: any) => (
-                      <tr key={row.courseCode || row.code} className="hover:bg-slate-50/80">
-                        <td className="py-2.5 px-3 font-mono font-bold text-slate-800">{row.courseCode || row.code}</td>
-                        <td className="py-2.5 px-3 font-medium text-slate-700">{row.courseTitle || row.title}</td>
-                        <td className="py-2.5 px-3 text-center font-semibold text-slate-900">{row.creditUnits || row.units}</td>
-                        <td className="py-2.5 px-3 text-center text-slate-600">{row.caScore ?? row.ca ?? 30}</td>
-                        <td className="py-2.5 px-3 text-center text-slate-600">{row.examScore ?? row.exam ?? 50}</td>
-                        <td className="py-2.5 px-3 text-center font-bold text-slate-900">{row.totalScore ?? row.total}</td>
-                        <td className="py-2.5 px-3 text-center">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                            {row.letterGrade || row.grade}
-                          </span>
-                        </td>
-                        <td className="py-2.5 px-3 text-center font-bold text-emerald-700">
-                          {Number(row.gradePoint || row.point || 5).toFixed(1)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <ProtectedRoute allowedRoles={['STUDENT', 'SUPER_ADMIN', 'ADMIN']}>
+            <SenateResultsView />
+          </ProtectedRoute>
         )}
 
-        {/* TAB 6: HOSTELS */}
+        {/* TAB 6: HOSTEL ALLOCATION (TERTIARY ONLY) */}
         {activeTab === 'hostels' && (
-          <HostelPortal />
+          <ProtectedRoute allowedRoles={['STUDENT', 'SUPER_ADMIN', 'ADMIN', 'WARDEN']}>
+            <HostelAllocationView />
+          </ProtectedRoute>
         )}
 
         {/* TAB 7: STAFF HUB (SCORE UPLOAD, ATTENDANCE & ACADEMIC ENGINE) */}

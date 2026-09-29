@@ -21,6 +21,7 @@ import {
   useStudentInvoices,
   AvailableCourseItem,
 } from '../../hooks/useStudentData';
+import { DivisionGuard } from '../common/DivisionGuard';
 
 interface CourseRegistrationViewProps {
   onNavigateToInvoices?: () => void;
@@ -106,7 +107,8 @@ export const CourseRegistrationView: React.FC<CourseRegistrationViewProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <DivisionGuard allowedDivisions={['DEGREE', 'NCE']} featureName="Course Registration">
+      <div className="space-y-6">
       {/* Fee Clearance Warning Banner (If debt exists) */}
       {hasOutstandingDebt ? (
         <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-300 text-amber-950 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
@@ -351,6 +353,7 @@ export const CourseRegistrationView: React.FC<CourseRegistrationViewProps> = ({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </DivisionGuard>
   );
 };

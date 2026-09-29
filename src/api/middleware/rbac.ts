@@ -136,10 +136,12 @@ export async function authenticateSession(c: Context<{ Bindings: Env }>): Promis
   // 3. Demo Persona Header (for development sandbox and automated tests)
   const demoRole = c.req.header('X-Demo-Role');
   if (demoRole) {
+    const demoDivision = c.req.header('X-Demo-Division');
     const user: SessionUser = {
       userId: `demo-${demoRole.toLowerCase()}-001`,
       username: `coeka-${demoRole.toLowerCase()}`,
       role: demoRole,
+      division: demoDivision || (demoRole === 'STUDENT' ? 'NCE' : 'CENTRAL'),
       userType: demoRole === 'STUDENT' ? 'STUDENT' : demoRole === 'PARENT' ? 'PARENT' : 'STAFF',
     };
     c.set('user', user);

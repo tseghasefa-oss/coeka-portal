@@ -31,10 +31,12 @@ import {
   School,
   Clock,
   ArrowRight,
-  Lock
+  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAppStore, UserRole, ActiveTab, AdminTab } from '../../stores/useAppStore';
 import { useAuth } from '../../hooks/useAuth';
+import { getStudentNavItems } from '../student/StudentSidebar';
 
 interface NavItem {
   id: ActiveTab;
@@ -53,7 +55,7 @@ interface NotificationItem {
 }
 
 export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { userSession, activeTab, setActiveTab, adminTab, setAdminTab, uiPreferences } = useAppStore();
+  const { userSession, activeTab, setActiveTab, adminTab, setAdminTab, uiPreferences, toast, setToast, activeDivision } = useAppStore();
   const { logout } = useAuth();
 
   const role: UserRole = userSession?.role || 'STUDENT';
@@ -124,16 +126,16 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
   // ROLE-BASED NAVIGATION ITEMS MAPPING
   // ---------------------------------------------------------------------------
   const getNavItems = (): NavItem[] => {
-    // 1. STUDENT
+    // 1. STUDENT (Strict Division-Based Feature Gating)
     if (role === 'STUDENT') {
-      return [
-        { id: 'dashboard_home', label: 'Command Center', icon: LayoutDashboard },
-        { id: 'results', label: 'My Academic Results', icon: GraduationCap, badge: 'New' },
-        { id: 'finance', label: 'Tuition & Fees', icon: CreditCard },
-        { id: 'hostels', label: 'Hostel Allocation', icon: Building2, badge: 'Live' },
-        { id: 'sims', label: 'Course Registration', icon: BookOpen },
-        { id: 'profile', label: 'My Profile & ID', icon: UserCheck },
-      ];
+      const division = (userSession?.division || activeDivision || 'NCE').toUpperCase();
+      const studentItems = getStudentNavItems(division);
+      return studentItems.map((item) => ({
+        id: item.id,
+        label: item.label,
+        icon: item.icon,
+        badge: item.badge,
+      }));
     }
 
     // 2. LECTURER
@@ -671,6 +673,43 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
         </main>
 
       </div>
+
+      {/* Global Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-20 right-4 sm:right-8 z-50 max-w-md shadow-2xl rounded-2xl p-4 flex items-start gap-3 border backdrop-blur-md bg-slate-900/95 text-white border-slate-700"
+          >
+            <div className={`p-2 rounded-xl shrink-0 ${
+              toast.type === 'error'
+                ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                : toast.type === 'success'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+            }`}>
+              {toast.type === 'error' ? <ShieldAlert className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+            </div>
+            <div className="flex-1 space-y-0.5 pt-0.5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block font-mono">
+                Institutional Security Alert
+              </span>
+              <p className="text-xs font-semibold text-slate-100 leading-snug">
+                {toast.message}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="p-1 text-slate-400 hover:text-white rounded-lg transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
