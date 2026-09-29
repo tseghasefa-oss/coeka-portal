@@ -94,6 +94,7 @@ function getInitialActiveTab(): ActiveTab {
 
     if (pathname.startsWith('/admin')) return 'admin';
     if (pathname.startsWith('/login') || search.includes('tab=login')) return 'login';
+    if (pathname.startsWith('/admissions') || search.includes('tab=admissions')) return 'admissions';
     if (pathname.startsWith('/dashboard')) return 'sims';
     if (pathname.startsWith('/privacy') || search.includes('tab=privacy')) return 'privacy';
     if (pathname.startsWith('/website') || search.includes('tab=website')) return 'website';

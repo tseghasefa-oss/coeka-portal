@@ -41,7 +41,6 @@ import {
   useReserveBedspace,
   useStudentResult,
   useParentWards,
-  useAdmissionsScreening,
 } from './hooks/usePortalData';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { BursarModule } from './components/bursar/BursarModule';
@@ -61,6 +60,7 @@ import { ConsentModal } from './components/compliance/ConsentModal';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { InstitutionalMaintenanceScreen } from './components/common/InstitutionalMaintenanceScreen';
 import { InstitutionalWebsite } from './components/website/InstitutionalWebsite';
+import { AdmissionsPortalPage } from './pages/AdmissionsPortalPage';
 import { DashboardLayout } from './components/layout/DashboardLayout';
 import { DashboardHome } from './components/dashboard/DashboardHome';
 import { UserProfilePage } from './components/profile/UserProfilePage';
@@ -139,6 +139,8 @@ export default function App() {
         }
       } else if (pathname.startsWith('/login') || search.includes('tab=login')) {
         setActiveTab('login');
+      } else if (pathname.startsWith('/admissions') || search.includes('tab=admissions')) {
+        setActiveTab('admissions');
       } else if (pathname.startsWith('/website') || search.includes('tab=website')) {
         setActiveTab('website');
       } else if (pathname === '/' || pathname === '') {
@@ -164,7 +166,6 @@ export default function App() {
   const reserveBedspaceMutation = useReserveBedspace();
   const { data: studentResult } = useStudentResult(activeDivision);
   const { data: parentData } = useParentWards();
-  const admissionsMutation = useAdmissionsScreening();
   const { settingsData, refetch: refetchSettings } = useSystemSettings();
   const isMaintenanceMode = Boolean(settingsData?.maintenanceMode);
   const isSuperAdmin = userSession?.role === 'SUPER_ADMIN';
@@ -173,16 +174,6 @@ export default function App() {
   const [selectedGateway, setSelectedGateway] = useState<'VPAY' | 'PAYSTACK' | 'REMITA_BSCPP'>('VPAY');
   const [hostelReserved, setHostelReserved] = useState(false);
   const [reservationTimer, setReservationTimer] = useState(900); // 15 mins in seconds
-
-  // Admissions State
-  const [applicantDivision, setApplicantDivision] = useState<'NCE' | 'DEGREE'>('NCE');
-  const [applicantName, setApplicantName] = useState('Terfa Emmanuel Aondo');
-  const [applicantJamb, setApplicantJamb] = useState(165);
-  const [admissionOffer, setAdmissionOffer] = useState<{
-    applicationNumber: string;
-    isEligible: boolean;
-    reason: string;
-  } | null>(null);
 
   // Timer countdown simulation
   useEffect(() => {
@@ -199,33 +190,6 @@ export default function App() {
     setTimeout(() => setCopiedAccount(false), 2000);
   };
 
-  const handleApply = (e: React.FormEvent) => {
-    e.preventDefault();
-    admissionsMutation.mutate(
-      {
-        division: applicantDivision,
-        jambScore: applicantJamb,
-        departmentCutOff: applicantDivision === 'DEGREE' ? 140 : 100,
-        oLevelSubjects: [
-          { subject: 'English Language', grade: 'C4' },
-          { subject: 'Mathematics', grade: 'C5' },
-          { subject: 'Biology', grade: 'B3' },
-          { subject: 'Chemistry', grade: 'C6' },
-          { subject: 'Physics', grade: 'B2' },
-        ],
-      },
-      {
-        onSuccess: (evaluation) => {
-          setAdmissionOffer({
-            applicationNumber: `COEKA/${applicantDivision}/2026/${Math.floor(1000 + Math.random() * 9000)}`,
-            isEligible: evaluation.isEligible,
-            reason: evaluation.reason,
-          });
-        },
-      }
-    );
-  };
-
   // If activeTab is 'privacy', render PrivacyPolicy page
   if (activeTab === 'privacy') {
     return <PrivacyPolicy />;
@@ -239,6 +203,11 @@ export default function App() {
   // If activeTab is 'login', render high-fidelity LoginPage
   if (activeTab === 'login') {
     return <LoginPage />;
+  }
+
+  // If activeTab is 'admissions', render dedicated public AdmissionsPortalPage
+  if (activeTab === 'admissions') {
+    return <AdmissionsPortalPage />;
   }
 
   // Full-Page Maintenance Screen: Intercept all non-SuperAdmin users when Maintenance Mode is engaged
@@ -304,141 +273,8 @@ export default function App() {
         </ProtectedRoute>
       )}
 
-      {/* TAB 1: ADMISSIONS PORTAL */}
-      {activeTab === 'admissions' && (
-          <div className="max-w-4xl mx-auto space-y-6">
-            <div className="bento-card p-8">
-              <div className="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900">Online Admissions Portal</h2>
-                  <p className="text-sm text-slate-500">Apply for NCE, Degree, Secondary, or Primary enrollment</p>
-                </div>
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                  2026/2027 Open
-                </span>
-              </div>
-
-              {!admissionOffer ? (
-                <form onSubmit={handleApply} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                        Programme Division
-                      </label>
-                      <select
-                        value={applicantDivision}
-                        onChange={(e) => setApplicantDivision(e.target.value as any)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                      >
-                        <option value="NCE">NCE (Nigeria Certificate in Education)</option>
-                        <option value="DEGREE">Degree Programmes (Affiliated University)</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                        Full Name (as in JAMB)
-                      </label>
-                      <input
-                        type="text"
-                        value={applicantName}
-                        onChange={(e) => setApplicantName(e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                        UTME / Screening Score
-                      </label>
-                      <input
-                        type="number"
-                        value={applicantJamb}
-                        onChange={(e) => setApplicantJamb(Number(e.target.value))}
-                        className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase text-slate-700 mb-1">
-                        Intended Course of Study
-                      </label>
-                      <select className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-sm focus:ring-2 focus:ring-emerald-600 focus:outline-none">
-                        <option>Computer Science / Mathematics</option>
-                        <option>Biology / Integrated Science</option>
-                        <option>English / Social Studies</option>
-                        <option>Business Education (Degree)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-emerald-800 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl shadow transition-all flex items-center justify-center gap-2"
-                  >
-                    <span>Submit Application & Check Instant Screening</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </form>
-              ) : (
-                <div className="space-y-6">
-                  <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-start gap-4">
-                    <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0 mt-0.5" />
-                    <div>
-                      <h3 className="text-lg font-bold text-emerald-950">
-                        Provisional Admission Offered!
-                      </h3>
-                      <p className="text-sm text-emerald-800 mt-1">{admissionOffer.reason}</p>
-                      <div className="mt-3 text-xs font-mono text-emerald-900 bg-white/80 p-2 rounded border border-emerald-200 inline-block">
-                        Application Ref: <strong>{admissionOffer.applicationNumber}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="border border-slate-200 rounded-2xl p-6 bg-white shadow-sm space-y-4 font-serif">
-                    <div className="text-center border-b border-slate-200 pb-4">
-                      <h3 className="text-lg font-bold text-emerald-950 uppercase tracking-wide">
-                        College of Education, Katsina-Ala
-                      </h3>
-                      <p className="text-xs text-slate-500">Office of the Registrar • P.M.B. 1008, Katsina-Ala, Benue State</p>
-                    </div>
-
-                    <div className="text-sm space-y-2 text-slate-800 font-sans">
-                      <p>Dear <strong>{applicantName}</strong>,</p>
-                      <p>
-                        You have been offered provisional admission into the{' '}
-                        <strong>{applicantDivision} Programme</strong> for the 2026/2027 Academic Session.
-                        Please proceed to pay your acceptance fee of ₦15,000.00.
-                      </p>
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-200 flex items-center justify-between text-xs text-slate-500 font-sans">
-                      <span>Registrar: COEKA Academic Board</span>
-                      <button
-                        onClick={() => setActiveTab('finance')}
-                        className="bg-emerald-800 text-white font-bold px-4 py-2 rounded-lg hover:bg-emerald-700"
-                      >
-                        Pay Acceptance Fee
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setAdmissionOffer(null)}
-                    className="text-xs text-slate-500 underline"
-                  >
-                    ← Submit another application
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: STUDENT INFORMATION MANAGEMENT SYSTEM (SIMS - TERTIARY & BASIC) */}
-        {activeTab === 'sims' && (
+      {/* TAB 3: STUDENT INFORMATION MANAGEMENT SYSTEM (SIMS - TERTIARY & BASIC) */}
+      {activeTab === 'sims' && (
           <ProtectedRoute allowedRoles={['STUDENT', 'SUPER_ADMIN', 'ADMIN']}>
             <StudentDashboard />
           </ProtectedRoute>

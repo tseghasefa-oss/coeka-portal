@@ -432,10 +432,10 @@ export const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ child
               {/* Name & Role Badge (Visible sm+) */}
               <div className="hidden sm:flex flex-col text-left">
                 <span className="text-xs font-bold text-slate-900 leading-tight truncate max-w-[130px]">
-                  {userSession?.fullName || 'Aondoaver Moses'}
+                  {userSession?.fullName || 'Portal User'}
                 </span>
                 <span className="text-[10px] font-black text-blue-700 tracking-wider uppercase">
-                  {role}
+                  {userSession?.role || 'STUDENT'}
                 </span>
               </div>
             </div>
