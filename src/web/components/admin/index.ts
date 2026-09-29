@@ -19,4 +19,5 @@ export { AuditVault } from './AuditVault';
 export { MaintenanceModeToggle } from './MaintenanceModeToggle';
 export { FeeMatrixAuditor } from './FeeMatrixAuditor';
 export { AssetOversight } from './AssetOversight';
+export { BulletinManager } from './BulletinManager';
 export { SuperAdminDashboard } from './SuperAdminDashboard';

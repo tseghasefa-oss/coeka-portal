@@ -35,6 +35,8 @@ import {
   X,
   Clock,
   HardDrive,
+  Megaphone,
+  Radio,
 } from 'lucide-react';
 import { useAppStore, AdminTab } from '../../stores/useAppStore';
 import { SystemPipelineView } from './SystemPipelineView';
@@ -52,6 +54,7 @@ import { AdminCoursesTab } from './AdminCoursesTab';
 import { AdmissionManager } from './AdmissionManager';
 import { SessionControls } from './SessionControls';
 import { AuditTrailView } from './AuditTrailView';
+import { BulletinManager } from './BulletinManager';
 
 export type ManagementSuite =
   | 'hub'
@@ -60,7 +63,8 @@ export type ManagementSuite =
   | 'forensics'
   | 'infrastructure'
   | 'admissions'
-  | 'pipeline';
+  | 'pipeline'
+  | 'bulletins';
 
 // Lightweight, pure React SVG Sparkline component for KPI trendlines
 const Sparkline: React.FC<{ data: number[]; color?: string }> = ({ data, color = '#2563EB' }) => {
@@ -161,6 +165,7 @@ export const SuperAdminDashboard: React.FC = () => {
     { label: 'Bulk Admissions & Candidate Screening', category: 'Admissions', suite: 'admissions' as const, subTab: 'upload', icon: UserCheck },
     { label: 'Session Progression & Matriculation Reset', category: 'Admissions', suite: 'admissions' as const, subTab: 'progression', icon: RefreshCw },
     { label: 'Autonomous Concurrency & Bed Pipeline', category: 'Pipeline', suite: 'pipeline' as const, subTab: null, icon: TrendingUp },
+    { label: 'Campus Bulletin & Broadcast Manager', category: 'Communications', suite: 'bulletins' as const, subTab: null, icon: Megaphone },
   ];
 
   const filteredCommands = commandPaletteItems.filter((item) =>
@@ -219,6 +224,7 @@ export const SuperAdminDashboard: React.FC = () => {
               {activeSuite === 'infrastructure' && 'Infrastructure Suite'}
               {activeSuite === 'admissions' && 'Admissions Suite'}
               {activeSuite === 'pipeline' && 'System Pipeline'}
+              {activeSuite === 'bulletins' && 'Bulletin & Broadcast Manager'}
             </span>
           </div>
 
@@ -405,8 +411,8 @@ export const SuperAdminDashboard: React.FC = () => {
                 </button>
               </div>
 
-              {/* 6 Minimalist Suite Cards Across Full Width */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 mt-5">
+              {/* 7 Minimalist Suite Cards Across Full Width */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3.5 mt-5">
                 <button
                   type="button"
                   onClick={() => { setActiveSuite('institutional'); setInstitutionalSubTab('fees'); }}
@@ -477,6 +483,18 @@ export const SuperAdminDashboard: React.FC = () => {
                   </div>
                   <span className="text-xs font-black leading-tight">Pipeline Engine</span>
                   <span className="text-[10px] text-slate-500 group-hover:text-slate-300 mt-1">Hostels & SIMS</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSuite('bulletins')}
+                  className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/40 hover:bg-[#0B192C] text-slate-800 dark:text-slate-200 hover:text-white border border-slate-200/70 dark:border-slate-700/60 transition-all flex flex-col items-center justify-center text-center group cursor-pointer shadow-xs hover:-translate-y-0.5"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-700 group-hover:bg-white/10 flex items-center justify-center mb-2.5 transition-colors shadow-2xs">
+                    <Megaphone className="w-5 h-5 text-amber-500 group-hover:text-amber-400 transition-colors" />
+                  </div>
+                  <span className="text-xs font-black leading-tight">Campus Bulletins</span>
+                  <span className="text-[10px] text-slate-500 group-hover:text-slate-300 mt-1">Multi-Channel Tickers</span>
                 </button>
               </div>
             </div>
@@ -810,6 +828,99 @@ export const SuperAdminDashboard: React.FC = () => {
               </div>
             </div>
 
+            {/* --------------------------------------------------------------- */}
+            {/* BOX 7: INSTITUTIONAL BULLETIN & BROADCAST DISPATCH             */}
+            {/* --------------------------------------------------------------- */}
+            <div className="w-full bg-white dark:bg-slate-900 rounded-2xl sm:rounded-3xl p-6 sm:p-7 border border-slate-200/80 dark:border-slate-800 shadow-xs hover:shadow-md transition-all duration-200">
+              {/* Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800 gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center font-bold shadow-2xs">
+                    <Megaphone className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-black text-[#0B192C] dark:text-white tracking-tight">
+                      Institutional Bulletin & Broadcast Manager
+                    </h2>
+                    <p className="text-xs text-slate-500">Live multi-channel announcement engine targeting website tickers, notice boards, and student SIMS</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <span className="bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-3 py-1 rounded-full inline-flex items-center gap-1.5 shadow-2xs">
+                    <Radio className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                    Multi-Channel Edge Broadcast
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSuite('bulletins')}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0B192C] hover:bg-slate-900 text-white font-bold text-xs transition-colors shadow-xs cursor-pointer"
+                  >
+                    <span>Manage Bulletins & Tickers</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Ticker Live Preview & Channel Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+                {/* Live Ticker Channel */}
+                <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Website Top Bar Ticker</span>
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      Live Synchronized
+                    </span>
+                  </div>
+                  <div className="mt-2 text-xs font-bold text-slate-800 dark:text-slate-200 line-clamp-2">
+                    Admissions Open for NCE & Affiliated Degree Programmes • Hostel Self-Service Active
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>Rotation: 5s interval</span>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSuite('bulletins')}
+                      className="text-blue-600 font-bold hover:underline cursor-pointer"
+                    >
+                      Configure Ticker →
+                    </button>
+                  </div>
+                </div>
+
+                {/* Target Audience Reach */}
+                <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 flex flex-col justify-between">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Active Distribution Channels</span>
+                    <span className="text-xs font-bold text-blue-600">5 Touchpoints</span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">Website Ticker</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">Notice Board</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-100 text-purple-800">Student SIMS</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">Staff Portal</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-200 text-slate-800">Admissions</span>
+                  </div>
+                  <div className="mt-3 text-[11px] text-slate-400">Targeted by role & admission status</div>
+                </div>
+
+                {/* Fast Action CTA */}
+                <div className="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/80 dark:border-amber-900/40 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[11px] font-black uppercase tracking-wider text-amber-900 dark:text-amber-300">Fast Broadcast Dispatch</span>
+                    <div className="text-xs font-medium text-amber-800 dark:text-amber-200 mt-1">
+                      Instantly publish emergency alerts, semester date modifications, or fee guidelines.
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSuite('bulletins')}
+                    className="mt-3 w-full py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0B192C] font-black text-xs shadow-xs transition-colors cursor-pointer text-center"
+                  >
+                    + Compose New Official Notice
+                  </button>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       )}
@@ -1111,6 +1222,14 @@ export const SuperAdminDashboard: React.FC = () => {
           <SystemPipelineView />
         </div>
       )}
+
+      {/* SUITE 7: INSTITUTIONAL BULLETIN & BROADCAST MANAGER */}
+      {activeSuite === 'bulletins' && (
+        <div className="space-y-6 animate-fade-in">
+          <BulletinManager />
+        </div>
+      )}
+
 
       {/* ========================================================================= */}
       {/* 4. SEARCH-FIRST COMMAND PALETTE MODAL (CMD + K)                           */}

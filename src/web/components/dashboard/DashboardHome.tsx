@@ -24,17 +24,45 @@ import {
   FileText,
   KeyRound,
   ExternalLink,
-  Laptop
+  Laptop,
+  Pin,
+  Megaphone
 } from 'lucide-react';
 import { useAppStore, UserRole } from '../../stores/useAppStore';
+import { useBulletinStore } from '../../stores/useBulletinStore';
 
 export const DashboardHome: React.FC = () => {
   const { userSession, setActiveTab, setAdminTab } = useAppStore();
+  const { bulletins } = useBulletinStore();
   const role: UserRole = userSession?.role || 'STUDENT';
 
   // Greeting time
   const currentHour = new Date().getHours();
   const timeGreeting = currentHour < 12 ? 'Good Morning' : currentHour < 17 ? 'Good Afternoon' : 'Good Evening';
+
+  const activeBulletins = React.useMemo(() => {
+    return bulletins
+      .filter((b) => {
+        if (!b.isPublished) return false;
+        // Check placement
+        const hasPlacement =
+          b.placements.includes('STUDENT_DASHBOARD') ||
+          (role !== 'STUDENT' && b.placements.includes('STAFF_PORTAL'));
+        if (!hasPlacement) return false;
+
+        // Check audience
+        if (b.audiences.includes('ALL')) return true;
+        if (role === 'STUDENT' && b.audiences.includes('STUDENTS')) return true;
+        if (role !== 'STUDENT' && (b.audiences.includes('STAFF') || b.audiences.includes('ADMIN'))) return true;
+        return false;
+      })
+      .sort((a, b) => {
+        if (a.pinToTop && !b.pinToTop) return -1;
+        if (!a.pinToTop && b.pinToTop) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 4);
+  }, [bulletins, role]);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -640,37 +668,37 @@ export const DashboardHome: React.FC = () => {
           </div>
 
           <div className="space-y-3">
-            {[
-              {
-                title: '2026/2027 Admissions Screening Commences',
-                tag: 'Admissions',
-                date: 'Sep 25',
-                desc: 'UTME candidates with score 100+ (NCE) or 140+ (Degree) are invited to apply.',
-              },
-              {
-                title: 'Autonomous Hostel Allocation Now Live',
-                tag: 'Student Affairs',
-                date: 'Sep 22',
-                desc: 'Students with 100% fee clearance can reserve bedspaces directly on SIMS.',
-              },
-              {
-                title: 'First Semester Resumption & Orientation',
-                tag: 'Academic',
-                date: 'Sep 18',
-                desc: 'Physical resumption begins Monday Oct 12, 2026 with matriculation ceremony.',
-              },
-            ].map((item, idx) => (
-              <div key={idx} className="p-3 rounded-xl bg-slate-50 border border-slate-100 space-y-1">
-                <div className="flex items-center justify-between text-[11px]">
-                  <span className="font-bold text-blue-700 bg-blue-100/60 px-2 py-0.5 rounded">
-                    {item.tag}
-                  </span>
-                  <span className="text-slate-400">{item.date}</span>
-                </div>
-                <h4 className="text-xs font-bold text-slate-900">{item.title}</h4>
-                <p className="text-[11px] text-slate-500 leading-tight">{item.desc}</p>
+            {activeBulletins.length === 0 ? (
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100 text-center text-xs text-slate-500">
+                No active announcements for your profile at this time.
               </div>
-            ))}
+            ) : (
+              activeBulletins.map((item) => (
+                <div key={item.id} className="p-3.5 rounded-xl bg-slate-50/80 hover:bg-slate-100/80 border border-slate-200/80 space-y-1.5 transition-colors">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-bold text-blue-700 bg-blue-100/70 px-2 py-0.5 rounded text-[10px] tracking-wide uppercase">
+                        {item.category}
+                      </span>
+                      {item.priority === 'URGENT' && (
+                        <span className="font-bold text-rose-700 bg-rose-100/70 px-1.5 py-0.5 rounded text-[10px]">
+                          Urgent
+                        </span>
+                      )}
+                      {item.pinToTop && (
+                        <span className="flex items-center gap-0.5 text-amber-700 bg-amber-100/70 px-1.5 py-0.5 rounded text-[10px] font-semibold">
+                          <Pin className="w-2.5 h-2.5 fill-amber-600" />
+                          Pinned
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-slate-400 font-medium text-[10px]">{item.date}</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900 leading-snug">{item.title}</h4>
+                  <p className="text-[11px] text-slate-600 leading-relaxed line-clamp-2">{item.summary}</p>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
