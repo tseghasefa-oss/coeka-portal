@@ -6,7 +6,8 @@ export interface OLevelSubjectGrade {
 export interface ScreeningEvaluationInput {
   division: 'NCE' | 'DEGREE' | 'SECONDARY' | 'PRIMARY';
   jambScore?: number;
-  oLevelSubjects: OLevelSubjectGrade[];
+  entranceExamScore?: number;
+  oLevelSubjects?: OLevelSubjectGrade[];
   departmentCutOff: number;
 }
 
@@ -24,13 +25,33 @@ export class ScreeningEngine {
    * Evaluate applicant eligibility against institutional criteria
    */
   static evaluateApplication(input: ScreeningEvaluationInput): ScreeningResult {
-    // 1. Check O-Level credits (C6 or better)
+    // 1. Basic & Secondary Education: Evaluated on continuous assessment & diagnostic entrance screening
+    if (input.division === 'SECONDARY' || input.division === 'PRIMARY') {
+      const entranceScore = input.entranceExamScore ?? input.jambScore ?? 75;
+      const passMark = input.departmentCutOff || 50;
+      const isEligible = entranceScore >= passMark;
+
+      return {
+        isEligible,
+        creditPassesCount: 0,
+        hasEnglishAndMath: true,
+        totalCompositeScore: entranceScore,
+        recommendation: isEligible ? 'ADMIT' : 'REJECT',
+        reason: isEligible
+          ? input.division === 'SECONDARY'
+            ? 'Candidate successfully cleared for admission into COEKA Demonstration Secondary School based on entrance assessment and diagnostic placement.'
+            : 'Pupil successfully cleared for enrollment into Demonstration Primary & Nursery School based on foundational school readiness assessment.'
+          : 'Candidate scored below the benchmark pass mark (50%) for entrance into the target class.',
+      };
+    }
+
+    // 2. Tertiary divisions (NCE and DEGREE): Enforce O-Level credits and JAMB cut-offs
     const creditGrades = new Set(['A1', 'B2', 'B3', 'C4', 'C5', 'C6']);
     let creditCount = 0;
     let hasEnglish = false;
     let hasMath = false;
 
-    for (const sub of input.oLevelSubjects) {
+    for (const sub of (input.oLevelSubjects || [])) {
       const subjectLower = sub.subject.toLowerCase();
       const isCredit = creditGrades.has(sub.grade);
 
@@ -43,7 +64,7 @@ export class ScreeningEngine {
 
     const hasEnglishAndMath = hasEnglish && hasMath;
 
-    // 2. JAMB Cut-off check for tertiary divisions
+    // JAMB Cut-off check for tertiary divisions
     let jambPassed = true;
     let compositeScore = 0;
 
@@ -55,13 +76,9 @@ export class ScreeningEngine {
       const jamb = input.jambScore || 0;
       compositeScore = jamb;
       jambPassed = jamb >= (input.departmentCutOff || 140); // Degree cut-off benchmark
-    } else {
-      // Basic / Secondary entrance examination score
-      compositeScore = input.jambScore || 70;
-      jambPassed = compositeScore >= 50;
     }
 
-    // 3. Overall eligibility determination
+    // Overall eligibility determination
     let recommendation: 'ADMIT' | 'REJECT' | 'SUPPLEMENTARY' = 'REJECT';
     let reason = '';
 
